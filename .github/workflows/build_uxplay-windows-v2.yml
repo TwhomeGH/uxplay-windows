@@ -166,8 +166,22 @@ jobs:
           name: uxplay-windows
           path: release/**
 
-      - name: Upload x64 done marker
-        uses: actions/upload-artifact@v5
+      
+      - name: Get build time
+        id: buildtime
+        run: echo "time=$(date +'%Y-%m-%d %H:%M:%S')" >> $GITHUB_OUTPUT
+      
+      - name: Create Pre-release
+        uses: softprops/action-gh-release@v2
         with:
-          name: build-x64-done
-          path: marker-x64.txt
+          tag_name: nightly-build-x64
+          name: "Nightly Build (${{ steps.buildtime.outputs.time }})"
+          prerelease: true
+          body: |
+            Nightly build generated at ${{ steps.buildtime.outputs.time }}.
+            Includes x64 artifacts.
+          files: |
+            release/**
+            uxplaywindows-installer.msi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
