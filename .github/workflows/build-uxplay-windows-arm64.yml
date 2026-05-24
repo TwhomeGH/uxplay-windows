@@ -158,8 +158,7 @@ jobs:
           wix build -acceptEula wix7 product.wxs `
             -arch arm64 `
             -out uxplaywindows-installer-arm64.msi `
-            -ext WixToolset.UI.wixext `
-            -dLicenseRtf=LICENSE.rtf
+            -ext WixToolset.UI.wixext
 
       - name: upload msi artifact
         uses: actions/upload-artifact@v5
