@@ -166,10 +166,17 @@ jobs:
           name: uxplay-windows
           path: release/**
 
-      
+      - name: Download x64 artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: uxplay-windows
+          path: x64/
+
       - name: Get build time
         id: buildtime
         run: echo "time=$(date +'%Y-%m-%d %H:%M:%S')" >> $GITHUB_OUTPUT
+      
+
       
       - name: Create Pre-release
         uses: softprops/action-gh-release@v2
@@ -181,7 +188,7 @@ jobs:
             Nightly build generated at ${{ steps.buildtime.outputs.time }}.
             Includes x64 artifacts.
           files: |
-            release/**
+            x64/**
             uxplaywindows-installer.msi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
