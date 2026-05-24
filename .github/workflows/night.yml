@@ -3,7 +3,7 @@ name: Release Pre-Release
 
 on:
   workflow_run:
-    workflows: ["Build uxplay-windows-x64", "Build uxplay-windows-arm64"]   # 兩個 workflow 的名字
+    workflows: ["Build uxplay-windows-arm64"]   # 兩個 workflow 的名字
     types:
       - completed
 
