@@ -194,7 +194,7 @@ jobs:
             Nightly build generated at ${{ steps.buildtime.outputs.time }}.
             Includes arm64 artifacts.
           files: |
-            arm/**
+            arm/*.zip
             uxplaywindows-installer-arm64.msi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
