@@ -162,3 +162,9 @@ jobs:
         with:
           name: uxplay-windows
           path: release/**
+
+      - name: Upload x64 done marker
+        uses: actions/upload-artifact@v5
+        with:
+          name: build-x64-done
+          path: marker-x64.txt

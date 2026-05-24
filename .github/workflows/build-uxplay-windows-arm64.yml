@@ -171,3 +171,9 @@ jobs:
         with:
           name: uxplay-windows-arm64
           path: release/**
+
+      - name: Upload ARM done marker
+        uses: actions/upload-artifact@v5
+        with:
+          name: build-arm-done
+          path: marker-arm.txt
