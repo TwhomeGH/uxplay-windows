@@ -151,10 +151,15 @@ jobs:
 
           wix extension add WixToolset.UI.wixext -acceptEula wix7
 
+          # 建立一個簡單 LICENSE.rtf
+          Set-Content -Path LICENSE.rtf -Value "{\rtf1\ansi This is a sample license agreement.}"
+
+
           wix build -acceptEula wix7 product.wxs `
             -arch arm64 `
             -out uxplaywindows-installer-arm64.msi `
-            -ext WixToolset.UI.wixext
+            -ext WixToolset.UI.wixext `
+            -dLicenseRtf=..\LICENSE.rtf
 
       - name: upload msi artifact
         uses: actions/upload-artifact@v5
