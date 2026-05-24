@@ -188,7 +188,7 @@ jobs:
             Nightly build generated at ${{ steps.buildtime.outputs.time }}.
             Includes x64 artifacts.
           files: |
-            x64/**
+            x64/uxplay-windows.zip
             uxplaywindows-installer.msi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
