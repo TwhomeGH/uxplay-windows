@@ -28,7 +28,7 @@ echo "================================================="
 mkdir -p "$BUILD_DIR"
 cd "$BUILD_DIR"
 cmake -DCMAKE_BUILD_TYPE=Release -G Ninja \
-  -DCMAKE_EXPORT_COMPILE_COMMANDS=ON $PROJECT_ROOT -DNO_MARCH_NATIVE=ON -A ARM64 ..
+  -DCMAKE_EXPORT_COMPILE_COMMANDS=ON $PROJECT_ROOT -DNO_MARCH_NATIVE=ON ..
 ninja
 cd ..
 
