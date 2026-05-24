@@ -11,10 +11,35 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
+
+
+      - name: Download x64 marker
+        uses: actions/download-artifact@v5
+        with:
+          name: build-x64-done
+          path: markers/x64
+
+      - name: Download ARM marker
+        uses: actions/download-artifact@v5
+        with:
+          name: build-arm-done
+          path: markers/arm
+
+      - name: Check markers
+        run: |
+          if [ ! -f markers/x64/marker-x64.txt ]; then
+            echo "x64 build not ready"; exit 1
+          fi
+          if [ ! -f markers/arm/marker-arm.txt ]; then
+            echo "ARM build not ready"; exit 1
+          fi
+          echo "Both builds ready, continue..."
+
+
       - name: Get build time
         id: buildtime
         run: echo "time=$(date +'%Y-%m-%d %H:%M:%S')" >> $GITHUB_OUTPUT
-
+      
       - name: Download x64 msi artifact
         uses: actions/download-artifact@v5
         with:
@@ -38,7 +63,7 @@ jobs:
         with:
           name: uxplay-windows-arm64
           path: dist/arm
-          
+
 
       - name: Create Pre-release
         uses: softprops/action-gh-release@v2
