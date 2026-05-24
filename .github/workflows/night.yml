@@ -15,17 +15,30 @@ jobs:
         id: buildtime
         run: echo "time=$(date +'%Y-%m-%d %H:%M:%S')" >> $GITHUB_OUTPUT
 
+      - name: Download x64 msi artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: uxplay-windows-msi
+          path: dist/x64
+
       - name: Download x64 artifact
         uses: actions/download-artifact@v5
         with:
-          name: uxplay-windows-x64
+          name: uxplay-windows
           path: dist/x64
+
+      - name: Download ARM msi artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: uxplay-windows-arm64-msi
+          path: dist/arm
 
       - name: Download ARM artifact
         uses: actions/download-artifact@v5
         with:
-          name: uxplay-windows-arm
+          name: uxplay-windows-arm64
           path: dist/arm
+          
 
       - name: Create Pre-release
         uses: softprops/action-gh-release@v2
