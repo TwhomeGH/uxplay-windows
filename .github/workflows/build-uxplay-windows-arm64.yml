@@ -160,6 +160,8 @@ jobs:
             -out uxplaywindows-installer-arm64.msi `
             -ext WixToolset.UI.wixext
 
+          echo "ARM Done" > marker-arm.txt
+
       - name: upload msi artifact
         uses: actions/upload-artifact@v5
         with:

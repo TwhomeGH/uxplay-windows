@@ -151,6 +151,9 @@ jobs:
             -out uxplaywindows-installer.msi `
             -ext WixToolset.UI.wixext
 
+
+          echo "x64 Done" > marker-x64.txt
+
       - name: upload msi artifact
         uses: actions/upload-artifact@v5
         with:
