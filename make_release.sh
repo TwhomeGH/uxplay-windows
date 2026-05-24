@@ -29,8 +29,15 @@ mkdir -p "$BUILD_DIR"
 cd "$BUILD_DIR"
 CPU_BASELINE_FLAGS="-march=x86-64 -mtune=generic -mno-avx -mno-avx2 -mno-avx512f -mno-fma"
 cmake -DCMAKE_BUILD_TYPE=Release -G Ninja .. \
+  -DCMAKE_C_COMPILER=gcc \
+  -DCMAKE_CXX_COMPILER=g++ \
+  -DDBUS_LIBRARY=/mingw64/lib/libdbus-1.dll.a \
   -DCMAKE_C_FLAGS_RELEASE="$CPU_BASELINE_FLAGS" \
-  -DCMAKE_CXX_FLAGS_RELEASE="$CPU_BASELINE_FLAGS"
+  -DCMAKE_CXX_FLAGS_RELEASE="$CPU_BASELINE_FLAGS" \
+  -DCMAKE_PREFIX_PATH=/mingw64 \
+  -DOPENSSL_ROOT_DIR=/mingw64 \
+  -DOPENSSL_INCLUDE_DIR=/mingw64/include \
+  -DOPENSSL_LIBRARIES="/mingw64/lib/libssl.dll.a;/mingw64/lib/libcrypto.dll.a"
 ninja
 cd ..
 
