@@ -399,7 +399,7 @@ void MainWindow::startServer() {
     }
 
     applyRendererAndFullscreenArgs(args);
-    applyDisplayNameArg(args)
+    applyDisplayNameArg(args);
 
     // Only add -ble and start beacon if checkbox is checked
     if (!m_bleCheckbox) return;
