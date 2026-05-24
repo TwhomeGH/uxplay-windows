@@ -159,7 +159,7 @@ jobs:
             -arch arm64 `
             -out uxplaywindows-installer-arm64.msi `
             -ext WixToolset.UI.wixext `
-            -dLicenseRtf=..\LICENSE.rtf
+            -dLicenseRtf=LICENSE.rtf
 
       - name: upload msi artifact
         uses: actions/upload-artifact@v5
