@@ -1,0 +1,43 @@
+
+name: Release Pre-Release
+
+on:
+  workflow_run:
+    workflows: ["Build uxplay-windows-x64", "Build uxplay-windows-arm64"]   # 兩個 workflow 的名字
+    types:
+      - completed
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get build time
+        id: buildtime
+        run: echo "time=$(date +'%Y-%m-%d %H:%M:%S')" >> $GITHUB_OUTPUT
+
+      - name: Download x64 artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: uxplay-windows-x64
+          path: dist/x64
+
+      - name: Download ARM artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: uxplay-windows-arm
+          path: dist/arm
+
+      - name: Create Pre-release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: nightly-build
+          name: "Nightly Build (${{ steps.buildtime.outputs.time }})"
+          prerelease: true
+          body: |
+            Nightly build generated at ${{ steps.buildtime.outputs.time }}.
+            Includes x64 and ARM artifacts.
+          files: |
+            dist/x64/**
+            dist/arm/**
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

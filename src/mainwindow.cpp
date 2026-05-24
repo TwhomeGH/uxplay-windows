@@ -98,7 +98,7 @@ void MainWindow::ensureSettingsFileExists() {
     if (!file.exists()) {
         if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
             QTextStream out(&file);
-            out << "-n uxplay-windows -nh";
+            out << "-h265 -fps 60 -n uxplay-windows -nh";
             file.close();
         }
     }

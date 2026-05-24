@@ -1,4 +1,4 @@
-name: build uxplay-windows-arm64
+name: Build uxplay-windows-arm64
 
 on:
   push:
