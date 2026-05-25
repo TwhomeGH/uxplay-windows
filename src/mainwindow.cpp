@@ -274,8 +274,22 @@ void MainWindow::setupTray() {
     m_tray->setToolTip("uxplay-windows");
 
     m_trayMenu = new QMenu(this);
-    m_trayMenu->addAction("Quit", this, &MainWindow::quit);
+    m_mediaInfoMenu = m_trayMenu->addMenu("Media Info");
+    m_mediaStatusAction = m_mediaInfoMenu->addAction("Status: Not connected");
+    m_videoCodecAction = m_mediaInfoMenu->addAction("Video Codec: -");
+    m_videoDecoderAction = m_mediaInfoMenu->addAction("Video Decoder: -");
+    m_videoRendererAction = m_mediaInfoMenu->addAction("Video Renderer: -");
+    m_streamSizeAction = m_mediaInfoMenu->addAction("Stream Size: -");
+    m_audioCodecAction = m_mediaInfoMenu->addAction("Audio Codec: -");
+    m_audioFormatAction = m_mediaInfoMenu->addAction("Audio Format: -");
+    for (QAction *action : {m_mediaStatusAction, m_videoCodecAction, m_videoDecoderAction,
+                            m_videoRendererAction, m_streamSizeAction, m_audioCodecAction,
+                            m_audioFormatAction}) {
+        action->setEnabled(false);
+    }
+    m_trayMenu->addSeparator();
     m_trayMenu->addAction("Restart", this, &MainWindow::restartApplication);
+    m_trayMenu->addAction("Quit", this, &MainWindow::quit);
 
     m_tray->setContextMenu(m_trayMenu);
     
@@ -390,6 +404,36 @@ void MainWindow::updateResolutionControls() {
     m_widthSpin->setEnabled(isCustom);
     m_heightSpin->setEnabled(isCustom);
     m_refreshSpin->setEnabled(!isAuto);
+}
+
+void MainWindow::resetMediaInfo(const QString &status) {
+    if (m_mediaStatusAction) m_mediaStatusAction->setText("Status: " + status);
+    if (m_videoCodecAction) m_videoCodecAction->setText("Video Codec: -");
+    if (m_videoDecoderAction) m_videoDecoderAction->setText("Video Decoder: -");
+    if (m_videoRendererAction) m_videoRendererAction->setText("Video Renderer: -");
+    if (m_streamSizeAction) m_streamSizeAction->setText("Stream Size: -");
+    if (m_audioCodecAction) m_audioCodecAction->setText("Audio Codec: -");
+    if (m_audioFormatAction) m_audioFormatAction->setText("Audio Format: -");
+}
+
+void MainWindow::updateMediaInfo(const QString &key, const QString &value) {
+    if (m_mediaStatusAction && key != "Video Decoder" && key != "Video Renderer") {
+        m_mediaStatusAction->setText("Status: Streaming");
+    }
+
+    if (key == "Video Codec" && m_videoCodecAction) {
+        m_videoCodecAction->setText("Video Codec: " + value);
+    } else if (key == "Video Decoder" && m_videoDecoderAction) {
+        m_videoDecoderAction->setText("Video Decoder: " + value);
+    } else if (key == "Video Renderer" && m_videoRendererAction) {
+        m_videoRendererAction->setText("Video Renderer: " + value);
+    } else if (key == "Stream Size" && m_streamSizeAction) {
+        m_streamSizeAction->setText("Stream Size: " + value);
+    } else if (key == "Audio Codec" && m_audioCodecAction) {
+        m_audioCodecAction->setText("Audio Codec: " + value);
+    } else if (key == "Audio Format" && m_audioFormatAction) {
+        m_audioFormatAction->setText("Audio Format: " + value);
+    }
 }
 
 // 更新顯示名稱
@@ -560,8 +604,7 @@ void MainWindow::startServer() {
     if (m_bleCheckbox->isChecked()) {
         QString bleFilePath = QDir::toNativeSeparators(appData + "/uxplay_status.ble");
         args << "-ble" << bleFilePath;
-        startBluetoothBeacon
-    (bleFilePath);
+        startBluetoothBeacon(bleFilePath);
     } else {
         stopBluetoothBeacon();
     }
@@ -572,9 +615,12 @@ void MainWindow::startServer() {
     connect(m_worker, &AirPlayWorker::started, this, &MainWindow::onAirplayStarted);
     connect(m_worker, &AirPlayWorker::stopped, this, &MainWindow::onAirplayStopped);
     connect(m_worker, &AirPlayWorker::errorOccurred, this, &MainWindow::onAirplayError);
+    connect(m_worker, &AirPlayWorker::mediaInfoChanged,
+            this, &MainWindow::updateMediaInfo);
 
     connect(m_worker, &AirPlayWorker::finished, m_worker, &QObject::deleteLater);
 
+    resetMediaInfo("Waiting for stream");
     m_worker->start();
 }
 
@@ -621,6 +667,7 @@ void MainWindow::onAirplayStarted() {
 
 void MainWindow::onAirplayStopped() {
     m_running = false;
+    resetMediaInfo("Not connected");
     updateStatus();
     
     if (!m_quitting) {

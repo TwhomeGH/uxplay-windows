@@ -9,12 +9,14 @@ class AirPlayWorker : public QThread {
 public:
     explicit AirPlayWorker(QObject *parent = nullptr);
     void setArgs(const QStringList &args);
+    void publishMediaInfo(const QString &key, const QString &value);
     void stopAirplay();
 
 signals:
     void started();
     void stopped();
     void errorOccurred(const QString &message);
+    void mediaInfoChanged(const QString &key, const QString &value);
 
 protected:
     void run() override;

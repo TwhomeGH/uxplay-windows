@@ -43,6 +43,7 @@ private slots:
     void toggleForceFullscreen(bool checked);
     void onRendererChanged(int index);
     void onResolutionChanged();
+    void updateMediaInfo(const QString &key, const QString &value);
     void applyDisplayName();
     void restartApplicationAfterWake();
 
@@ -61,6 +62,7 @@ private:
     void applyRendererAndFullscreenArgs(QStringList &args);
     void applyResolutionArgs(QStringList &args) const;
     void updateResolutionControls();
+    void resetMediaInfo(const QString &status);
 
     QProcess *m_beacon = nullptr;
 
@@ -85,8 +87,16 @@ private:
     QSpinBox *m_refreshSpin = nullptr;
     QSystemTrayIcon *m_tray = nullptr;
     QMenu *m_trayMenu = nullptr;
+    QMenu *m_mediaInfoMenu = nullptr;
     QAction *m_autostartAction = nullptr;
     QAction *m_statusAction = nullptr;
+    QAction *m_mediaStatusAction = nullptr;
+    QAction *m_videoCodecAction = nullptr;
+    QAction *m_videoDecoderAction = nullptr;
+    QAction *m_videoRendererAction = nullptr;
+    QAction *m_streamSizeAction = nullptr;
+    QAction *m_audioCodecAction = nullptr;
+    QAction *m_audioFormatAction = nullptr;
 
     QPushButton *m_autostartBtn = nullptr;
     QPushButton *m_settingsBtn = nullptr;

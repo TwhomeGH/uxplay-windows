@@ -3,10 +3,23 @@
 #include <QDebug>
 #include <vector>
 
+static AirPlayWorker *activeWorker = nullptr;
+
+static void mediaInfoCallback(const char *key, const char *value) {
+    if (!activeWorker || !key || !value) return;
+
+    activeWorker->publishMediaInfo(QString::fromUtf8(key),
+                                   QString::fromUtf8(value));
+}
+
 AirPlayWorker::AirPlayWorker(QObject *parent) : QThread(parent) {}
 
 void AirPlayWorker::setArgs(const QStringList &args) {
     m_args = args;
+}
+
+void AirPlayWorker::publishMediaInfo(const QString &key, const QString &value) {
+    emit mediaInfoChanged(key, value);
 }
 
 void AirPlayWorker::run() {
@@ -24,6 +37,8 @@ void AirPlayWorker::run() {
 
     qDebug() << "Starting UxPlay engine with arguments:" << m_args;
     emit started();
+    activeWorker = this;
+    set_uxplay_media_info_callback(mediaInfoCallback);
 
     int ret = 0;
 
@@ -38,6 +53,8 @@ void AirPlayWorker::run() {
         }
     }
 
+    set_uxplay_media_info_callback(nullptr);
+    activeWorker = nullptr;
     emit stopped();
 }
 
