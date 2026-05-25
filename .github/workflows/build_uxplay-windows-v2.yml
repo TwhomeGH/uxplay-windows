@@ -120,6 +120,15 @@ jobs:
       - name: where are we?
         run: pwd; ls
 
+      - name: create portable zip
+        shell: powershell
+        run: |
+          if (Test-Path uxplay-windows-x64.zip) {
+            Remove-Item uxplay-windows-x64.zip -Force
+          }
+          Compress-Archive -Path release\* -DestinationPath uxplay-windows-x64.zip -Force
+          Get-Item uxplay-windows-x64.zip
+
       - name: cache dotnet tools (wix)
         uses: actions/cache@v5
         with:
@@ -164,7 +173,7 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: uxplay-windows
-          path: release/**
+          path: uxplay-windows-x64.zip
 
       - name: Download x64 artifact
         uses: actions/download-artifact@v5

@@ -128,6 +128,15 @@ jobs:
           pwd
           ls
 
+      - name: create portable zip (arm64)
+        shell: powershell
+        run: |
+          if (Test-Path uxplay-windows-arm64.zip) {
+            Remove-Item uxplay-windows-arm64.zip -Force
+          }
+          Compress-Archive -Path release\* -DestinationPath uxplay-windows-arm64.zip -Force
+          Get-Item uxplay-windows-arm64.zip
+
       - name: cache dotnet tools (wix)
         uses: actions/cache@v5
         with:
@@ -172,7 +181,7 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: uxplay-windows-arm64
-          path: release/**
+          path: uxplay-windows-arm64.zip
 
       - name: Download ARM artifact
         uses: actions/download-artifact@v5
