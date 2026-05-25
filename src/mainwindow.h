@@ -7,6 +7,7 @@
 #include <QComboBox>
 #include <QLineEdit>
 #include <QPushButton>
+#include <QSpinBox>
 #include <QSystemTrayIcon>
 #include <QProcess>
 #include <QCheckBox>
@@ -41,6 +42,7 @@ private slots:
     void toggleBle(bool checked); // bluetooth
     void toggleForceFullscreen(bool checked);
     void onRendererChanged(int index);
+    void onResolutionChanged();
     void applyDisplayName();
     void restartApplicationAfterWake();
 
@@ -57,6 +59,8 @@ private:
     void applyDisplayNameArg(QStringList &args) const;
     void scheduleWakeRestart();
     void applyRendererAndFullscreenArgs(QStringList &args);
+    void applyResolutionArgs(QStringList &args) const;
+    void updateResolutionControls();
 
     QProcess *m_beacon = nullptr;
 
@@ -75,6 +79,10 @@ private:
     QLineEdit *m_displayNameEdit = nullptr;
     
     QComboBox *m_rendererCombo = nullptr;
+    QComboBox *m_resolutionCombo = nullptr;
+    QSpinBox *m_widthSpin = nullptr;
+    QSpinBox *m_heightSpin = nullptr;
+    QSpinBox *m_refreshSpin = nullptr;
     QSystemTrayIcon *m_tray = nullptr;
     QMenu *m_trayMenu = nullptr;
     QAction *m_autostartAction = nullptr;

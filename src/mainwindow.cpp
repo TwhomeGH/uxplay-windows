@@ -22,6 +22,8 @@
 #include <QPushButton>
 #include <QSettings>
 #include <QStandardPaths>
+#include <QSignalBlocker>
+#include <QSpinBox>
 #include <QStyle>
 #include <QSystemTrayIcon>
 #include <QComboBox>
@@ -98,7 +100,7 @@ void MainWindow::ensureSettingsFileExists() {
     if (!file.exists()) {
         if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
             QTextStream out(&file);
-            out << "-h265 -fps 60 -n uxplay-windows -nh";
+            out << "-h265 -fps 60 -s 1920x1080@60 -n uxplay-windows -nh";
             file.close();
         }
     }
@@ -119,7 +121,7 @@ QStringList MainWindow::getArgumentsFromFile() const {
 void MainWindow::setupUI() {
     setWindowTitle("uxplay-windows");
     setWindowIcon(QApplication::windowIcon());
-    setFixedSize(360, 320);
+    setFixedSize(420, 420);
 
     auto *central = new QWidget(this);
     setCentralWidget(central);
@@ -179,6 +181,51 @@ void MainWindow::setupUI() {
 
     layout->addWidget(m_rendererCombo);
 
+    auto *resolutionLayout = new QHBoxLayout();
+    auto *resolutionLabel = new QLabel("Resolution", this);
+    m_resolutionCombo = new QComboBox(this);
+    m_resolutionCombo->addItem("Auto", "auto");
+    m_resolutionCombo->addItem("1920 x 1080", "1080p");
+    m_resolutionCombo->addItem("2560 x 1440", "1440p");
+    m_resolutionCombo->addItem("3840 x 2160", "4k");
+    m_resolutionCombo->addItem("Custom", "custom");
+    {
+        QString saved = settings.value("resolution_mode", "1080p").toString();
+        int idx = m_resolutionCombo->findData(saved);
+        if (idx < 0) idx = m_resolutionCombo->findData("1080p");
+        m_resolutionCombo->setCurrentIndex(idx);
+    }
+    connect(m_resolutionCombo,
+            QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &MainWindow::onResolutionChanged);
+    resolutionLayout->addWidget(resolutionLabel);
+    resolutionLayout->addWidget(m_resolutionCombo, 1);
+    layout->addLayout(resolutionLayout);
+
+    auto *sizeLayout = new QHBoxLayout();
+    m_widthSpin = new QSpinBox(this);
+    m_widthSpin->setRange(1, 9999);
+    m_widthSpin->setSuffix(" w");
+    m_heightSpin = new QSpinBox(this);
+    m_heightSpin->setRange(1, 9999);
+    m_heightSpin->setSuffix(" h");
+    m_refreshSpin = new QSpinBox(this);
+    m_refreshSpin->setRange(1, 255);
+    m_refreshSpin->setSuffix(" Hz");
+    m_widthSpin->setValue(settings.value("resolution_width", 1920).toInt());
+    m_heightSpin->setValue(settings.value("resolution_height", 1080).toInt());
+    m_refreshSpin->setValue(settings.value("resolution_refresh", 60).toInt());
+    connect(m_widthSpin, QOverload<int>::of(&QSpinBox::valueChanged),
+            this, &MainWindow::onResolutionChanged);
+    connect(m_heightSpin, QOverload<int>::of(&QSpinBox::valueChanged),
+            this, &MainWindow::onResolutionChanged);
+    connect(m_refreshSpin, QOverload<int>::of(&QSpinBox::valueChanged),
+            this, &MainWindow::onResolutionChanged);
+    sizeLayout->addWidget(m_widthSpin);
+    sizeLayout->addWidget(m_heightSpin);
+    sizeLayout->addWidget(m_refreshSpin);
+    layout->addLayout(sizeLayout);
+    updateResolutionControls();
 
     m_settingsBtn = new QPushButton("Edit UxPlay Arguments (Advanced)", this);
     connect(m_settingsBtn, &QPushButton::clicked, this, &MainWindow::openSettingsFile);
@@ -278,6 +325,71 @@ void MainWindow::onRendererChanged(int /*index*/) {
     settings.setValue("renderer_mode", mode);
     m_tray->showMessage("uxplay-windows", "Please restart the uxplay-windows to apply changes.\n(Right-click the Tray Icon)", 
                         QSystemTrayIcon::Information, 3000);
+}
+
+void MainWindow::onResolutionChanged() {
+    if (!m_resolutionCombo || !m_widthSpin || !m_heightSpin || !m_refreshSpin) return;
+
+    QString mode = m_resolutionCombo->currentData().toString();
+    if (mode == "1080p") {
+        QSignalBlocker widthBlocker(m_widthSpin);
+        QSignalBlocker heightBlocker(m_heightSpin);
+        m_widthSpin->setValue(1920);
+        m_heightSpin->setValue(1080);
+    } else if (mode == "1440p") {
+        QSignalBlocker widthBlocker(m_widthSpin);
+        QSignalBlocker heightBlocker(m_heightSpin);
+        m_widthSpin->setValue(2560);
+        m_heightSpin->setValue(1440);
+    } else if (mode == "4k") {
+        QSignalBlocker widthBlocker(m_widthSpin);
+        QSignalBlocker heightBlocker(m_heightSpin);
+        m_widthSpin->setValue(3840);
+        m_heightSpin->setValue(2160);
+    }
+
+    updateResolutionControls();
+
+    QSettings settings;
+    bool changed = settings.value("resolution_mode", "1080p").toString() != mode
+        || settings.value("resolution_width", 1920).toInt() != m_widthSpin->value()
+        || settings.value("resolution_height", 1080).toInt() != m_heightSpin->value()
+        || settings.value("resolution_refresh", 60).toInt() != m_refreshSpin->value();
+    if (!changed) return;
+
+    settings.setValue("resolution_mode", mode);
+    settings.setValue("resolution_width", m_widthSpin->value());
+    settings.setValue("resolution_height", m_heightSpin->value());
+    settings.setValue("resolution_refresh", m_refreshSpin->value());
+    m_tray->showMessage("uxplay-windows", "Please restart the uxplay-windows to apply changes.\n(Right-click the Tray Icon)",
+                        QSystemTrayIcon::Information, 3000);
+}
+
+void MainWindow::updateResolutionControls() {
+    if (!m_resolutionCombo || !m_widthSpin || !m_heightSpin || !m_refreshSpin) return;
+
+    QString mode = m_resolutionCombo->currentData().toString();
+    if (mode == "1080p" || mode == "1440p" || mode == "4k") {
+        int width = 1920;
+        int height = 1080;
+        if (mode == "1440p") {
+            width = 2560;
+            height = 1440;
+        } else if (mode == "4k") {
+            width = 3840;
+            height = 2160;
+        }
+        QSignalBlocker widthBlocker(m_widthSpin);
+        QSignalBlocker heightBlocker(m_heightSpin);
+        m_widthSpin->setValue(width);
+        m_heightSpin->setValue(height);
+    }
+
+    bool isAuto = mode == "auto";
+    bool isCustom = mode == "custom";
+    m_widthSpin->setEnabled(isCustom);
+    m_heightSpin->setEnabled(isCustom);
+    m_refreshSpin->setEnabled(!isAuto);
 }
 
 // 更新顯示名稱
@@ -382,6 +494,47 @@ void MainWindow::applyRendererAndFullscreenArgs(QStringList &args) {
     }
 }
 
+void MainWindow::applyResolutionArgs(QStringList &args) const {
+    for (int i = 0; i < args.size();) {
+        if (args[i] == "-s") {
+            args.removeAt(i);
+            if (i < args.size() && !args[i].startsWith("-")) {
+                args.removeAt(i);
+            }
+            continue;
+        }
+        ++i;
+    }
+
+    QSettings settings;
+    QString mode = settings.value("resolution_mode", "1080p").toString();
+    if (mode == "auto") {
+        return;
+    }
+
+    int width = settings.value("resolution_width", 1920).toInt();
+    int height = settings.value("resolution_height", 1080).toInt();
+    int refresh = settings.value("resolution_refresh", 60).toInt();
+    if (mode == "1080p") {
+        width = 1920;
+        height = 1080;
+    } else if (mode == "1440p") {
+        width = 2560;
+        height = 1440;
+    } else if (mode == "4k") {
+        width = 3840;
+        height = 2160;
+    }
+
+    if (width < 1 || width > 9999 || height < 1 || height > 9999 || refresh < 1 || refresh > 255) {
+        width = 1920;
+        height = 1080;
+        refresh = 60;
+    }
+
+    args << "-s" << QString("%1x%2@%3").arg(width).arg(height).arg(refresh);
+}
+
 void MainWindow::startServer() {
     if (m_worker && m_worker->isRunning()) return;
 
@@ -399,6 +552,7 @@ void MainWindow::startServer() {
     }
 
     applyRendererAndFullscreenArgs(args);
+    applyResolutionArgs(args);
     applyDisplayNameArg(args);
 
     // Only add -ble and start beacon if checkbox is checked
