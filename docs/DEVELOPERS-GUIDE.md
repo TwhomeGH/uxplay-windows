@@ -18,6 +18,10 @@ bash scripts/dev_run.sh --engine-debug
 
 App 是托盤程式：關閉視窗只會隱藏，要退出請用托盤選單的 **Quit**。
 
+> 直接雙擊 `build/dev/uxplay-windows.exe` 會找不到
+> `libgcc_s_seh-1.dll`（Qt／GStreamer 也依賴它）。請用上面的
+> `dev_run.sh`，或建置後產生的 `build/dev/run-dev.cmd`。
+
 ## 前置需求
 
 - **MSYS2 UCRT64**（不要用 MINGW64；Qt6／GStreamer 開發檔在 UCRT64）。
@@ -69,6 +73,21 @@ bash scripts/dev_run.sh --engine-debug   # 額外傳 -d 給引擎
 bash scripts/dev_run.sh --detach         # 背景啟動後返回
 ```
 
+從 Explorer／PowerShell 直接啟動時，用建置時產生的 wrapper：
+
+```powershell
+.\build\dev\run-dev.cmd
+.\build\dev\run-dev.cmd --engine-debug
+```
+
+`dev_build.sh` 會把 `$MSYSTEM_PREFIX/bin`（含
+`libgcc_s_seh-1.dll`、Qt6、GStreamer）寫進 `run-dev.cmd` 的 `PATH`。
+
+若用 VS Code／gdb 直接啟動 exe，請在 launch config 補上相同的
+環境變數（`PATH`、`QT_PLUGIN_PATH`、`GST_PLUGIN_PATH`），否則 debugger
+不會繼承 MSYS2 shell 的 PATH。UCRT64 的 gdb 可用
+`pacman -S --needed mingw-w64-ucrt-x86_64-gdb` 安裝。
+
 `dev_run.sh` 會設定：
 
 - `PATH`：加入 `$MSYSTEM_PREFIX/bin`（Qt6／GStreamer／OpenSSL DLL）。
@@ -117,6 +136,7 @@ QSettings 內常用的值：`display_name`、`renderer_mode`、`resolution_mode`
 | `register_dnssd` 失敗 | 名稱或 MAC 衝突、port 被佔用 | 關閉其他實例；必要時在 `arguments.txt` 加 `-m`／`-p` |
 | 引擎一啟動就退出 | 參數錯誤、GStreamer／Bonjour 初始化失敗 | 看 log 的 `[engine]` 與 `*** ERROR` 行；先用 `--engine-debug` |
 | GStreamer plugin 找不到 | `GST_PLUGIN_PATH` 沒指到 UCRT64 plugin | 用 `dev_run.sh`；確認 `$MSYSTEM_PREFIX/lib/gstreamer-1.0` 存在 |
+| 找不到 `libgcc_s_seh-1.dll`／`Qt6Core.dll` | 直接跑了 exe，PATH 沒設 | 用 `dev_run.sh` 或 `build/dev/run-dev.cmd`；debugger 請在 launch config 設 `PATH` |
 | 沒有聲音 | Windows 輸出裝置不對 | 在 `arguments.txt` 用 `-as` 指定 sink；或改系統預設裝置 |
 | 第二次啟動沒叫回視窗 | 第一次還沒建立 IPC，或舊 lock 卡住 | 看 log；必要時刪 `%TEMP%\uxplay-windows.lock` |
 | BLE 找不到裝置 | `uxplay-bluetooth-beacon.exe` 不存在 | 本地 debug 可忽略；要 BLE 請 build beacon |

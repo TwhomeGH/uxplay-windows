@@ -1,5 +1,23 @@
 # ChangeHistory
 
+## 2026.11.11 05:56 修正 dev exe 直接啟動缺少 libgcc_s_seh-1.dll
+
+**類型**: 修正 · **檔案**: `scripts/dev_build.sh、docs/DEVELOPERS-GUIDE.md`
+
+### 問題 - 直接雙擊 build/dev/uxplay-windows.exe 會找不到 libgcc_s_seh-1.dll
+
+### 根因 - dev exe 動態連結 MinGW runtime，啟動環境沒有 MSYS2 PATH
+
+Explorer／debugger 不繼承 MSYS2 PATH；Qt6Core 與 GStreamer 也依賴同一個 DLL。
+
+### 修改 - dev_build.sh 產生 build/dev/run-dev.cmd，設定 PATH／QT_PLUGIN_PATH／GST_PLUGIN_PATH
+
+- 指南補上直接啟動、debugger 環境與疑難排解
+
+**相關文件**: [開發者指南](DEVELOPERS-GUIDE.md)
+
+---
+
 ## 2026.11.11 05:52 新增本地建置／除錯腳本與開發者指南
 
 **類型**: 文件 · **檔案**: `scripts/dev_build.sh、scripts/dev_run.sh、docs/DEVELOPERS-GUIDE.md、.markdownlint.json、src/main.cpp、src/mainwindow.cpp、TODO.md`
