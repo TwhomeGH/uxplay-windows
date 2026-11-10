@@ -1,5 +1,27 @@
 # ChangeHistory
 
+## 2026.11.11 06:03 修正 AirPlay 快速重連後畫面定格
+
+**類型**: 修正 · **檔案**: `libuxplay/lib/raop_rtp_mirror.c`
+
+### 問題 - iPad 斷線後快速重連，畫面停在上一幀
+
+### 根因 - mirror thread 自行結束時 joined 仍為 0，start 因此直接 return
+
+### 修改 - stop() 即使 running=false 也 join，start() 回收上一個 thread
+
+- 新增 stopping 狀態，並在 concurrent stop 時等待
+- start 被跳過時記錄 running/joined/stopping
+
+### 驗證 - 快速重連
+
+- `BUILD_DIR=build/fix bash scripts/dev_build.sh` 建置通過。
+- 已用 iPad 停止／重啟鏡像實測：第二次連線恢復正常，畫面不再定格。
+
+**相關文件**: [開發者指南](DEVELOPERS-GUIDE.md)
+
+---
+
 ## 2026.11.11 05:56 修正 dev exe 直接啟動缺少 libgcc_s_seh-1.dll
 
 **類型**: 修正 · **檔案**: `scripts/dev_build.sh、docs/DEVELOPERS-GUIDE.md`
@@ -51,7 +73,7 @@ Explorer／debugger 不繼承 MSYS2 PATH；Qt6Core 與 GStreamer 也依賴同一
 - tray Start/Stop（以 App 重啟套用）、狀態圖示與 tooltip、單一實例叫回既有視窗
 - Bonjour 改檢查執行狀態並嘗試啟動；主視窗顯示最後錯誤
 
-### 驗證
+### 驗證 - Phase 1
 
 - `ninja -C build/ucrt64` 建置通過。
 - 實機啟動：Bonjour running、engine 啟動、`register_dnssd` 成功，日誌寫入 `%LOCALAPPDATA%\leapbtw\uxplay-windows\logs\uxplay-windows.log`。
