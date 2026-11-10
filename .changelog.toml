@@ -1,0 +1,31 @@
+# changelogkit 設定：變更歷史、待辦與開發索引。
+#
+# 本機未全域安裝時（PowerShell）：
+#   $env:PYTHONPATH = "C:\Users\agp05\OneDrive\桌面\ChangeLogTools\src"
+#   python -m changelogkit serve
+#
+# 已安裝時，在 repo 根目錄直接執行：
+#   changelogkit            # 開啟本機網頁 GUI
+#   changelogkit add ...    # 新增變更紀錄
+#   changelogkit list       # 列出變更紀錄
+#
+# add 的 --problem／--cause／--change 第一行會成為標題；changelogkit 0.12.7+
+# 會自動移除標題末尾標點（markdownlint MD026），內文不受影響。
+[tool.changelog]
+title   = "uxplay-windows 變更歷史"
+project = "uxplay-windows"
+history = "docs/ChangeHistory.md"
+todo    = "TODO.md"
+
+# 開發索引的來源（本 repo 自身）。
+[[tool.changelog.sources]]
+name = "uxplay-windows"
+path = "."
+
+# Documents 分頁的文件分類。
+[[tool.changelog.docs.groups]]
+id    = "guide"
+title = "使用與建置"
+color = "green"
+order = 10
+paths = ["README.md", "docs/BUILDING.md", "docs/DEVELOPERS-GUIDE.md"]
