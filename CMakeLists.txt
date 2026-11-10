@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt6 COMPONENTS Core Widgets REQUIRED)
+find_package(Qt6 COMPONENTS Core Widgets Network REQUIRED)
 
 # build uxplay as a static library
 add_subdirectory(libuxplay)
@@ -15,6 +15,7 @@ add_executable(uxplay-windows WIN32
     src/main.cpp
     src/mainwindow.cpp
     src/airplayworker.cpp
+    src/logging.cpp
     src/mdns_responder.cpp
     src/resources.rc
 )
@@ -22,6 +23,7 @@ add_executable(uxplay-windows WIN32
 target_link_libraries(uxplay-windows PRIVATE
     Qt6::Core
     Qt6::Widgets
+    Qt6::Network
     uxplay
 )
 

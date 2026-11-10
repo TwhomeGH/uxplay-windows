@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "airplayworker.h"
+#include "logging.h"
 #include "mdns_responder.hpp"
 #include <windows.h>
 #include <winsvc.h>
@@ -19,6 +20,8 @@
 
 #include <QMenu>
 #include <QMessageBox>
+#include <QPainter>
+#include <QPixmap>
 #include <QPushButton>
 #include <QSettings>
 #include <QStandardPaths>
@@ -60,10 +63,12 @@ BOOL CALLBACK EnumWindowsProcRename(HWND hwnd, LPARAM lParam) {
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     ensureSettingsFileExists();
+
+    QSettings settings;
+    m_serverEnabled = settings.value("server_enabled", true).toBool();
+
     setupTray();
     setupUI();
-
-
 
     // Force creation of the hidden top-level HWND so Windows power events reach us.
     winId();
@@ -73,14 +78,19 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     connect(m_wakeRestartTimer, &QTimer::timeout,
             this, &MainWindow::restartApplicationAfterWake);
 
-    // If Bonjour Service is missing, we must install it; otherwise we exit.
-    if (ensureBonjourServiceInstalled()) {
-        startServer();
-    } else {
+    if (!m_serverEnabled) {
+        qInfo() << "AirPlay disabled by server_enabled=false; engine not started";
+        updateStatus();
+        return;
+    }
+
+    if (!ensureBonjourServiceReady()) {
         m_quitting = true;
         QTimer::singleShot(0, qApp, &QCoreApplication::quit);
         return;
     }
+
+    startServer();
 }
 
 MainWindow::~MainWindow() {
@@ -121,7 +131,7 @@ QStringList MainWindow::getArgumentsFromFile() const {
 void MainWindow::setupUI() {
     setWindowTitle("uxplay-windows");
     setWindowIcon(QApplication::windowIcon());
-    setFixedSize(420, 420);
+    setFixedSize(420, 480);
 
     auto *central = new QWidget(this);
     setCentralWidget(central);
@@ -130,6 +140,12 @@ void MainWindow::setupUI() {
     m_statusLabel = new QLabel("Initializing...", this);
     m_statusLabel->setAlignment(Qt::AlignCenter);
     layout->addWidget(m_statusLabel);
+
+    m_errorLabel = new QLabel(this);
+    m_errorLabel->setWordWrap(true);
+    m_errorLabel->setStyleSheet("color: #b00020;");
+    m_errorLabel->setVisible(false);
+    layout->addWidget(m_errorLabel);
     
 
     // Display Name
@@ -241,7 +257,14 @@ void MainWindow::setupUI() {
 
     m_licenseBtn = new QPushButton("License Information", this);
     connect(m_licenseBtn, &QPushButton::clicked, this, &MainWindow::showLicense);
-    layout->addWidget(m_licenseBtn);
+
+    m_openLogBtn = new QPushButton("Open Log", this);
+    connect(m_openLogBtn, &QPushButton::clicked, this, &MainWindow::openLogFile);
+
+    auto *bottomLayout = new QHBoxLayout();
+    bottomLayout->addWidget(m_licenseBtn);
+    bottomLayout->addWidget(m_openLogBtn);
+    layout->addLayout(bottomLayout);
 
     layout->addStretch();
     updateStatus();
@@ -275,6 +298,8 @@ void MainWindow::setupTray() {
 
     m_trayMenu = new QMenu(this);
     m_mediaInfoMenu = m_trayMenu->addMenu("Media Info");
+    m_clientAction = m_mediaInfoMenu->addAction("Client: -");
+    m_connectionsAction = m_mediaInfoMenu->addAction("Connections: 0");
     m_mediaStatusAction = m_mediaInfoMenu->addAction("Status: Not connected");
     m_videoCodecAction = m_mediaInfoMenu->addAction("Video Codec: -");
     m_videoDecoderAction = m_mediaInfoMenu->addAction("Video Decoder: -");
@@ -282,11 +307,15 @@ void MainWindow::setupTray() {
     m_streamSizeAction = m_mediaInfoMenu->addAction("Stream Size: -");
     m_audioCodecAction = m_mediaInfoMenu->addAction("Audio Codec: -");
     m_audioFormatAction = m_mediaInfoMenu->addAction("Audio Format: -");
-    for (QAction *action : {m_mediaStatusAction, m_videoCodecAction, m_videoDecoderAction,
+    for (QAction *action : {m_clientAction, m_connectionsAction, m_mediaStatusAction,
+                            m_videoCodecAction, m_videoDecoderAction,
                             m_videoRendererAction, m_streamSizeAction, m_audioCodecAction,
                             m_audioFormatAction}) {
         action->setEnabled(false);
     }
+    m_trayMenu->addSeparator();
+    m_toggleServerAction = m_trayMenu->addAction("Stop AirPlay", this, &MainWindow::toggleServer);
+    m_openLogAction = m_trayMenu->addAction("Open Log", this, &MainWindow::openLogFile);
     m_trayMenu->addSeparator();
     m_trayMenu->addAction("Restart", this, &MainWindow::restartApplication);
     m_trayMenu->addAction("Quit", this, &MainWindow::quit);
@@ -407,6 +436,7 @@ void MainWindow::updateResolutionControls() {
 }
 
 void MainWindow::resetMediaInfo(const QString &status) {
+    m_streaming = false;
     if (m_mediaStatusAction) m_mediaStatusAction->setText("Status: " + status);
     if (m_videoCodecAction) m_videoCodecAction->setText("Video Codec: -");
     if (m_videoDecoderAction) m_videoDecoderAction->setText("Video Decoder: -");
@@ -433,6 +463,90 @@ void MainWindow::updateMediaInfo(const QString &key, const QString &value) {
         m_audioCodecAction->setText("Audio Codec: " + value);
     } else if (key == "Audio Format" && m_audioFormatAction) {
         m_audioFormatAction->setText("Audio Format: " + value);
+    }
+
+    m_streaming = true;
+    if (m_errorLabel) m_errorLabel->setVisible(false);
+    m_appState = AppState::Streaming;
+    updateStatus();
+}
+
+void MainWindow::clearClientInfo() {
+    m_clientName.clear();
+    m_clientModel.clear();
+    m_clientDeviceId.clear();
+    m_connectionCount = 0;
+    m_streaming = false;
+    if (m_clientAction) m_clientAction->setText("Client: -");
+    if (m_connectionsAction) m_connectionsAction->setText("Connections: 0");
+}
+
+void MainWindow::onClientConnected(const QString &name, const QString &model,
+                                   const QString &deviceid) {
+    const bool isNew = (deviceid != m_clientDeviceId) || m_clientName.isEmpty();
+    m_clientName = name;
+    m_clientModel = model;
+    m_clientDeviceId = deviceid;
+
+    if (m_clientAction) {
+        QString text = "Client: " + (name.isEmpty() ? QStringLiteral("unknown") : name);
+        if (!model.isEmpty()) {
+            text += " (" + model + ")";
+        }
+        m_clientAction->setText(text);
+    }
+    if (!m_streaming && m_mediaStatusAction) {
+        m_mediaStatusAction->setText("Status: Connected");
+    }
+
+    if (isNew) {
+        qInfo() << "Client connected:" << name << "model:" << model
+                << "deviceid:" << deviceid;
+        if (m_tray && !m_quitting) {
+            m_tray->showMessage(
+                "Device connected",
+                name.isEmpty() ? QStringLiteral("A device connected") : name,
+                QSystemTrayIcon::Information, 3000);
+        }
+    }
+
+    if (m_errorLabel) m_errorLabel->setVisible(false);
+    m_appState = AppState::Streaming;
+    updateStatus();
+}
+
+void MainWindow::onClientDisconnected() {
+    if (!m_clientName.isEmpty()) {
+        qInfo() << "Client disconnected:" << m_clientName;
+        if (m_tray && !m_quitting) {
+            m_tray->showMessage("Device disconnected", m_clientName,
+                                QSystemTrayIcon::Information, 3000);
+        }
+    }
+
+    clearClientInfo();
+    resetMediaInfo("Not connected");
+    if (m_running && m_serverEnabled) {
+        m_appState = AppState::Waiting;
+    }
+    updateStatus();
+}
+
+void MainWindow::onClientRejected(const QString &name, const QString &model,
+                                  const QString &deviceid) {
+    qWarning() << "Client rejected:" << name << "model:" << model
+               << "deviceid:" << deviceid;
+    if (m_tray && !m_quitting) {
+        const QString who = name.isEmpty() ? QStringLiteral("A device") : name;
+        m_tray->showMessage("Connection rejected", who,
+                            QSystemTrayIcon::Warning, 4000);
+    }
+}
+
+void MainWindow::onConnectionCountChanged(int count) {
+    m_connectionCount = count;
+    if (m_connectionsAction) {
+        m_connectionsAction->setText(QString("Connections: %1").arg(count));
     }
 }
 
@@ -580,13 +694,14 @@ void MainWindow::applyResolutionArgs(QStringList &args) const {
 }
 
 void MainWindow::startServer() {
+    if (!m_serverEnabled) return;
     if (m_worker && m_worker->isRunning()) return;
 
     QString appData = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
     QDir().mkpath(appData);
-    
+
     QStringList args = getArgumentsFromFile();
-    
+
     int bleIdx = args.indexOf("-ble");
     if (bleIdx != -1) {
         args.removeAt(bleIdx);
@@ -609,6 +724,13 @@ void MainWindow::startServer() {
         stopBluetoothBeacon();
     }
 
+    qInfo() << "Starting UxPlay engine with arguments:" << args;
+    clearClientInfo();
+    resetMediaInfo("Waiting for stream");
+    if (m_errorLabel) m_errorLabel->setVisible(false);
+    m_appState = AppState::Starting;
+    updateStatus();
+
     m_worker = new AirPlayWorker(this);
     m_worker->setArgs(args);
 
@@ -617,32 +739,53 @@ void MainWindow::startServer() {
     connect(m_worker, &AirPlayWorker::errorOccurred, this, &MainWindow::onAirplayError);
     connect(m_worker, &AirPlayWorker::mediaInfoChanged,
             this, &MainWindow::updateMediaInfo);
+    connect(m_worker, &AirPlayWorker::clientConnected,
+            this, &MainWindow::onClientConnected);
+    connect(m_worker, &AirPlayWorker::clientDisconnected,
+            this, &MainWindow::onClientDisconnected);
+    connect(m_worker, &AirPlayWorker::clientRejected,
+            this, &MainWindow::onClientRejected);
+    connect(m_worker, &AirPlayWorker::connectionCountChanged,
+            this, &MainWindow::onConnectionCountChanged);
 
     connect(m_worker, &AirPlayWorker::finished, m_worker, &QObject::deleteLater);
 
-    resetMediaInfo("Waiting for stream");
     m_worker->start();
 }
 
 void MainWindow::stopServer() {
+    qInfo() << "Stopping UxPlay engine";
     stopBluetoothBeacon();
     if (m_worker) {
-        m_worker->disconnect();
-        if (m_worker->isRunning()) {
-            QMetaObject::invokeMethod(m_worker, &AirPlayWorker::stopAirplay, Qt::QueuedConnection);
-            if (!m_worker->wait(1000)) {
-                m_worker->terminate();
+        AirPlayWorker *worker = m_worker;
+        m_worker = nullptr;
+        worker->disconnect();
+        if (worker->isRunning()) {
+            QMetaObject::invokeMethod(worker, &AirPlayWorker::stopAirplay, Qt::QueuedConnection);
+            if (!worker->wait(1000)) {
+                qWarning() << "Engine did not stop within 1s; terminating thread";
+                worker->terminate();
+                worker->wait(1000);
             }
         }
-        m_worker = nullptr;
+        if (!worker->isRunning()) {
+            worker->deleteLater();
+        } else {
+            qWarning() << "Engine thread is still running; leaving it to process exit";
+        }
     }
     m_running = false;
+    clearClientInfo();
+    resetMediaInfo("Not connected");
     updateStatus();
 }
 
 
 void MainWindow::onAirplayStarted() {
     m_running = true;
+    m_appState = AppState::Waiting;
+    if (m_errorLabel) m_errorLabel->setVisible(false);
+    qInfo() << "UxPlay engine started";
     updateStatus();
 
     // rename video window when it pops up
@@ -667,17 +810,97 @@ void MainWindow::onAirplayStarted() {
 
 void MainWindow::onAirplayStopped() {
     m_running = false;
+    clearClientInfo();
     resetMediaInfo("Not connected");
+    qInfo() << "UxPlay engine stopped";
+
+    if (m_appState != AppState::Error && m_serverEnabled) {
+        m_appState = AppState::Starting;
+    }
     updateStatus();
     
-    if (!m_quitting) {
-        qDebug() << "Session ended, restarting server to stay ready...";
+    if (!m_quitting && m_serverEnabled) {
+        qInfo() << "Session ended, restarting engine in 1s to stay ready...";
         QTimer::singleShot(1000, this, &MainWindow::startServer);
     }
 }
 
 void MainWindow::onAirplayError(const QString &message) {
-    m_tray->showMessage("uxplay-windows", message, QSystemTrayIcon::Warning, 3000);
+    qCritical() << "UxPlay engine error:" << message;
+    m_appState = AppState::Error;
+    if (m_errorLabel) {
+        m_errorLabel->setText(message);
+        m_errorLabel->setVisible(true);
+    }
+    if (m_tray) {
+        m_tray->showMessage("uxplay-windows", message,
+                            QSystemTrayIcon::Warning, 5000);
+    }
+    updateStatus();
+}
+
+void MainWindow::toggleServer() {
+    const bool enable = !m_serverEnabled;
+    QSettings settings;
+    settings.setValue("server_enabled", enable);
+    m_serverEnabled = enable;
+
+    qInfo() << (enable ? "Enabling" : "Disabling") << "AirPlay; restarting to apply";
+    if (m_tray) {
+        m_tray->showMessage(
+            "uxplay-windows",
+            enable ? "Starting AirPlay. The app will restart to apply."
+                   : "Stopping AirPlay. The app will restart to apply.",
+            QSystemTrayIcon::Information, 2500);
+    }
+    restartApplication();
+}
+
+void MainWindow::openLogFile() {
+    applog::openLogFile();
+}
+
+void MainWindow::updateTrayIcon() {
+    if (!m_tray) return;
+
+    QIcon base = QIcon(QApplication::applicationDirPath() + "/resources/icon.ico");
+    if (base.isNull()) {
+        base = QApplication::style()->standardIcon(QStyle::SP_MediaPlay);
+    }
+
+    QPixmap pixmap = base.pixmap(32, 32);
+    if (pixmap.isNull()) {
+        pixmap = QPixmap(32, 32);
+        pixmap.fill(Qt::transparent);
+    }
+
+    QColor color;
+    switch (m_appState) {
+    case AppState::Disabled:
+        color = QColor(128, 128, 128);
+        break;
+    case AppState::Starting:
+        color = QColor(230, 160, 0);
+        break;
+    case AppState::Waiting:
+        color = QColor(0, 120, 215);
+        break;
+    case AppState::Streaming:
+        color = QColor(0, 160, 80);
+        break;
+    case AppState::Error:
+        color = QColor(200, 40, 40);
+        break;
+    }
+
+    QPainter painter(&pixmap);
+    painter.setRenderHint(QPainter::Antialiasing, true);
+    painter.setPen(QPen(Qt::white, 1));
+    painter.setBrush(color);
+    painter.drawEllipse(QRect(20, 20, 11, 11));
+    painter.end();
+
+    m_tray->setIcon(QIcon(pixmap));
 }
 
 void MainWindow::toggleAutostart() {
@@ -808,89 +1031,220 @@ void MainWindow::restartApplicationAfterWake() {
 
 
 void MainWindow::updateStatus() {
-    QString status = m_running ? "UxPlay server running" : "UxPlay server stopped";
-    m_statusLabel->setText(status);
-    m_autostartBtn->setText(isAutostartEnabled() ? "Open uxplay-windows on login: ON " : "Open uxplay-windows on login: OFF");
+    QString status;
+    if (!m_serverEnabled) {
+        m_appState = AppState::Disabled;
+        status = "AirPlay stopped";
+    } else if (m_appState == AppState::Error) {
+        status = "UxPlay error - see log";
+    } else if (!m_running) {
+        m_appState = AppState::Starting;
+        status = "UxPlay server starting...";
+    } else if (!m_clientName.isEmpty()) {
+        m_appState = AppState::Streaming;
+        status = m_streaming ? ("Streaming: " + m_clientName)
+                             : ("Connected: " + m_clientName);
+    } else {
+        m_appState = AppState::Waiting;
+        status = "UxPlay server running - waiting for connection";
+    }
+
+    if (m_statusLabel) m_statusLabel->setText(status);
+    if (m_autostartBtn) {
+        m_autostartBtn->setText(isAutostartEnabled()
+                                    ? "Open uxplay-windows on login: ON "
+                                    : "Open uxplay-windows on login: OFF");
+    }
+    if (m_toggleServerAction) {
+        m_toggleServerAction->setText(m_serverEnabled ? "Stop AirPlay"
+                                                      : "Start AirPlay");
+    }
+    if (m_tray) {
+        QString tip = "uxplay-windows - " + status;
+        if (!m_clientModel.isEmpty()) {
+            tip += " (" + m_clientModel + ")";
+        }
+        m_tray->setToolTip(tip);
+    }
+    updateTrayIcon();
 }
 
-bool MainWindow::isWindowsServicePresent(const std::wstring& serviceName) const {
+MainWindow::BonjourState MainWindow::queryBonjourState() const {
+    const std::wstring serviceName = L"Bonjour Service";
     SC_HANDLE hSCM = OpenSCManagerW(nullptr, nullptr, SC_MANAGER_CONNECT);
-    if (!hSCM) return false;
+    if (!hSCM) {
+        qWarning() << "OpenSCManagerW failed:" << GetLastError();
+        return BonjourState::Unknown;
+    }
 
     SC_HANDLE hSvc = OpenServiceW(hSCM, serviceName.c_str(), SERVICE_QUERY_STATUS);
     if (!hSvc) {
-        DWORD err = GetLastError();
+        const DWORD err = GetLastError();
         CloseServiceHandle(hSCM);
-        return err != ERROR_SERVICE_DOES_NOT_EXIST;
+        if (err == ERROR_SERVICE_DOES_NOT_EXIST) {
+            return BonjourState::Missing;
+        }
+        qWarning() << "OpenServiceW(Bonjour Service) failed:" << err;
+        return BonjourState::Unknown;
+    }
+
+    SERVICE_STATUS status{};
+    const BOOL ok = QueryServiceStatus(hSvc, &status);
+    const DWORD err = ok ? ERROR_SUCCESS : GetLastError();
+    CloseServiceHandle(hSvc);
+    CloseServiceHandle(hSCM);
+
+    if (!ok) {
+        qWarning() << "QueryServiceStatus(Bonjour Service) failed:" << err;
+        return BonjourState::Unknown;
+    }
+    return status.dwCurrentState == SERVICE_RUNNING ? BonjourState::Running
+                                                    : BonjourState::Stopped;
+}
+
+bool MainWindow::startBonjourService() {
+    const std::wstring serviceName = L"Bonjour Service";
+    SC_HANDLE hSCM = OpenSCManagerW(nullptr, nullptr, SC_MANAGER_CONNECT);
+    if (!hSCM) {
+        qWarning() << "OpenSCManagerW failed:" << GetLastError();
+        return false;
+    }
+
+    SC_HANDLE hSvc = OpenServiceW(hSCM, serviceName.c_str(),
+                                  SERVICE_START | SERVICE_QUERY_STATUS);
+    if (!hSvc) {
+        qWarning() << "OpenServiceW(Bonjour Service, START) failed:" << GetLastError();
+        CloseServiceHandle(hSCM);
+        return false;
+    }
+
+    bool started = false;
+    if (StartServiceW(hSvc, 0, nullptr)) {
+        started = true;
+    } else {
+        const DWORD err = GetLastError();
+        if (err == ERROR_SERVICE_ALREADY_RUNNING) {
+            started = true;
+        } else {
+            qWarning() << "StartServiceW(Bonjour Service) failed:" << err;
+        }
+    }
+
+    if (started) {
+        for (int i = 0; i < 50; ++i) {
+            SERVICE_STATUS status{};
+            if (QueryServiceStatus(hSvc, &status)
+                && status.dwCurrentState == SERVICE_RUNNING) {
+                started = true;
+                break;
+            }
+            Sleep(100);
+        }
     }
 
     CloseServiceHandle(hSvc);
     CloseServiceHandle(hSCM);
-    return true;
+    return started;
 }
 
-bool MainWindow::ensureBonjourServiceInstalled() {
-    const std::wstring serviceName = L"Bonjour Service";
+bool MainWindow::ensureBonjourServiceReady() {
+    BonjourState state = queryBonjourState();
 
-    if (isWindowsServicePresent(serviceName)) {
+    if (state == BonjourState::Running) {
+        qInfo() << "Bonjour Service is running";
         return true;
     }
 
-    int choice = QMessageBox::question(
-        this,
-        "Bonjour Service Required",
-        "Bonjour Service is required for discovery (mDNS). It is not "
-        "installed.\n\nDo you want to install it now?",
-        QMessageBox::Yes | QMessageBox::No,
-        QMessageBox::Yes
-    );
-
-    if (choice != QMessageBox::Yes) {
+    if (state == BonjourState::Stopped) {
+        qInfo() << "Bonjour Service is stopped; attempting to start it";
+        if (startBonjourService() && queryBonjourState() == BonjourState::Running) {
+            qInfo() << "Bonjour Service started";
+            return true;
+        }
         QMessageBox::critical(
-            this,
-            "Bonjour Service Missing",
-            "Bonjour Service is required. The application will now exit."
-        );
+            this, "Bonjour Service Not Running",
+            "Bonjour Service is installed but could not be started.\n\n"
+            "Open Services (services.msc), start 'Bonjour Service', "
+            "then relaunch uxplay-windows.");
         return false;
     }
 
-    QMessageBox::information(
-        this,
-        "Installing Bonjour Service",
-        "Starting installation of 'Bonjour Service'. Follow any UAC prompt."
-    );
+    if (state == BonjourState::Missing) {
+        const int choice = QMessageBox::question(
+            this, "Bonjour Service Required",
+            "Bonjour Service is required for discovery (mDNS). It is not "
+            "installed.\n\nDo you want to install it now?",
+            QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
 
-    int rc = mdns::MdnsResponder::install();
+        if (choice != QMessageBox::Yes) {
+            QMessageBox::critical(
+                this, "Bonjour Service Missing",
+                "Bonjour Service is required. The application will now exit.");
+            return false;
+        }
 
-    // Re-check after install to be safe.
-    if (rc == 0 && isWindowsServicePresent(serviceName)) {
         QMessageBox::information(
-            this,
-            "Installation Complete",
-            "Bonjour Service installed successfully.\nThe application will restart."
-        );
-        restartApplication();
-        return false; // do not start server in this instance
+            this, "Installing Bonjour Service",
+            "Starting installation of 'Bonjour Service'. Follow any UAC prompt.");
+
+        const int rc = mdns::MdnsResponder::install();
+        if (rc != 0) {
+            QMessageBox::critical(
+                this, "Installation Failed",
+                "Failed to install 'Bonjour Service'.\n\n"
+                "The application will now exit.");
+            return false;
+        }
+
+        if (queryBonjourState() == BonjourState::Running) {
+            qInfo() << "Bonjour Service installed and running";
+            return true;
+        }
+        if (startBonjourService() && queryBonjourState() == BonjourState::Running) {
+            qInfo() << "Bonjour Service installed and started";
+            return true;
+        }
+
+        QMessageBox::critical(
+            this, "Installation Failed",
+            "Bonjour Service was installed but could not be started.\n\n"
+            "Open Services (services.msc), start 'Bonjour Service', "
+            "then relaunch uxplay-windows.");
+        return false;
     }
 
-    QMessageBox::critical(
-        this,
-        "Installation Failed",
-        "Failed to install 'Bonjour Service'.\n\n"
-        "The application will now exit."
-    );
-    return false;
+    // Access denied or another service-manager error. Discovery may still work,
+    // so continue and leave the details in the log instead of exiting.
+    qWarning() << "Bonjour Service state is unknown; continuing in best-effort mode";
+    QMessageBox::warning(
+        this, "Bonjour Service Status Unknown",
+        "Could not query Bonjour Service status (access denied or service "
+        "manager unavailable).\n\nDiscovery may still work. Check the log for "
+        "details.");
+    return true;
 }
 
 void MainWindow::restartApplication() {
+    qInfo() << "Restarting application";
     m_quitting = true;
     stopServer();
 
     QString exePath = QApplication::applicationFilePath();
     QStringList args = QCoreApplication::arguments();
     if (!args.isEmpty()) args.removeFirst(); // remove exe path
+    if (!args.contains("--restart")) args << "--restart";
 
-    QProcess::startDetached(exePath, args);
+    qInfo() << "Launching new instance with arguments:" << args;
+    if (!QProcess::startDetached(exePath, args)) {
+        qCritical() << "Failed to launch new instance";
+        m_quitting = false;
+        QMessageBox::critical(
+            this, "Restart Failed",
+            "Could not restart uxplay-windows.\n\nPlease close and open it manually.");
+        if (m_serverEnabled) startServer();
+        updateStatus();
+        return;
+    }
 
     // close GUI of current process after a short delay
     QTimer::singleShot(200, qApp, &QCoreApplication::quit);

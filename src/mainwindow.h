@@ -39,6 +39,14 @@ private slots:
     void onAirplayStarted();
     void onAirplayStopped();
     void onAirplayError(const QString &message);
+    void onClientConnected(const QString &name, const QString &model,
+                           const QString &deviceid);
+    void onClientDisconnected();
+    void onClientRejected(const QString &name, const QString &model,
+                          const QString &deviceid);
+    void onConnectionCountChanged(int count);
+    void toggleServer();
+    void openLogFile();
     void toggleBle(bool checked); // bluetooth
     void toggleForceFullscreen(bool checked);
     void onRendererChanged(int index);
@@ -54,6 +62,8 @@ private:
     void setupTray();
     void setupUI();
     void updateStatus();
+    void updateTrayIcon();
+    void clearClientInfo();
     void startBluetoothBeacon(const QString &path);
     void stopBluetoothBeacon();
     QString displayNameFromSettingsOrArgs() const;
@@ -69,8 +79,10 @@ private:
     QStringList getArgumentsFromFile() const;
 
     void ensureSettingsFileExists();
-    bool ensureBonjourServiceInstalled();
-    bool isWindowsServicePresent(const std::wstring &serviceName) const;
+    enum class BonjourState { Missing, Stopped, Running, Unknown };
+    BonjourState queryBonjourState() const;
+    bool startBonjourService();
+    bool ensureBonjourServiceReady();
     void restartApplication();
 
     bool isAutostartEnabled() const;
@@ -90,6 +102,10 @@ private:
     QMenu *m_mediaInfoMenu = nullptr;
     QAction *m_autostartAction = nullptr;
     QAction *m_statusAction = nullptr;
+    QAction *m_toggleServerAction = nullptr;
+    QAction *m_openLogAction = nullptr;
+    QAction *m_clientAction = nullptr;
+    QAction *m_connectionsAction = nullptr;
     QAction *m_mediaStatusAction = nullptr;
     QAction *m_videoCodecAction = nullptr;
     QAction *m_videoDecoderAction = nullptr;
@@ -102,11 +118,22 @@ private:
     QPushButton *m_settingsBtn = nullptr;
     QPushButton *m_listargsBtn = nullptr;
     QPushButton *m_licenseBtn = nullptr;
+    QPushButton *m_openLogBtn = nullptr;
     QLabel *m_statusLabel = nullptr;
+    QLabel *m_errorLabel = nullptr;
     QTimer *m_wakeRestartTimer = nullptr;
 
     AirPlayWorker *m_worker = nullptr;
 
+    QString m_clientName;
+    QString m_clientModel;
+    QString m_clientDeviceId;
+    int m_connectionCount = 0;
+
     bool m_running = false;
     bool m_quitting = false;
+    bool m_serverEnabled = true;
+    bool m_streaming = false;
+    enum class AppState { Disabled, Starting, Waiting, Streaming, Error };
+    AppState m_appState = AppState::Starting;
 };

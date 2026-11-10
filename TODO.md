@@ -6,12 +6,13 @@
 
 ## Phase 1 — 可觀測性與基本操作
 
-- [ ] 擴充引擎 callback：`client_connected(name, model, deviceid)`、`client_disconnected`、`open_connections`。
-- [ ] 主視窗與 tray 顯示目前連線裝置名稱／型號，連線與斷線時通知。
-- [ ] 引擎日誌寫入檔案（rolling log），tray 加「Open Log」，主視窗顯示最後錯誤。
-- [ ] tray 新增 Start/Stop AirPlay；圖示與 tooltip 區分 idle／streaming／error。
-- [ ] 單一實例保護（QLockFile 或 named mutex），第二次啟動叫回既有視窗。
-- [ ] Bonjour 服務改檢查執行狀態並嘗試自動啟動；修正 `ACCESS_DENIED` 被誤判為存在。
+- [x] 擴充引擎 callback：`client_connected(name, model, deviceid)`、`client_disconnected`、`open_connections`。
+- [x] 主視窗與 tray 顯示目前連線裝置名稱／型號，連線與斷線時通知。
+- [x] 引擎日誌寫入檔案（rolling log），tray 加「Open Log」，主視窗顯示最後錯誤。
+- [x] tray 新增 Start/Stop AirPlay；圖示與 tooltip 區分 idle／streaming／error
+  （目前以 App 重啟套用，Phase 2 改為引擎熱重啟）。
+- [x] 單一實例保護（QLockFile 或 named mutex），第二次啟動叫回既有視窗。
+- [x] Bonjour 服務改檢查執行狀態並嘗試自動啟動；修正 `ACCESS_DENIED` 被誤判為存在。
 
 ## Phase 2 — 生命週期與設定模型
 
