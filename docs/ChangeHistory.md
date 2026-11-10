@@ -1,5 +1,33 @@
 # ChangeHistory
 
+## 2026.11.11 06:57 修正安裝包缺少 FFmpeg DLL 導致引擎啟動即退出
+
+**類型**: 修正 · **檔案**: `make_release_CI.sh、make_release_CI_arm64.sh`
+
+### 問題 - MSI 安裝後啟動，引擎在 gstreamer_init() 失敗並退出
+
+### 根因 - FFmpeg 版本漂移，dll.txt 仍列舊版
+
+CI 的 GStreamer 使用 avcodec-63／avformat-63／avutil-61，但
+stuff/dll.txt 仍列 62／60／11；舊檔不存在，新檔又不在清單中，
+libgstlibav.dll 被 GStreamer blacklist。
+
+### 修改 - release 腳本改用 objdump 依賴閉包並在打包後驗證 plugin
+
+以 objdump 解析 app、Qt／GStreamer DLL 與 plugin 的匯入表，
+遞迴複製所有存在於 MSYS2 prefix 的 DLL；打包後逐一檢查非系統
+匯入是否齊全，並用 gst-inspect 驗證 appsrc、avdec_h264、
+playbin、autovideosink、h264parse 可載入。本機以 UCRT64 的
+libgstlibav.dll 模擬，closure 收集 114 個 DLL，blacklist 為 0，
+avdec_h264 可載入。
+
+- 讓 arm64 腳本依 MSYSTEM_PREFIX 改寫 dll.txt 的 /ucrt64 路徑
+- 缺少的 dll.txt 項目改為警告，不再靜默跳過
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.11 06:03 修正 AirPlay 快速重連後畫面定格
 
 **類型**: 修正 · **檔案**: `libuxplay/lib/raop_rtp_mirror.c`

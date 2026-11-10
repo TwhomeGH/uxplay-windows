@@ -80,12 +80,18 @@ copy_one_dll() {
     unix_path="$(cygpath -u "$win_path")"
   fi
 
+  local prefix="${MSYSTEM_PREFIX:-/ucrt64}"
+  unix_path="$(printf '%s' "$unix_path" | sed "s#/ucrt64/#$prefix/#g")"
+
   case "$unix_path" in
     *.dll|*.DLL) ;;
     *) return 0 ;;
   esac
 
-  [ -f "$unix_path" ] || return 0
+  if [ ! -f "$unix_path" ]; then
+    echo "WARNING: listed DLL not found, skipped: $unix_path" >&2
+    return 0
+  fi
 
   local dest=""
   if [[ "$unix_path" == *"/lib/gstreamer-1.0/"* ]]; then
@@ -111,6 +117,67 @@ done < "$DLL_LIST_FILE"
 echo "Big runtime bundle copied (restricted to dll.txt)."
 
 echo "================================================="
+echo " 4b. Resolving GStreamer/FFmpeg runtime DLLs"
+echo "================================================="
+
+MSYS_PREFIX="${MSYSTEM_PREFIX:-/ucrt64}"
+
+OBJDUMP="$MSYS_PREFIX/bin/objdump.exe"
+if [ ! -x "$OBJDUMP" ]; then
+  OBJDUMP="$(command -v objdump || true)"
+fi
+if [ -z "$OBJDUMP" ]; then
+  echo "ERROR: objdump not found; cannot collect DLL dependencies" >&2
+  exit 1
+fi
+
+collect_imports() {
+  local bin="$1"
+  [ -f "$bin" ] || return 0
+  "$OBJDUMP" -p "$bin" 2>/dev/null \
+    | sed -n 's/^[[:space:]]*DLL Name:[[:space:]]*//p'
+}
+
+find_runtime_dll() {
+  local name="$1"
+  local dir
+  for dir in "$DIST_DIR" "$DIST_DIR/lib/gstreamer-1.0" \
+             "$MSYS_PREFIX/bin" "$MSYS_PREFIX/lib" \
+             "$MSYS_PREFIX/lib/gstreamer-1.0"; do
+    if [ -f "$dir/$name" ]; then
+      printf '%s\n' "$dir/$name"
+      return 0
+    fi
+  done
+  return 1
+}
+
+queue=("$DIST_DIR/$EXE_NAME")
+for bin in "$DIST_DIR"/lib/gstreamer-1.0/*.dll "$DIST_DIR"/*.dll; do
+  [ -f "$bin" ] && queue+=("$bin")
+done
+
+processed=0
+while [ "${#queue[@]}" -gt 0 ]; do
+  bin="${queue[0]}"
+  queue=("${queue[@]:1}")
+  [ -f "$bin" ] || continue
+  processed=$((processed + 1))
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    if [ -f "$DIST_DIR/$name" ] || [ -f "$DIST_DIR/lib/gstreamer-1.0/$name" ]; then
+      continue
+    fi
+    src="$(find_runtime_dll "$name" || true)"
+    [ -n "$src" ] || continue
+    dest="$DIST_DIR/$(basename "$name")"
+    cp "$src" "$dest"
+    queue+=("$dest")
+  done < <(collect_imports "$bin")
+done
+echo "  resolved $processed binaries; $(find "$DIST_DIR" -maxdepth 1 -name '*.dll' | wc -l) runtime DLLs"
+
+echo "================================================="
 echo " 5. Finalizing Qt Dependencies (windeployqt)"
 echo "================================================="
 windeployqt --no-translations --no-compiler-runtime \
@@ -132,6 +199,48 @@ find $PROJECT_ROOT -name *.ico
 mkdir -p "$DIST_DIR/resources"
 cp stuff/newicon.ico "$DIST_DIR/resources/icon.ico"
 cp stuff/uxplay_arguments_list.txt "$DIST_DIR/resources/uxplay_arguments_list.txt"
+
+echo "================================================="
+echo " 8. Verifying bundled GStreamer plugins"
+echo "================================================="
+
+missing=0
+for bin in "$DIST_DIR/$EXE_NAME" "$DIST_DIR"/*.dll "$DIST_DIR"/lib/gstreamer-1.0/*.dll; do
+  [ -f "$bin" ] || continue
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    if [ -f "$DIST_DIR/$name" ] || [ -f "$DIST_DIR/lib/gstreamer-1.0/$name" ]; then
+      continue
+    fi
+    src="$(find_runtime_dll "$name" || true)"
+    if [ -n "$src" ]; then
+      echo "ERROR: runtime DLL '$name' is missing from the bundle (source: $src)" >&2
+      missing=1
+    fi
+  done < <(collect_imports "$bin")
+done
+if [ "$missing" -ne 0 ]; then
+  exit 1
+fi
+echo "All non-system DLL imports are present in the bundle."
+
+if command -v gst-inspect-1.0 >/dev/null 2>&1; then
+  export GST_PLUGIN_PATH="$DIST_DIR/lib/gstreamer-1.0"
+  export GST_PLUGIN_SYSTEM_PATH=""
+  export PATH="$DIST_DIR:$PATH"
+
+  gst-inspect-1.0 -b || true
+  for feature in appsrc avdec_h264 playbin autovideosink h264parse; do
+    if ! gst-inspect-1.0 --exists "$feature" >/dev/null 2>&1; then
+      echo "ERROR: required GStreamer feature '$feature' is missing from the bundle" >&2
+      echo "       see the blacklist above; a runtime DLL is probably missing" >&2
+      exit 1
+    fi
+  done
+  echo "All required GStreamer features are loadable."
+else
+  echo "WARNING: gst-inspect-1.0 not found; skipping plugin smoke test" >&2
+fi
 
 echo "================================================="
 echo " ✅ Done! ARM64 Package is ready in $DIST_DIR"
