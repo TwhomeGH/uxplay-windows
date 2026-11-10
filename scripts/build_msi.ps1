@@ -24,8 +24,14 @@ if (-not (Test-Path $license)) {
 Push-Location $root
 try {
     wix extension add WixToolset.UI.wixext -acceptEula wix7
+    if ($LASTEXITCODE -ne 0) {
+        throw "wix extension add failed with exit code $LASTEXITCODE"
+    }
     $out = Join-Path $root "uxplaywindows-installer-$Arch.msi"
     wix build -acceptEula wix7 product.wxs -arch $Arch -out $out -ext WixToolset.UI.wixext
+    if ($LASTEXITCODE -ne 0) {
+        throw "wix build failed with exit code $LASTEXITCODE"
+    }
     Write-Host "Built: $out"
 } finally {
     Pop-Location

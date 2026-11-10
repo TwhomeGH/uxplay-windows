@@ -12,7 +12,9 @@
     Language="1033"
     Scope="perMachine">
 
-    <MajorUpgrade AllowDowngrades="yes" />
+    <MajorUpgrade
+      AllowSameVersionUpgrades="yes"
+      DowngradeErrorMessage="A newer version of uxplay-windows is already installed." />
     <WixVariable Id="WixUILicenseRtf" Value="LICENSE.rtf" />
     <MediaTemplate EmbedCab="yes" />
 

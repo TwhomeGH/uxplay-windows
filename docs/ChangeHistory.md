@@ -2,7 +2,7 @@
 
 ## 2026.11.11 06:57 修正安裝包缺少 FFmpeg DLL 導致引擎啟動即退出
 
-**類型**: 修正 · **檔案**: `make_release_CI.sh、make_release_CI_arm64.sh`
+**類型**: 修正 · **檔案**: `make_release_CI.sh、make_release_CI_arm64.sh、product.wxs`
 
 ### 問題 - MSI 安裝後啟動，引擎在 gstreamer_init() 失敗並退出
 
@@ -23,6 +23,7 @@ avdec_h264 可載入。
 
 - 讓 arm64 腳本依 MSYSTEM_PREFIX 改寫 dll.txt 的 /ucrt64 路徑
 - 缺少的 dll.txt 項目改為警告，不再靜默跳過
+- MSI 允許同版本升級，nightly 同版本可直接覆蓋
 
 **相關文件**: docs/DEVELOPERS-GUIDE.md
 
