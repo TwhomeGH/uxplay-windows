@@ -152,6 +152,22 @@ QSettings 內常用的值：`display_name`、`renderer_mode`、`resolution_mode`
 - `make_release.sh` 目前的本機路徑仍偏 MINGW64，且未複製
   `mDNSResponder.exe`／`dnssd.dll`；這列在 `TODO.md` 的 Phase 4。
 
+### 本地建 MSI
+
+1. 先 stage `release/`：在 UCRT64 執行 `make_release_CI.sh`（需要
+   PyInstaller／winrt）或 `make_release.sh`。
+2. 安裝 WiX v7：`dotnet tool install --global wix`。
+3. 執行：
+
+   ```powershell
+   .\scripts\build_msi.ps1 -Arch x64
+   ```
+
+- 產物：`uxplaywindows-installer-x64.msi`；ARM64 用 `-Arch arm64`。
+- `product.wxs` 會把 `release/**` 打包；`LICENSE.rtf` 會自動從
+  `docs/` 複製。
+- `release/` 的內容必須對應目標架構（x64 或 arm64）。
+
 ## 目前限制（Phase 1）
 
 - Start/Stop 以「重啟 App」套用；Phase 2 會改成引擎熱重啟。

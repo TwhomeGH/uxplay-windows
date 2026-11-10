@@ -4,3 +4,7 @@ release/
 Bonjour SDK/
 dnssd.dll
 _site/
+/LICENSE.rtf
+/*.msi
+/*.wixpdb
+/.wix/
