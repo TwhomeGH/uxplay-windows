@@ -32,9 +32,9 @@ jobs:
         with:
           path: |
             Bonjour SDK
-          key: mdns-${{ runner.os }}-${{ hashFiles('mdnsresponder-patches/2881.patch') }}-v3
+          key: mdns-${{ runner.os }}-x64-${{ hashFiles('mdnsresponder-patches/2881.patch') }}-v3
           restore-keys: |
-            mdns-${{ runner.os }}-
+            mdns-${{ runner.os }}-x64-
 
       - name: mDNSResponder compilation
         if: steps.mdns-cache.outputs.cache-hit != 'true'
