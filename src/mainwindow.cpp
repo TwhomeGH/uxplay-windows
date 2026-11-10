@@ -714,6 +714,11 @@ void MainWindow::startServer() {
     applyResolutionArgs(args);
     applyDisplayNameArg(args);
 
+    if (QCoreApplication::arguments().contains(QStringLiteral("--engine-debug"))
+        && !args.contains("-d")) {
+        args << "-d";
+    }
+
     // Only add -ble and start beacon if checkbox is checked
     if (!m_bleCheckbox) return;
     if (m_bleCheckbox->isChecked()) {

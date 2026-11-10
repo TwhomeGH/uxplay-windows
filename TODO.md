@@ -40,3 +40,5 @@
 
 - [x] 接入 changelogkit（`.changelog.toml`、`docs/ChangeHistory.md`）。
 - [x] 建立根目錄 `TODO.md` 並整理 AirPlay 改進分期。
+- [x] 本地建置／除錯腳本與開發者指南
+  （`scripts/dev_build.sh`、`scripts/dev_run.sh`、`docs/DEVELOPERS-GUIDE.md`）。

@@ -72,9 +72,14 @@ int main(int argc, char *argv[]) {
 
     QString appPath = QApplication::applicationDirPath();
 
-    QString pluginPath =
-        QDir::toNativeSeparators(appPath + "/lib/gstreamer-1.0");
-    qputenv("GST_PLUGIN_PATH", pluginPath.toUtf8());
+    const QString bundledPlugins = appPath + "/lib/gstreamer-1.0";
+    if (QDir(bundledPlugins).exists()) {
+        qputenv("GST_PLUGIN_PATH",
+                QDir::toNativeSeparators(bundledPlugins).toUtf8());
+    } else {
+        qInfo() << "No bundled GStreamer plugins; using GST_PLUGIN_PATH:"
+                << qgetenv("GST_PLUGIN_PATH");
+    }
 
     QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
     QString path = QDir::toNativeSeparators(appPath) + ";" + env.value("PATH");

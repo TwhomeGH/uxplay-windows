@@ -1,5 +1,25 @@
 # ChangeHistory
 
+## 2026.11.11 05:52 新增本地建置／除錯腳本與開發者指南
+
+**類型**: 文件 · **檔案**: `scripts/dev_build.sh、scripts/dev_run.sh、docs/DEVELOPERS-GUIDE.md、.markdownlint.json、src/main.cpp、src/mainwindow.cpp、TODO.md`
+
+### 問題 - 本地 debug 要手動設 PATH／Qt plugin／GStreamer／Bonjour SDK，開發指南只提到 make_release.sh
+
+### 根因 - 沒有 dev build 入口；App 會強制覆寫 GST_PLUGIN_PATH，也沒有把 -d 傳給引擎的簡便方式
+
+### 修改 - 新增 dev_build/dev_run 腳本與 --engine-debug
+
+- App 只在 bundled plugin 存在時覆寫 GST_PLUGIN_PATH，dev build 改用 MSYS2 plugin
+- 改寫 DEVELOPERS-GUIDE 為本地開發單一入口，並補上狀態位置、重置與疑難排解
+
+**相關文件**:
+
+- [建置文件](BUILDING.md)
+- [待辦清單](../TODO.md)
+
+---
+
 ## 2026.11.11 05:41 Phase 1：連線事件、引擎日誌與單一實例
 
 **類型**: 功能 · **檔案**: `src/mainwindow.cpp、src/airplayworker.cpp、src/main.cpp、src/logging.cpp、src/logging.h、libuxplay/uxplay.cpp、libuxplay/uxplay_api.h、CMakeLists.txt、TODO.md`

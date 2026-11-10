@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+# Local development build for uxplay-windows.
+# Run from an MSYS2 UCRT64 shell; see docs/DEVELOPERS-GUIDE.md.
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+BUILD_DIR="${BUILD_DIR:-$REPO_ROOT/build/dev}"
+BUILD_TYPE="RelWithDebInfo"
+CLEAN=0
+
+usage() {
+    cat <<'EOF'
+Usage: scripts/dev_build.sh [options]
+
+Options:
+  --debug     Build with CMAKE_BUILD_TYPE=Debug
+  --release   Build with CMAKE_BUILD_TYPE=Release
+  --clean     Remove the build directory before configuring
+  -h, --help  Show this help
+
+Environment:
+  BUILD_DIR            Build directory (default: <repo>/build/dev)
+  BONJOUR_SDK_HOME     Bonjour SDK root (default: <repo>/Bonjour SDK)
+  MSYSTEM_PREFIX       MSYS2 prefix (default: /ucrt64 in UCRT64)
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --debug) BUILD_TYPE="Debug" ;;
+        --release) BUILD_TYPE="Release" ;;
+        --clean) CLEAN=1 ;;
+        -h|--help) usage; exit 0 ;;
+        *)
+            echo "Unknown option: $1" >&2
+            usage >&2
+            exit 1
+            ;;
+    esac
+    shift
+done
+
+if [[ "${MSYSTEM:-}" != "UCRT64" ]]; then
+    echo "ERROR: run this from an MSYS2 UCRT64 shell (MSYSTEM=UCRT64)." >&2
+    echo "       Open 'MSYS2 UCRT64' from the Start menu, then:" >&2
+    echo "       cd /f/uxplay-windows && bash scripts/dev_build.sh" >&2
+    exit 1
+fi
+
+PREFIX="${MSYSTEM_PREFIX:-/ucrt64}"
+if [[ ! -x "$PREFIX/bin/g++.exe" ]]; then
+    echo "ERROR: UCRT64 toolchain not found at $PREFIX/bin/g++.exe" >&2
+    exit 1
+fi
+
+if [[ -z "${BONJOUR_SDK_HOME:-}" ]]; then
+    if [[ -d "$REPO_ROOT/Bonjour SDK/Include" ]]; then
+        export BONJOUR_SDK_HOME="$REPO_ROOT/Bonjour SDK"
+    else
+        echo "ERROR: Bonjour SDK not found." >&2
+        echo "       Set BONJOUR_SDK_HOME or place the SDK at:" >&2
+        echo "       $REPO_ROOT/Bonjour SDK" >&2
+        exit 1
+    fi
+fi
+export BONJOUR_SDK_HOME
+
+if [[ "$CLEAN" -eq 1 ]]; then
+    echo "==> Removing $BUILD_DIR"
+    rm -rf "$BUILD_DIR"
+fi
+
+mkdir -p "$BUILD_DIR"
+
+echo "==> Configuring ($BUILD_TYPE)"
+cmake -S "$REPO_ROOT" -B "$BUILD_DIR" -G Ninja \
+    -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
+    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+    -DCMAKE_C_COMPILER=gcc \
+    -DCMAKE_CXX_COMPILER=g++ \
+    -DCMAKE_PREFIX_PATH="$PREFIX" \
+    -DOPENSSL_ROOT_DIR="$PREFIX" \
+    -DOPENSSL_INCLUDE_DIR="$PREFIX/include" \
+    -DOPENSSL_LIBRARIES="$PREFIX/lib/libssl.dll.a;$PREFIX/lib/libcrypto.dll.a" \
+    -DNO_MARCH_NATIVE=ON
+
+echo "==> Building"
+cmake --build "$BUILD_DIR" --parallel
+
+# The tray icon is loaded from <exe dir>/resources/icon.ico.
+mkdir -p "$BUILD_DIR/resources"
+if [[ -f "$REPO_ROOT/stuff/newicon.ico" ]]; then
+    cp -f "$REPO_ROOT/stuff/newicon.ico" "$BUILD_DIR/resources/icon.ico"
+fi
+
+echo
+echo "Built: $BUILD_DIR/uxplay-windows.exe"
+echo "Run:   bash $SCRIPT_DIR/dev_run.sh --engine-debug"
