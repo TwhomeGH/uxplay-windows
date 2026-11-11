@@ -15,8 +15,11 @@
 #include <QClipboard>
 #include <QCloseEvent>
 #include <QFileInfo>
+#include <QGuiApplication>
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QRegularExpression>
+#include <QScreen>
 
 #include <QDebug>
 #include <QDesktopServices>
@@ -47,25 +50,39 @@
 #include <QVBoxLayout>
 #include <QTextStream>
 
-struct RenameData {
+struct VideoWindowData {
     DWORD pid;
     QString newTitle;
+    bool applyGeometry = false;
+    RECT geometry = {};
+    HWND found = nullptr;
 };
 
 // Callback method that Windows calls for every opened window
-BOOL CALLBACK EnumWindowsProcRename(HWND hwnd, LPARAM lParam) {
-    RenameData *data = reinterpret_cast<RenameData*>(lParam);
+BOOL CALLBACK EnumWindowsProcVideo(HWND hwnd, LPARAM lParam) {
+    VideoWindowData *data = reinterpret_cast<VideoWindowData*>(lParam);
     DWORD windowPid;
     GetWindowThreadProcessId(hwnd, &windowPid);
 
     if (windowPid == data->pid) {
         char windowTitle[512];
         if (GetWindowTextA(hwnd, windowTitle, sizeof(windowTitle))) {
-            QString title = QString::fromLocal8Bit(windowTitle);
-            
-            if (title.contains("Direct") && title.contains("enderer")) {
-                printf("found window to rename, setting new name...\n");
-                SetWindowTextW(hwnd, reinterpret_cast<const wchar_t*>(data->newTitle.utf16()));
+            const QString title = QString::fromLocal8Bit(windowTitle);
+            const bool renderer =
+                title.contains("Direct") && title.contains("enderer");
+            const bool ours = title.startsWith("AirPlay Video Stream");
+
+            if (renderer || ours) {
+                data->found = hwnd;
+                if (data->applyGeometry) {
+                    SetWindowPos(hwnd, nullptr, data->geometry.left,
+                                 data->geometry.top,
+                                 data->geometry.right - data->geometry.left,
+                                 data->geometry.bottom - data->geometry.top,
+                                 SWP_NOZORDER | SWP_NOACTIVATE);
+                }
+                SetWindowTextW(
+                    hwnd, reinterpret_cast<const wchar_t*>(data->newTitle.utf16()));
                 return FALSE;
             }
         }
@@ -634,6 +651,16 @@ void MainWindow::updateMediaInfo(const QString &key, const QString &value) {
         m_videoRendererAction->setText("Video Renderer: " + value);
     } else if (key == "Stream Size" && m_streamSizeAction) {
         m_streamSizeAction->setText("Stream Size: " + value);
+        static const QRegularExpression sizePattern(
+            QStringLiteral("(\\d+)x(\\d+)"));
+        const QRegularExpressionMatch match = sizePattern.match(value);
+        if (match.hasMatch()) {
+            m_streamWidth = match.captured(1).toInt();
+            m_streamHeight = match.captured(2).toInt();
+            if (m_videoWindowHandle && !m_videoWindowApplied) {
+                syncVideoWindow();
+            }
+        }
     } else if (key == "Audio Codec" && m_audioCodecAction) {
         m_audioCodecAction->setText("Audio Codec: " + value);
     } else if (key == "Audio Format" && m_audioFormatAction) {
@@ -844,6 +871,7 @@ void MainWindow::startServer() {
 
 void MainWindow::stopServer() {
     qInfo() << "Stopping UxPlay engine";
+    saveVideoWindowGeometry();
     if (m_diagnostics) {
         m_diagnostics->event(QStringLiteral("engine"),
                              QStringLiteral("stopping"));
@@ -889,25 +917,156 @@ void MainWindow::onAirplayStarted() {
 
     if (!m_videoTitleTimer) {
         m_videoTitleTimer = new QTimer(this);
-        connect(m_videoTitleTimer, &QTimer::timeout, this, [this]() {
-            if (!m_running) {
-                m_videoTitleTimer->stop();
-                return;
-            }
-
-            RenameData info;
-            info.pid = GetCurrentProcessId();
-            info.newTitle = "AirPlay Video Stream (ALT+ENTER for Fullscreen)";
-
-            EnumWindows(EnumWindowsProcRename, reinterpret_cast<LPARAM>(&info));
-        });
+        m_videoTitleTimer->setInterval(1000);
+        connect(m_videoTitleTimer, &QTimer::timeout, this,
+                &MainWindow::syncVideoWindow);
     }
-    m_videoTitleTimer->start(5000);
+    m_videoTitleTimer->start(1000);
+}
+
+void MainWindow::syncVideoWindow() {
+    if (!m_running || m_quitting) {
+        return;
+    }
+
+    VideoWindowData data;
+    data.pid = GetCurrentProcessId();
+    data.newTitle = "AirPlay Video Stream (ALT+ENTER for Fullscreen)";
+    EnumWindows(EnumWindowsProcVideo, reinterpret_cast<LPARAM>(&data));
+
+    if (!data.found) {
+        if (m_videoWindowHandle
+            && !IsWindow(reinterpret_cast<HWND>(m_videoWindowHandle))) {
+            m_videoWindowHandle = 0;
+            m_videoWindowApplied = false;
+            m_lastVideoWindowRect = QRect();
+        }
+        return;
+    }
+
+    const quintptr handle = reinterpret_cast<quintptr>(data.found);
+    if (handle != m_videoWindowHandle) {
+        m_videoWindowHandle = handle;
+        m_videoWindowApplied = false;
+        m_lastVideoWindowRect = QRect();
+    }
+
+    if (!m_videoWindowApplied) {
+        if (m_settings.videoWindow.remember
+            && m_settings.videoWindow.hasGeometry) {
+            QRect target(m_settings.videoWindow.x, m_settings.videoWindow.y,
+                         m_settings.videoWindow.width,
+                         m_settings.videoWindow.height);
+            bool onScreen = false;
+            for (QScreen *screen : QGuiApplication::screens()) {
+                if (screen->availableGeometry().intersects(target)) {
+                    onScreen = true;
+                    break;
+                }
+            }
+            if (onScreen && target.width() >= 320 && target.height() >= 200) {
+                applyVideoWindowGeometry(target);
+            } else if (m_streamWidth > 0 && m_streamHeight > 0) {
+                fitVideoWindowToStream(m_streamWidth, m_streamHeight);
+            }
+        } else if (m_streamWidth > 0 && m_streamHeight > 0) {
+            fitVideoWindowToStream(m_streamWidth, m_streamHeight);
+        }
+    }
+
+    if (m_videoWindowApplied) {
+        saveVideoWindowGeometry();
+    }
+}
+
+void MainWindow::applyVideoWindowGeometry(const QRect &geometry) {
+    if (!m_videoWindowHandle) {
+        return;
+    }
+
+    HWND handle = reinterpret_cast<HWND>(m_videoWindowHandle);
+    SetWindowPos(handle, nullptr, geometry.x(), geometry.y(),
+                 geometry.width(), geometry.height(),
+                 SWP_NOZORDER | SWP_NOACTIVATE);
+    m_lastVideoWindowRect = geometry;
+    m_videoWindowApplied = true;
+}
+
+void MainWindow::fitVideoWindowToStream(int width, int height) {
+    if (!m_videoWindowHandle || width <= 0 || height <= 0) {
+        return;
+    }
+
+    QScreen *screen = QGuiApplication::primaryScreen();
+    if (!screen) {
+        return;
+    }
+
+    const QRect available = screen->availableGeometry();
+    const int maxWidth = qMax(640, available.width() * 8 / 10);
+    const int maxHeight = qMax(480, available.height() * 8 / 10);
+    const double aspect = static_cast<double>(width) / height;
+
+    int targetWidth = maxWidth;
+    int targetHeight = static_cast<int>(targetWidth / aspect);
+    if (targetHeight > maxHeight) {
+        targetHeight = maxHeight;
+        targetWidth = static_cast<int>(targetHeight * aspect);
+    }
+    const int x = available.x() + (available.width() - targetWidth) / 2;
+    const int y = available.y() + (available.height() - targetHeight) / 2;
+
+    applyVideoWindowGeometry(QRect(x, y, targetWidth, targetHeight));
+
+    if (m_settings.videoWindow.remember) {
+        m_settings.videoWindow.hasGeometry = true;
+        m_settings.videoWindow.x = x;
+        m_settings.videoWindow.y = y;
+        m_settings.videoWindow.width = targetWidth;
+        m_settings.videoWindow.height = targetHeight;
+        m_settings.save();
+    }
+}
+
+void MainWindow::saveVideoWindowGeometry() {
+    if (!m_settings.videoWindow.remember || !m_videoWindowApplied
+        || !m_videoWindowHandle) {
+        return;
+    }
+
+    HWND handle = reinterpret_cast<HWND>(m_videoWindowHandle);
+    if (!IsWindow(handle) || IsIconic(handle) || IsZoomed(handle)) {
+        return;
+    }
+
+    RECT rect = {};
+    if (!GetWindowRect(handle, &rect)) {
+        return;
+    }
+
+    const QRect current(rect.left, rect.top, rect.right - rect.left,
+                        rect.bottom - rect.top);
+    if (current == m_lastVideoWindowRect) {
+        return;
+    }
+
+    m_lastVideoWindowRect = current;
+    m_settings.videoWindow.hasGeometry = true;
+    m_settings.videoWindow.x = current.x();
+    m_settings.videoWindow.y = current.y();
+    m_settings.videoWindow.width = current.width();
+    m_settings.videoWindow.height = current.height();
+    m_settings.save();
 }
 
 void MainWindow::onAirplayStopped() {
     m_running = false;
     if (m_videoTitleTimer) m_videoTitleTimer->stop();
+    m_videoWindowHandle = 0;
+    m_videoWindowApplied = false;
+    m_lastVideoWindowRect = QRect();
+    m_streamWidth = 0;
+    m_streamHeight = 0;
     clearClientInfo();
     resetMediaInfo("Not connected");
     qInfo() << "UxPlay engine stopped";

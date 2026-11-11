@@ -4,6 +4,7 @@
 
 #include <QLabel>
 #include <QMainWindow>
+#include <QRect>
 #include <QComboBox>
 #include <QLineEdit>
 #include <QPushButton>
@@ -89,6 +90,10 @@ private:
     void ensureUsbObsController();
     void ensureUsbConnector();
     void setObsMode(const QString &mode, bool persist);
+    void syncVideoWindow();
+    void applyVideoWindowGeometry(const QRect &geometry);
+    void fitVideoWindowToStream(int width, int height);
+    void saveVideoWindowGeometry();
     void populateLogMenu(QMenu *menu);
 
     QProcess *m_beacon = nullptr;
@@ -167,6 +172,11 @@ private:
     int m_restartAttempt = 0;
     QString m_lastEngineError;
     QTimer *m_videoTitleTimer = nullptr;
+    quintptr m_videoWindowHandle = 0;
+    QRect m_lastVideoWindowRect;
+    bool m_videoWindowApplied = false;
+    int m_streamWidth = 0;
+    int m_streamHeight = 0;
     enum class AppState { Disabled, Starting, Waiting, Streaming, Error };
     AppState m_appState = AppState::Starting;
 };

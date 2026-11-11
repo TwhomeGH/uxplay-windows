@@ -148,6 +148,24 @@ AppSettings AppSettings::fromJson(const QString &path, bool *ok) {
     settings.resolution.refresh =
         resolution.value(QStringLiteral("refresh")).toInt(settings.resolution.refresh);
 
+    const QJsonObject videoWindow =
+        object.value(QStringLiteral("video_window")).toObject();
+    settings.videoWindow.remember =
+        videoWindow.value(QStringLiteral("remember"))
+            .toBool(settings.videoWindow.remember);
+    settings.videoWindow.x =
+        videoWindow.value(QStringLiteral("x")).toInt(settings.videoWindow.x);
+    settings.videoWindow.y =
+        videoWindow.value(QStringLiteral("y")).toInt(settings.videoWindow.y);
+    settings.videoWindow.width =
+        videoWindow.value(QStringLiteral("width")).toInt(settings.videoWindow.width);
+    settings.videoWindow.height =
+        videoWindow.value(QStringLiteral("height")).toInt(settings.videoWindow.height);
+    settings.videoWindow.hasGeometry =
+        videoWindow.value(QStringLiteral("has_geometry"))
+            .toBool(settings.videoWindow.width > 0
+                    && settings.videoWindow.height > 0);
+
     const QJsonArray extra = object.value(QStringLiteral("extra_args")).toArray();
     settings.extraArgs.clear();
     for (const QJsonValue &value : extra) {
@@ -187,6 +205,14 @@ bool AppSettings::save() const {
     QJsonObject videoObject;
     videoObject[QStringLiteral("codec")] = videoCodec;
 
+    QJsonObject videoWindowObject;
+    videoWindowObject[QStringLiteral("remember")] = videoWindow.remember;
+    videoWindowObject[QStringLiteral("has_geometry")] = videoWindow.hasGeometry;
+    videoWindowObject[QStringLiteral("x")] = videoWindow.x;
+    videoWindowObject[QStringLiteral("y")] = videoWindow.y;
+    videoWindowObject[QStringLiteral("width")] = videoWindow.width;
+    videoWindowObject[QStringLiteral("height")] = videoWindow.height;
+
     QJsonObject diagnosticsObject;
     diagnosticsObject[QStringLiteral("enabled")] = diagnosticsEnabled;
 
@@ -206,6 +232,7 @@ bool AppSettings::save() const {
     object[QStringLiteral("server_enabled")] = serverEnabled;
     object[QStringLiteral("obs")] = obsObject;
     object[QStringLiteral("video")] = videoObject;
+    object[QStringLiteral("video_window")] = videoWindowObject;
     object[QStringLiteral("diagnostics")] = diagnosticsObject;
     object[QStringLiteral("extra_args")] = extra;
 
@@ -468,6 +495,12 @@ void AppSettings::sanitize() {
     resolution.refresh = qBound(1, resolution.refresh, 255);
 
     extraArgs = stripManagedArgs(extraArgs);
+
+    videoWindow.width = qBound(0, videoWindow.width, 10000);
+    videoWindow.height = qBound(0, videoWindow.height, 10000);
+    if (videoWindow.width <= 0 || videoWindow.height <= 0) {
+        videoWindow.hasGeometry = false;
+    }
 }
 
 void AppSettings::archiveLegacy() {

@@ -1,5 +1,24 @@
 # ChangeHistory
 
+## 2026.11.12 04:59 記住 AirPlay 影片視窗幾何
+
+**類型**: 功能 · **檔案**: `src/settings.h、src/settings.cpp、src/mainwindow.h、src/mainwindow.cpp`
+
+### 問題 - 每次重連 AirPlay 視窗都回到預設大小，使用者要重新拖動縮放
+
+### 根因 - GStreamer 建立原生 HWND，GUI 只改標題，沒有幾何記憶
+
+### 修改 - settings.json 新增 video_window（x／y／width／height／remember）
+
+待 iPad 重連驗證：視窗比例、拖動後 settings 寫入、重連還原。
+
+- 第一次依串流比例 fit；之後套用上次幾何
+- 1 秒輪詢視窗位置大小，變更即儲存；離開螢幕時重新 fit
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.12 04:45 新增 720p 解析度與 no-display 實驗結果
 
 **類型**: 功能 · **檔案**: `src/settings.cpp、src/mainwindow.cpp、docs/DEVELOPERS-GUIDE.md、TODO.md`

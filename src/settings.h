@@ -10,6 +10,15 @@ struct ResolutionSettings {
     int refresh = 60;
 };
 
+struct VideoWindowSettings {
+    bool remember = true;
+    bool hasGeometry = false;
+    int x = 0;
+    int y = 0;
+    int width = 0;
+    int height = 0;
+};
+
 class AppSettings {
 public:
     static AppSettings load();
@@ -25,6 +34,7 @@ public:
     QString renderer = "auto";
     QString videoCodec = "hevc";
     ResolutionSettings resolution;
+    VideoWindowSettings videoWindow;
     bool noHold = true;
     bool serverEnabled = true;
     bool diagnosticsEnabled = true;
