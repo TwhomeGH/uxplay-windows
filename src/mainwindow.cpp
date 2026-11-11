@@ -32,6 +32,9 @@
 #include <QStyle>
 #include <QSystemTrayIcon>
 #include <QComboBox>
+#include <QGroupBox>
+#include <QStandardItem>
+#include <QStandardItemModel>
 #include <QTimer>
 #include <QUrl>
 #include <QVBoxLayout>
@@ -70,6 +73,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     setupTray();
     setupUI();
 
+    if (m_settings.obsMode == QStringLiteral("window")) {
+        QTimer::singleShot(0, this, [this]() { startUsbObs(false); });
+    }
+
     // Force creation of the hidden top-level HWND so Windows power events reach us.
     winId();
 
@@ -106,7 +113,7 @@ MainWindow::~MainWindow() {
 void MainWindow::setupUI() {
     setWindowTitle("uxplay-windows");
     setWindowIcon(QApplication::windowIcon());
-    setFixedSize(420, 520);
+    setFixedSize(420, 600);
 
     auto *central = new QWidget(this);
     setCentralWidget(central);
@@ -215,6 +222,30 @@ void MainWindow::setupUI() {
     layout->addLayout(sizeLayout);
     updateResolutionControls();
 
+    auto *obsGroup = new QGroupBox("OBS output (USB capture)", this);
+    auto *obsLayout = new QVBoxLayout(obsGroup);
+    m_obsModeCombo = new QComboBox(obsGroup);
+    m_obsModeCombo->addItem("Off", "off");
+    m_obsModeCombo->addItem("Clean window (Window Capture)", "window");
+    m_obsModeCombo->addItem("Virtual camera (not implemented)", "camera");
+    if (auto *model = qobject_cast<QStandardItemModel *>(m_obsModeCombo->model())) {
+        if (QStandardItem *cameraItem = model->item(2)) {
+            cameraItem->setEnabled(false);
+        }
+    }
+    {
+        const int saved = m_obsModeCombo->findData(m_settings.obsMode);
+        m_obsModeCombo->setCurrentIndex(saved >= 0 ? saved : 0);
+    }
+    connect(m_obsModeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &MainWindow::onObsModeChanged);
+    m_obsHint = new QLabel(
+        "Clean window: select it in OBS with Window Capture.", obsGroup);
+    m_obsHint->setWordWrap(true);
+    obsLayout->addWidget(m_obsModeCombo);
+    obsLayout->addWidget(m_obsHint);
+    layout->addWidget(obsGroup);
+
     m_settingsBtn = new QPushButton("Edit Settings (Advanced)", this);
     connect(m_settingsBtn, &QPushButton::clicked, this, &MainWindow::openSettingsFile);
     layout->addWidget(m_settingsBtn);
@@ -222,10 +253,6 @@ void MainWindow::setupUI() {
     m_listargsBtn = new QPushButton("List UxPlay arguments", this);
     connect(m_listargsBtn, &QPushButton::clicked, this, &MainWindow::openListArgsFile);
     layout->addWidget(m_listargsBtn);
-
-    m_usbObsBtn = new QPushButton("USB Clean Output (OBS, experimental)", this);
-    connect(m_usbObsBtn, &QPushButton::clicked, this, &MainWindow::toggleUsbObs);
-    layout->addWidget(m_usbObsBtn);
 
     m_autostartBtn = new QPushButton(this);
     connect(m_autostartBtn, &QPushButton::clicked, this, &MainWindow::toggleAutostart);
@@ -722,9 +749,6 @@ void MainWindow::ensureUsbObsController() {
         if (m_usbObsAction) {
             m_usbObsAction->setText("Stop USB Clean Output");
         }
-        if (m_usbObsBtn) {
-            m_usbObsBtn->setText("Stop USB Clean Output");
-        }
         if (m_tray) {
             m_tray->showMessage(
                 "uxplay-windows",
@@ -737,10 +761,10 @@ void MainWindow::ensureUsbObsController() {
         if (m_usbObsAction) {
             m_usbObsAction->setText("USB Clean Output (experimental)");
         }
-        if (m_usbObsBtn) {
-            m_usbObsBtn->setText("USB Clean Output (OBS, experimental)");
-        }
         qInfo() << "USB Clean Output stopped";
+    });
+    connect(m_usbObs, &UsbObsController::outputClosed, this, [this]() {
+        setObsMode(QStringLiteral("off"), true);
     });
     connect(m_usbObs, &UsbObsController::errorOccurred, this,
             [this](const QString &message) {
@@ -752,31 +776,72 @@ void MainWindow::ensureUsbObsController() {
             });
 }
 
-void MainWindow::toggleUsbObs() {
-    ensureUsbObsController();
-    if (!m_usbObs) {
+void MainWindow::setObsMode(const QString &mode, bool persist) {
+    QString normalized = mode;
+    if (normalized != QStringLiteral("off") &&
+        normalized != QStringLiteral("window")) {
+        normalized = QStringLiteral("off");
+    }
+
+    if (m_obsModeCombo) {
+        const int index = m_obsModeCombo->findData(normalized);
+        if (index >= 0) {
+            QSignalBlocker blocker(m_obsModeCombo);
+            m_obsModeCombo->setCurrentIndex(index);
+        }
+    }
+
+    if (persist && m_settings.obsMode != normalized) {
+        m_settings.obsMode = normalized;
+        m_settings.save();
+    }
+
+    if (normalized == QStringLiteral("window")) {
+        ensureUsbObsController();
+        if (!m_usbObs) {
+            return;
+        }
+        if (m_usbObs->isRunning()) {
+            if (m_usbObs->outputWindow()) {
+                m_usbObs->outputWindow()->show();
+                m_usbObs->outputWindow()->raise();
+            }
+        } else {
+            m_usbObs->start();
+        }
+    } else if (m_usbObs) {
+        m_usbObs->stop();
+    }
+}
+
+void MainWindow::onObsModeChanged(int /*index*/) {
+    if (!m_obsModeCombo) {
         return;
     }
-    if (m_usbObs->isRunning()) {
-        m_usbObs->stop();
+    const QString mode = m_obsModeCombo->currentData().toString();
+    if (mode == QStringLiteral("camera")) {
+        if (m_tray) {
+            m_tray->showMessage(
+                "uxplay-windows",
+                "Virtual camera is not implemented yet. Use Clean window for now.",
+                QSystemTrayIcon::Information, 5000);
+        }
+        setObsMode(QStringLiteral("off"), true);
+        return;
+    }
+    setObsMode(mode, true);
+}
+
+void MainWindow::toggleUsbObs() {
+    if (m_usbObs && m_usbObs->isRunning()) {
+        setObsMode(QStringLiteral("off"), true);
     } else {
-        m_usbObs->start();
+        setObsMode(QStringLiteral("window"), true);
     }
 }
 
 void MainWindow::startUsbObs(bool minimize) {
-    ensureUsbObsController();
-    if (!m_usbObs) {
-        return;
-    }
-    if (m_usbObs->isRunning()) {
-        if (m_usbObs->outputWindow()) {
-            m_usbObs->outputWindow()->show();
-            m_usbObs->outputWindow()->raise();
-        }
-    } else {
-        m_usbObs->start();
-    }
+    setObsMode(QStringLiteral("window"), true);
     if (minimize) {
         hide();
     }

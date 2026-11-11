@@ -121,6 +121,10 @@ AppSettings AppSettings::fromJson(const QString &path, bool *ok) {
     settings.serverEnabled =
         object.value(QStringLiteral("server_enabled")).toBool(settings.serverEnabled);
 
+    const QJsonObject obs = object.value(QStringLiteral("obs")).toObject();
+    settings.obsMode =
+        obs.value(QStringLiteral("mode")).toString(settings.obsMode);
+
     const QJsonObject resolution = object.value(QStringLiteral("resolution")).toObject();
     settings.resolution.mode =
         resolution.value(QStringLiteral("mode")).toString(settings.resolution.mode);
@@ -156,6 +160,9 @@ bool AppSettings::save() const {
     resolutionObject[QStringLiteral("height")] = resolution.height;
     resolutionObject[QStringLiteral("refresh")] = resolution.refresh;
 
+    QJsonObject obsObject;
+    obsObject[QStringLiteral("mode")] = obsMode;
+
     QJsonArray extra;
     for (const QString &arg : extraArgs) {
         extra.append(arg);
@@ -170,6 +177,7 @@ bool AppSettings::save() const {
     object[QStringLiteral("resolution")] = resolutionObject;
     object[QStringLiteral("no_hold")] = noHold;
     object[QStringLiteral("server_enabled")] = serverEnabled;
+    object[QStringLiteral("obs")] = obsObject;
     object[QStringLiteral("extra_args")] = extra;
 
     QSaveFile file(path);
@@ -371,6 +379,14 @@ void AppSettings::sanitize() {
 
     if (renderer != QStringLiteral("d3d11") && renderer != QStringLiteral("d3d12")) {
         renderer = QStringLiteral("auto");
+    }
+
+    if (obsMode == QStringLiteral("camera")) {
+        qWarning() << "obs.mode=camera is not implemented yet; using off";
+        obsMode = QStringLiteral("off");
+    }
+    if (obsMode != QStringLiteral("off") && obsMode != QStringLiteral("window")) {
+        obsMode = QStringLiteral("off");
     }
 
     if (resolution.mode != QStringLiteral("auto")

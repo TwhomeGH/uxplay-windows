@@ -86,8 +86,10 @@ void UsbObsController::start() {
 
     if (!m_window) {
         m_window = new CleanOutputWindow();
-        connect(m_window, &CleanOutputWindow::closed, this,
-                &UsbObsController::stop);
+        connect(m_window, &CleanOutputWindow::closed, this, [this]() {
+            stop();
+            Q_EMIT outputClosed();
+        });
     }
 
     m_window->setVideoAspectRatio(16.0 / 9.0);

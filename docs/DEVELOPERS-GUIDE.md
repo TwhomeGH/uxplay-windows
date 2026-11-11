@@ -264,6 +264,20 @@ build\dev\run-dev.cmd --usb-obs
 - DDI 已掛載：`py -3.11 -m pymobiledevice3 mounter auto-mount`。
 - Python 3 + `pymobiledevice3`；`UXPLAY_USB_PYTHON` 可覆寫直譯器。
 
+模式設定在 `settings.json`：
+
+```json
+"obs": { "mode": "off" }
+```
+
+- `off`：預設，不啟動 USB 擷取。
+- `window`：啟動 USB Clean Output；OBS 用 Window Capture。
+- `camera`：保留給 virtual camera，尚未實作。
+
+主視窗的 `OBS output (USB capture)` 下拉選單就是這個設定。
+`--usb-obs` 等於選 `window`（會持久化）；關閉 Clean Output 視窗會回到
+`off` 並停止 USB 子程序。
+
 目前 video-only；AAC-ELD 在 Windows 還沒解碼。QuickTime USB 在
 user mode 不可行，需 libusb0 upper filter 與簽章 driver，未實作。
 `ENABLE_USB_CAPTURE=ON` 仍只編譯 QuickTime skeleton，與這條路無關。

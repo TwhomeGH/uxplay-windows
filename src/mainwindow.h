@@ -54,6 +54,7 @@ private slots:
     void onConnectionCountChanged(int count);
     void toggleServer();
     void toggleUsbObs();
+    void onObsModeChanged(int index);
     void openLogFile();
     void toggleBle(bool checked); // bluetooth
     void toggleForceFullscreen(bool checked);
@@ -78,6 +79,7 @@ private:
     void updateResolutionControls();
     void resetMediaInfo(const QString &status);
     void ensureUsbObsController();
+    void setObsMode(const QString &mode, bool persist);
 
     QProcess *m_beacon = nullptr;
 
@@ -97,6 +99,8 @@ private:
     
     QComboBox *m_rendererCombo = nullptr;
     QComboBox *m_resolutionCombo = nullptr;
+    QComboBox *m_obsModeCombo = nullptr;
+    QLabel *m_obsHint = nullptr;
     QSpinBox *m_widthSpin = nullptr;
     QSpinBox *m_heightSpin = nullptr;
     QSpinBox *m_refreshSpin = nullptr;
@@ -123,7 +127,7 @@ private:
     QPushButton *m_listargsBtn = nullptr;
     QPushButton *m_licenseBtn = nullptr;
     QPushButton *m_openLogBtn = nullptr;
-    QPushButton *m_usbObsBtn = nullptr;
+
     QLabel *m_statusLabel = nullptr;
     QLabel *m_errorLabel = nullptr;
     QTimer *m_wakeRestartTimer = nullptr;

@@ -149,6 +149,19 @@ The controller starts the Python sidecar, the bridge and GStreamer, and
 applies `display.rotation` and the hvcC crop itself. One capture session
 feeds only the clean window.
 
+The persisted mode lives in `settings.json`:
+
+```json
+"obs": { "mode": "off" }
+```
+
+- `off` (default): USB capture is not started.
+- `window`: start the USB Clean Output; OBS uses Window Capture.
+- `camera`: reserved for the virtual camera, not implemented.
+
+`--usb-obs` selects `window` and persists it. Closing the clean window
+switches the mode back to `off` and stops the sidecar/bridge processes.
+
 The window can be dragged anywhere; resize it from its 8 px edges.
 Right-click offers `Move window`, `Resize window`, `Always on top`,
 `Copy OBS source name`, `Reset size` and `Close`.

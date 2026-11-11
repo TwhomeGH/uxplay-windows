@@ -26,6 +26,7 @@ public:
     ResolutionSettings resolution;
     bool noHold = true;
     bool serverEnabled = true;
+    QString obsMode = "off";
     QStringList extraArgs;
 
 private:

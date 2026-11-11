@@ -1,5 +1,26 @@
 # ChangeHistory
 
+## 2026.11.12 00:43 規範 OBS 輸出模式設定
+
+**類型**: 功能 · **檔案**: `src/settings.cpp、src/settings.h、src/mainwindow.cpp、src/mainwindow.h、docs/DEVELOPERS-GUIDE.md、usbcapture/spike/README.md、TODO.md`
+
+### 問題 - OBS 輸出只有 --usb-obs 隱藏開關，使用者無法在設定中選擇
+
+### 根因 - 沒有持久化的模式 schema，start/stop 與設定狀態不一致
+
+### 修改 - settings.json 新增 obs.mode（off／window；camera 保留）
+
+實測 `--usb-obs` 寫入 `obs.mode=window` 並自動啟動；關閉 clean
+window 後回到 `off`、USB 子程序停止；正常啟動預設不啟動 USB。
+
+- 主視窗 OBS output group 與下拉選單；預設 off
+- 選 window 啟動、off 停止；關閉 clean window 回 off
+- --usb-obs 選擇 window 並持久化
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.12 00:32 Clean Output 支援拖曳與縮放
 
 **類型**: 修正 · **檔案**: `src/cleanoutputwindow.cpp、src/cleanoutputwindow.h、usbcapture/spike/README.md、TODO.md`

@@ -39,6 +39,7 @@ public:
 signals:
     void started();
     void stopped();
+    void outputClosed();
     void errorOccurred(const QString &message);
     void logMessage(const QString &line);
 
