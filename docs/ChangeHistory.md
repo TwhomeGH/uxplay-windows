@@ -1,5 +1,24 @@
 # ChangeHistory
 
+## 2026.11.12 04:45 新增 720p 解析度與 no-display 實驗結果
+
+**類型**: 功能 · **檔案**: `src/settings.cpp、src/mainwindow.cpp、docs/DEVELOPERS-GUIDE.md、TODO.md`
+
+### 問題 - -s 只有 Native／1080p／1440p／4K，缺少 720p 低負載測試；no -s 行為未知
+
+### 根因 - 解析度選單沒有 720p；省略 displays 的 client 行為尚未驗證
+
+### 修改 - 新增 720p（1280x720）選項與 engine args
+
+720p 可補低負載測試；no-display 實驗已還原，未進主線。
+
+- 修正 updateResolutionControls 的 1080p／1440p 尺寸對應
+- 記錄 omit displays 會讓 iPad 連上後立即斷線
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.12 04:28 補 h265 無 -s 的明確 log
 
 **類型**: 修正 · **檔案**: `libuxplay/uxplay.cpp`

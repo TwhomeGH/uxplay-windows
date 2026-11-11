@@ -222,6 +222,7 @@ void MainWindow::setupUI() {
     auto *resolutionLabel = new QLabel("Resolution", this);
     m_resolutionCombo = new QComboBox(this);
     m_resolutionCombo->addItem("Native (device)", "native");
+    m_resolutionCombo->addItem("1280 x 720", "720p");
     m_resolutionCombo->addItem("1920 x 1080", "1080p");
     m_resolutionCombo->addItem("2560 x 1440", "1440p");
     m_resolutionCombo->addItem("3840 x 2160", "4k");
@@ -522,7 +523,12 @@ void MainWindow::onResolutionChanged() {
     if (!m_resolutionCombo || !m_widthSpin || !m_heightSpin || !m_refreshSpin) return;
 
     QString mode = m_resolutionCombo->currentData().toString();
-    if (mode == "1080p") {
+    if (mode == "720p") {
+        QSignalBlocker widthBlocker(m_widthSpin);
+        QSignalBlocker heightBlocker(m_heightSpin);
+        m_widthSpin->setValue(1280);
+        m_heightSpin->setValue(720);
+    } else if (mode == "1080p") {
         QSignalBlocker widthBlocker(m_widthSpin);
         QSignalBlocker heightBlocker(m_heightSpin);
         m_widthSpin->setValue(1920);
@@ -565,10 +571,16 @@ void MainWindow::updateResolutionControls() {
     if (!m_resolutionCombo || !m_widthSpin || !m_heightSpin || !m_refreshSpin) return;
 
     QString mode = m_resolutionCombo->currentData().toString();
-    if (mode == "1080p" || mode == "1440p" || mode == "4k") {
+    if (mode == "720p" || mode == "1080p" || mode == "1440p" || mode == "4k") {
         int width = 1920;
         int height = 1080;
-        if (mode == "1440p") {
+        if (mode == "720p") {
+            width = 1280;
+            height = 720;
+        } else if (mode == "1080p") {
+            width = 1920;
+            height = 1080;
+        } else if (mode == "1440p") {
             width = 2560;
             height = 1440;
         } else if (mode == "4k") {

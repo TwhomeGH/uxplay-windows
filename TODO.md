@@ -33,6 +33,10 @@
 - [ ] 健康狀態（RSS／CPU／last error）寫入 log 或 tray tooltip。
 - [x] 診斷包：ring buffer、Save diagnostics、redaction、issue template。
 - [x] `Native (device)` 解析度預設（2360x1640 實測 H.265）。
+- [x] 新增 720p 解析度，補效能／codec 測試缺口。
+- [ ] `-s` 測試矩陣：720p／1080p／1440p／Native／4K 的實際尺寸、codec、CPU／GPU。
+- [ ] reconnect 後 audio 有聲但 video 未進 pipeline 的根因。
+- [ ] 讀取設定後套用解析度不需重啟 App（目前仍需重啟）。
 - [ ] Native 依裝置 profile 自動填入（目前使用已設定的寬高）。
 - [ ] 即時診斷面板（codec／resolution／fps／audio／latency）。
 - [ ] Latency／A-V offset instrumentation（sink／pipeline／first NTP）。

@@ -180,11 +180,17 @@ CSV 可畫 RSS 趨勢；report 有首尾 RSS、CPU 平均／峰值、初始連�
 
 - `Native (device)` 是預設，送出目前設定的 `width x height`；這台
   iPad13,18 預設為 `2360x1640`，`-h265` 仍會生效。
+- `720p`（1280x720）可降低負載；height <=1080，client 通常送 H.264。
+- `-s` 是請求上限與效能提示，不是硬命令；client 可送更低解析度，
+  寬度也會依畫面比例調整。
 - Native **不是自動查詢**：AirPlay 沒有回報原生解析度的欄位；這些值是
   已設定的請求。其他裝置請先選 `Custom` 填入寬高，再選 `Native`。
 - 舊設定的 `auto` 會遷移成 `native`；不再提供「不指定、由 client
   決定」的選項。即使直接跑引擎，`-h265` 也不再改變預設解析度；
   沒有 `-s` 時固定 1080p。
+- 實測省略 `displays` 節點會讓 iPad 連上後立刻斷線（沒有 video
+  format）；client 需要 display 資訊，因此不能把「不送 display」
+  當成 native。
 - Native 模式會停用寬高欄位，避免誤改；refresh 仍以自訂值為準。
 
 ### VS Code F5

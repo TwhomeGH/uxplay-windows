@@ -36,7 +36,9 @@ bool parseResolution(const QString &value, ResolutionSettings *out) {
     const int height = match.captured(2).toInt();
     const int refresh = match.hasCaptured(3) ? match.captured(3).toInt() : 60;
 
-    if (width == 1920 && height == 1080) {
+    if (width == 1280 && height == 720) {
+        out->mode = QStringLiteral("720p");
+    } else if (width == 1920 && height == 1080) {
         out->mode = QStringLiteral("1080p");
     } else if (width == 2560 && height == 1440) {
         out->mode = QStringLiteral("1440p");
@@ -252,7 +254,10 @@ QStringList AppSettings::engineArguments(const QString &bleFilePath, bool engine
     if (resolution.mode != QStringLiteral("auto")) {
         int width = resolution.width;
         int height = resolution.height;
-        if (resolution.mode == QStringLiteral("1080p")) {
+        if (resolution.mode == QStringLiteral("720p")) {
+            width = 1280;
+            height = 720;
+        } else if (resolution.mode == QStringLiteral("1080p")) {
             width = 1920;
             height = 1080;
         } else if (resolution.mode == QStringLiteral("1440p")) {
@@ -437,6 +442,7 @@ void AppSettings::sanitize() {
         resolution.mode = QStringLiteral("native");
     }
     if (resolution.mode != QStringLiteral("native")
+        && resolution.mode != QStringLiteral("720p")
         && resolution.mode != QStringLiteral("1080p")
         && resolution.mode != QStringLiteral("1440p")
         && resolution.mode != QStringLiteral("4k")
@@ -444,7 +450,10 @@ void AppSettings::sanitize() {
         resolution.mode = QStringLiteral("native");
     }
 
-    if (resolution.mode == QStringLiteral("1080p")) {
+    if (resolution.mode == QStringLiteral("720p")) {
+        resolution.width = 1280;
+        resolution.height = 720;
+    } else if (resolution.mode == QStringLiteral("1080p")) {
         resolution.width = 1920;
         resolution.height = 1080;
     } else if (resolution.mode == QStringLiteral("1440p")) {
