@@ -62,10 +62,8 @@ BOOL CALLBACK EnumWindowsProcRename(HWND hwnd, LPARAM lParam) {
 }
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
-    ensureSettingsFileExists();
-
-    QSettings settings;
-    m_serverEnabled = settings.value("server_enabled", true).toBool();
+    m_settings = AppSettings::load();
+    m_serverEnabled = m_settings.serverEnabled;
 
     setupTray();
     setupUI();
@@ -98,35 +96,7 @@ MainWindow::~MainWindow() {
     stopServer();
 }
 
-void MainWindow::ensureSettingsFileExists() {
-    QString appDataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    QDir dir(appDataPath);
-    if (!dir.exists()) {
-        dir.mkpath(".");
-    }
 
-    QString filePath = appDataPath + "/arguments.txt";
-    QFile file(filePath);
-    if (!file.exists()) {
-        if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-            QTextStream out(&file);
-            out << "-h265 -fps 60 -s 1920x1080@60 -n uxplay-windows -nh";
-            file.close();
-        }
-    }
-}
-
-QStringList MainWindow::getArgumentsFromFile() const {
-    QString appDataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    QFile file(appDataPath + "/arguments.txt");
-    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QString content = QTextStream(&file).readAll().trimmed();
-        file.close();
-        return QProcess::splitCommand(content);
-        
-    }
-    return QStringList() << "-n" << "uxplay-windows" << "-nh";
-}
 
 void MainWindow::setupUI() {
     setWindowTitle("uxplay-windows");
@@ -152,7 +122,7 @@ void MainWindow::setupUI() {
     auto *nameLayout = new QHBoxLayout();
     auto *nameLabel = new QLabel("AirPlay Name", this);
     m_displayNameEdit = new QLineEdit(this);
-    m_displayNameEdit->setText(displayNameFromSettingsOrArgs());
+    m_displayNameEdit->setText(m_settings.displayName);
     m_displayNameEdit->setPlaceholderText("uxplay-windows");
     auto *applyNameBtn = new QPushButton("Apply", this);
     connect(applyNameBtn, &QPushButton::clicked, this, &MainWindow::applyDisplayName);
@@ -165,16 +135,13 @@ void MainWindow::setupUI() {
 
     // Bluetooth Discovery Checkbox
     m_bleCheckbox = new QCheckBox("Enable Bluetooth Discovery", this);
-    QSettings settings;
-    m_bleCheckbox->setChecked(settings.value("ble_enabled", true).toBool());
+    m_bleCheckbox->setChecked(m_settings.bleEnabled);
     connect(m_bleCheckbox, &QCheckBox::toggled, this, &MainWindow::toggleBle);
     layout->addWidget(m_bleCheckbox);
 
     // Force Fullscreen Checkbox
     m_fullscreenCheckbox = new QCheckBox("Force Fullscreen (must select renderer)", this);
-    m_fullscreenCheckbox->setChecked(
-        settings.value("force_fs_enabled", false).toBool()
-    );
+    m_fullscreenCheckbox->setChecked(m_settings.forceFullscreen);
     connect(m_fullscreenCheckbox, &QCheckBox::toggled, this,
             &MainWindow::toggleForceFullscreen);
     layout->addWidget(m_fullscreenCheckbox);
@@ -186,7 +153,7 @@ void MainWindow::setupUI() {
     m_rendererCombo->addItem("D3D12", "d3d12");
 
     {
-        QString saved = settings.value("renderer_mode", "auto").toString();
+        QString saved = m_settings.renderer;
         int idx = m_rendererCombo->findData(saved);
         if (idx >= 0) m_rendererCombo->setCurrentIndex(idx);
     }
@@ -206,7 +173,7 @@ void MainWindow::setupUI() {
     m_resolutionCombo->addItem("3840 x 2160", "4k");
     m_resolutionCombo->addItem("Custom", "custom");
     {
-        QString saved = settings.value("resolution_mode", "1080p").toString();
+        QString saved = m_settings.resolution.mode;
         int idx = m_resolutionCombo->findData(saved);
         if (idx < 0) idx = m_resolutionCombo->findData("1080p");
         m_resolutionCombo->setCurrentIndex(idx);
@@ -228,9 +195,9 @@ void MainWindow::setupUI() {
     m_refreshSpin = new QSpinBox(this);
     m_refreshSpin->setRange(1, 255);
     m_refreshSpin->setSuffix(" Hz");
-    m_widthSpin->setValue(settings.value("resolution_width", 1920).toInt());
-    m_heightSpin->setValue(settings.value("resolution_height", 1080).toInt());
-    m_refreshSpin->setValue(settings.value("resolution_refresh", 60).toInt());
+    m_widthSpin->setValue(m_settings.resolution.width);
+    m_heightSpin->setValue(m_settings.resolution.height);
+    m_refreshSpin->setValue(m_settings.resolution.refresh);
     connect(m_widthSpin, QOverload<int>::of(&QSpinBox::valueChanged),
             this, &MainWindow::onResolutionChanged);
     connect(m_heightSpin, QOverload<int>::of(&QSpinBox::valueChanged),
@@ -243,7 +210,7 @@ void MainWindow::setupUI() {
     layout->addLayout(sizeLayout);
     updateResolutionControls();
 
-    m_settingsBtn = new QPushButton("Edit UxPlay Arguments (Advanced)", this);
+    m_settingsBtn = new QPushButton("Edit Settings (Advanced)", this);
     connect(m_settingsBtn, &QPushButton::clicked, this, &MainWindow::openSettingsFile);
     layout->addWidget(m_settingsBtn);
 
@@ -271,11 +238,11 @@ void MainWindow::setupUI() {
 }
 
 void MainWindow::openSettingsFile() {
-    QString appDataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    QString filePath = appDataPath + "/arguments.txt";
+    QString filePath = AppSettings::filePath();
     QDesktopServices::openUrl(QUrl::fromLocalFile(filePath));
-    
-    m_tray->showMessage("Settings", "Restart the app to apply new arguments.", 
+
+    m_tray->showMessage("Settings",
+                        "Edit extra_args in settings.json, then restart to apply.",
                         QSystemTrayIcon::Information, 3000);
 }
 
@@ -333,40 +300,40 @@ void MainWindow::onTrayActivated(QSystemTrayIcon::ActivationReason reason) {
 }
 
 void MainWindow::toggleBle(bool checked) {
-    QSettings settings;
-    
-    if (settings.value("ble_enabled").toBool() == checked) {
+    if (m_settings.bleEnabled == checked) {
         return;
     }
 
-    settings.setValue("ble_enabled", checked);
-    
-    m_tray->showMessage("uxplay-windows", "Please restart the uxplay-windows to apply changes.\n(Right-click the Tray Icon)", 
+    m_settings.bleEnabled = checked;
+    m_settings.save();
+
+    m_tray->showMessage("uxplay-windows",
+                        "Please restart the uxplay-windows to apply changes.\n(Right-click the Tray Icon)",
                         QSystemTrayIcon::Information, 3000);
 }
 
 void MainWindow::toggleForceFullscreen(bool checked) {
-    QSettings settings;
-    if (settings.value("force_fs_enabled").toBool() == checked) {
+    if (m_settings.forceFullscreen == checked) {
         return;
     }
 
-    settings.setValue("force_fs_enabled", checked);
-    m_tray->showMessage("uxplay-windows", "Please restart the uxplay-windows to apply changes.\n(Right-click the Tray Icon)", 
+    m_settings.forceFullscreen = checked;
+    m_settings.save();
+    m_tray->showMessage("uxplay-windows",
+                        "Please restart the uxplay-windows to apply changes.\n(Right-click the Tray Icon)",
                         QSystemTrayIcon::Information, 3000);
 }
 
 void MainWindow::onRendererChanged(int /*index*/) {
     if (!m_rendererCombo) return;
 
-    QString mode = m_rendererCombo->currentData().toString();
+    const QString mode = m_rendererCombo->currentData().toString();
+    if (m_settings.renderer == mode) return;
 
-    QSettings settings;
-    QString saved = settings.value("renderer_mode", "auto").toString();
-    if (saved == mode) return;
-
-    settings.setValue("renderer_mode", mode);
-    m_tray->showMessage("uxplay-windows", "Please restart the uxplay-windows to apply changes.\n(Right-click the Tray Icon)", 
+    m_settings.renderer = mode;
+    m_settings.save();
+    m_tray->showMessage("uxplay-windows",
+                        "Please restart the uxplay-windows to apply changes.\n(Right-click the Tray Icon)",
                         QSystemTrayIcon::Information, 3000);
 }
 
@@ -393,18 +360,22 @@ void MainWindow::onResolutionChanged() {
 
     updateResolutionControls();
 
-    QSettings settings;
-    bool changed = settings.value("resolution_mode", "1080p").toString() != mode
-        || settings.value("resolution_width", 1920).toInt() != m_widthSpin->value()
-        || settings.value("resolution_height", 1080).toInt() != m_heightSpin->value()
-        || settings.value("resolution_refresh", 60).toInt() != m_refreshSpin->value();
-    if (!changed) return;
+    ResolutionSettings next = m_settings.resolution;
+    next.mode = mode;
+    next.width = m_widthSpin->value();
+    next.height = m_heightSpin->value();
+    next.refresh = m_refreshSpin->value();
+    if (next.mode == m_settings.resolution.mode
+        && next.width == m_settings.resolution.width
+        && next.height == m_settings.resolution.height
+        && next.refresh == m_settings.resolution.refresh) {
+        return;
+    }
 
-    settings.setValue("resolution_mode", mode);
-    settings.setValue("resolution_width", m_widthSpin->value());
-    settings.setValue("resolution_height", m_heightSpin->value());
-    settings.setValue("resolution_refresh", m_refreshSpin->value());
-    m_tray->showMessage("uxplay-windows", "Please restart the uxplay-windows to apply changes.\n(Right-click the Tray Icon)",
+    m_settings.resolution = next;
+    m_settings.save();
+    m_tray->showMessage("uxplay-windows",
+                        "Please restart the uxplay-windows to apply changes.\n(Right-click the Tray Icon)",
                         QSystemTrayIcon::Information, 3000);
 }
 
@@ -550,64 +521,23 @@ void MainWindow::onConnectionCountChanged(int count) {
     }
 }
 
-// 更新顯示名稱
-QString MainWindow::displayNameFromSettingsOrArgs() const {
-    QSettings settings;
-    QString savedName = settings.value("display_name").toString().trimmed();
-    if (!savedName.isEmpty()) {
-        return savedName;
-    }
-
-    QStringList args = getArgumentsFromFile();
-    int nameIdx = args.indexOf("-n");
-    if (nameIdx >= 0 && nameIdx + 1 < args.size()) {
-        QString nameFromArgs = args[nameIdx + 1].trimmed();
-        if (!nameFromArgs.isEmpty()) {
-            return nameFromArgs;
-        }
-    }
-
-    return "uxplay-windows";
-}
-
-void MainWindow::applyDisplayNameArg(QStringList &args) const {
-    for (int i = 0; i < args.size();) {
-        if (args[i] == "-n") {
-            args.removeAt(i);
-            if (i < args.size() && !args[i].startsWith("-")) {
-                args.removeAt(i);
-            }
-            continue;
-        }
-
-        if (args[i] == "-nh") {
-            args.removeAt(i);
-            continue;
-        }
-
-        ++i;
-    }
-
-    QString displayName = displayNameFromSettingsOrArgs();
-    args << "-n" << displayName << "-nh";
-}
-
 void MainWindow::applyDisplayName() {
     if (!m_displayNameEdit) return;
 
-    QString displayName = m_displayNameEdit->text().trimmed();
+    const QString displayName = m_displayNameEdit->text().trimmed();
     if (displayName.isEmpty()) {
-        QMessageBox::warning(this, "AirPlay Name", "Enter a name for this AirPlay receiver.");
-        m_displayNameEdit->setText(displayNameFromSettingsOrArgs());
+        QMessageBox::warning(this, "AirPlay Name",
+                             "Enter a name for this AirPlay receiver.");
+        m_displayNameEdit->setText(m_settings.displayName);
         return;
     }
 
-    QSettings settings;
-    if (settings.value("display_name").toString() == displayName) {
+    if (m_settings.displayName == displayName) {
         return;
     }
 
-    settings.setValue("display_name", displayName);
+    m_settings.displayName = displayName;
+    m_settings.save();
     m_displayNameEdit->setText(displayName);
 
     m_tray->showMessage("uxplay-windows",
@@ -618,81 +548,6 @@ void MainWindow::applyDisplayName() {
 }
 
 
-void MainWindow::applyRendererAndFullscreenArgs(QStringList &args) {
-    while (true) {
-        int idx = args.indexOf("-fs");
-        if (idx < 0) break;
-        args.removeAt(idx);
-    }
-    if (m_fullscreenCheckbox && m_fullscreenCheckbox->isChecked()) {
-        args << "-fs";
-    }
-
-    // Remove existing "-vs <sink>" pairs
-    for (int i = 0; i < args.size();) {
-        if (args[i] == "-vs") {
-            args.removeAt(i); // -vs
-            if (i < args.size()) {
-                args.removeAt(i); // sink
-            }
-            continue;
-        }
-        ++i;
-    }
-
-    QString mode = "auto";
-    if (m_rendererCombo) {
-        mode = m_rendererCombo->currentData().toString();
-    }
-
-    if (mode == "d3d11") {
-        args << "-vs" << "d3d11videosink";
-    } else if (mode == "d3d12") {
-        args << "-vs" << "d3d12videosink";
-    }
-}
-
-void MainWindow::applyResolutionArgs(QStringList &args) const {
-    for (int i = 0; i < args.size();) {
-        if (args[i] == "-s") {
-            args.removeAt(i);
-            if (i < args.size() && !args[i].startsWith("-")) {
-                args.removeAt(i);
-            }
-            continue;
-        }
-        ++i;
-    }
-
-    QSettings settings;
-    QString mode = settings.value("resolution_mode", "1080p").toString();
-    if (mode == "auto") {
-        return;
-    }
-
-    int width = settings.value("resolution_width", 1920).toInt();
-    int height = settings.value("resolution_height", 1080).toInt();
-    int refresh = settings.value("resolution_refresh", 60).toInt();
-    if (mode == "1080p") {
-        width = 1920;
-        height = 1080;
-    } else if (mode == "1440p") {
-        width = 2560;
-        height = 1440;
-    } else if (mode == "4k") {
-        width = 3840;
-        height = 2160;
-    }
-
-    if (width < 1 || width > 9999 || height < 1 || height > 9999 || refresh < 1 || refresh > 255) {
-        width = 1920;
-        height = 1080;
-        refresh = 60;
-    }
-
-    args << "-s" << QString("%1x%2@%3").arg(width).arg(height).arg(refresh);
-}
-
 void MainWindow::startServer() {
     if (!m_serverEnabled) return;
     if (m_worker && m_worker->isRunning()) return;
@@ -700,30 +555,12 @@ void MainWindow::startServer() {
     QString appData = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
     QDir().mkpath(appData);
 
-    QStringList args = getArgumentsFromFile();
+    const QString bleFilePath = QDir::toNativeSeparators(appData + "/uxplay_status.ble");
+    const bool engineDebug =
+        QCoreApplication::arguments().contains(QStringLiteral("--engine-debug"));
+    QStringList args = m_settings.engineArguments(bleFilePath, engineDebug);
 
-    int bleIdx = args.indexOf("-ble");
-    if (bleIdx != -1) {
-        args.removeAt(bleIdx);
-        if (bleIdx < args.size() && !args[bleIdx].startsWith("-")) {
-            args.removeAt(bleIdx);
-        }
-    }
-
-    applyRendererAndFullscreenArgs(args);
-    applyResolutionArgs(args);
-    applyDisplayNameArg(args);
-
-    if (QCoreApplication::arguments().contains(QStringLiteral("--engine-debug"))
-        && !args.contains("-d")) {
-        args << "-d";
-    }
-
-    // Only add -ble and start beacon if checkbox is checked
-    if (!m_bleCheckbox) return;
-    if (m_bleCheckbox->isChecked()) {
-        QString bleFilePath = QDir::toNativeSeparators(appData + "/uxplay_status.ble");
-        args << "-ble" << bleFilePath;
+    if (m_settings.bleEnabled) {
         startBluetoothBeacon(bleFilePath);
     } else {
         stopBluetoothBeacon();
@@ -867,15 +704,16 @@ void MainWindow::toggleServer() {
 void MainWindow::setServerEnabled(bool enabled) {
     if (m_serverEnabled == enabled) return;
 
-    QSettings settings;
-    settings.setValue("server_enabled", enabled);
     m_serverEnabled = enabled;
+    m_settings.serverEnabled = enabled;
+    m_settings.save();
     m_restartAttempt = 0;
 
     if (enabled) {
         if (!ensureBonjourServiceReady()) {
             m_serverEnabled = false;
-            settings.setValue("server_enabled", false);
+            m_settings.serverEnabled = false;
+            m_settings.save();
             qWarning() << "Cannot start AirPlay: Bonjour Service is not ready";
             updateStatus();
             return;

@@ -1,5 +1,50 @@
 # ChangeHistory
 
+## 2026.11.11 18:10 修正強制結束後 stale lock 阻擋啟動
+
+**類型**: 修正 · **檔案**: `src/main.cpp`
+
+### 問題 - 強制結束 uxplay-windows 後再啟動，可能卡在 already running
+
+### 根因 - QLockFile 的 PID 可能已被其他行程重用，或行程已死但 lock 仍存在
+
+### 修改 - 取得 lock 的 PID，確認是否為 uxplay-windows；失效時移除 lock 並重試
+
+以 Stop-Process 強制結束 build/dev，lock 仍存在；下一次啟動成功取得 lock，PID 由 14428 變為 56440。
+
+- lock PID 等於目前行程時也視為 stale
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
+## 2026.11.11 18:10 Phase 2B：設定收斂為 settings.json
+
+**類型**: 功能 · **檔案**: `src/settings.h、src/settings.cpp、src/mainwindow.cpp、src/mainwindow.h、CMakeLists.txt、docs/DEVELOPERS-GUIDE.md`
+
+### 問題 - 設定分散在 QSettings 與 arguments.txt，啟動時要逐項 remove/append 參數
+
+### 根因 - UI 與引擎各自維護同一組選項
+
+arguments.txt 的 managed args 與 UI 值會衝突，applyXxxArgs 只能事後修補。
+
+### 修改 - 新增 AppSettings：settings.json 為唯一引擎／UI 設定來源
+
+以 build/dev 實測：遷移後 `settings.json` 正確、`arguments.txt.migrated`
+存在、QSettings 引擎 key 清除；預設引擎參數為
+`-h265 -fps 60 -n uxplay-test -nh -s 1920x1080@60 -ble ... -d`；
+改成 1440p／d3d12／fullscreen 後重啟，參數變為
+`-fs -vs d3d12videosink -s 2560x1440@60`。
+Stop/Start 後 JSON `server_enabled` 正確切換。
+
+- 舊 QSettings／arguments.txt 一次性遷移；arguments.txt 改名為 .migrated
+- 引擎參數由模型產生；移除 applyDisplayNameArg／applyRendererAndFullscreenArgs／applyResolutionArgs
+- server_enabled 與 Start/Stop 熱啟停寫回 settings.json
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.11 08:26 Nightly release 加入 SHA、run 連結與最近 10 筆 commit
 
 **類型**: 維護 · **檔案**: `.github/workflows/build_uxplay-windows-v2.yml、.github/workflows/build-uxplay-windows-arm64.yml、docs/DEVELOPERS-GUIDE.md`

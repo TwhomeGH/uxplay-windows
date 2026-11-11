@@ -3,6 +3,7 @@
 
 #include <QApplication>
 #include <QDir>
+#include <QFile>
 #include <QIcon>
 #include <QLockFile>
 #include <QLocalServer>
@@ -16,6 +17,34 @@
 #include <windows.h>
 #include <cstdio>
 #endif
+
+static bool isUxPlayProcess(qint64 pid) {
+#ifdef _WIN32
+    if (pid <= 0) {
+        return false;
+    }
+
+    HANDLE process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE,
+                                 static_cast<DWORD>(pid));
+    if (!process) {
+        return false;
+    }
+
+    wchar_t path[MAX_PATH] = {};
+    DWORD size = MAX_PATH;
+    const BOOL ok = QueryFullProcessImageNameW(process, 0, path, &size);
+    CloseHandle(process);
+    if (!ok) {
+        return false;
+    }
+
+    return QString::fromWCharArray(path).endsWith(
+        QStringLiteral("uxplay-windows.exe"), Qt::CaseInsensitive);
+#else
+    Q_UNUSED(pid);
+    return true;
+#endif
+}
 
 int main(int argc, char *argv[]) {
 #ifdef _WIN32
@@ -64,9 +93,26 @@ int main(int argc, char *argv[]) {
 
     const bool restarting =
         startupArgs.contains(QStringLiteral("--restart"));
-    QLockFile instanceLock(
-        QDir(QDir::tempPath()).filePath(QStringLiteral("uxplay-windows.lock")));
-    if (!instanceLock.tryLock(restarting ? 10000 : 100)) {
+    const QString lockPath =
+        QDir(QDir::tempPath()).filePath(QStringLiteral("uxplay-windows.lock"));
+    QLockFile instanceLock(lockPath);
+    bool lockAcquired = instanceLock.tryLock(restarting ? 10000 : 100);
+    if (!lockAcquired) {
+        qint64 pid = 0;
+        QString host;
+        QString appName;
+        const bool haveInfo = instanceLock.getLockInfo(&pid, &host, &appName);
+        const bool ownStaleLock =
+            haveInfo && pid == QCoreApplication::applicationPid();
+        const bool otherApp = haveInfo && !ownStaleLock && !isUxPlayProcess(pid);
+        if (!haveInfo || ownStaleLock || otherApp) {
+            qWarning() << "Removing stale single-instance lock" << lockPath
+                       << "pid" << pid;
+            QFile::remove(lockPath);
+            lockAcquired = instanceLock.tryLock(restarting ? 2000 : 500);
+        }
+    }
+    if (!lockAcquired) {
         if (!restarting) {
             QLocalSocket socket;
             socket.connectToServer(instanceKey);

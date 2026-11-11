@@ -14,6 +14,8 @@
 #include <QMessageBox>
 #include <QTimer>
 
+#include "settings.h"
+
 class QMenu;
 class QAction;
 class AirPlayWorker;
@@ -69,19 +71,13 @@ private:
     void clearClientInfo();
     void startBluetoothBeacon(const QString &path);
     void stopBluetoothBeacon();
-    QString displayNameFromSettingsOrArgs() const;
-    void applyDisplayNameArg(QStringList &args) const;
     void scheduleWakeRestart();
-    void applyRendererAndFullscreenArgs(QStringList &args);
-    void applyResolutionArgs(QStringList &args) const;
     void updateResolutionControls();
     void resetMediaInfo(const QString &status);
 
     QProcess *m_beacon = nullptr;
 
-    QStringList getArgumentsFromFile() const;
-
-    void ensureSettingsFileExists();
+    AppSettings m_settings;
     enum class BonjourState { Missing, Stopped, Running, Unknown };
     BonjourState queryBonjourState() const;
     bool startBonjourService();

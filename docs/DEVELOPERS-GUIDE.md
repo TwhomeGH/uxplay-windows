@@ -118,15 +118,21 @@ grep -E "register_dnssd|Initialized server socket|using system MAC" \
 
 | 狀態 | 位置 | 重置方式 |
 | --- | --- | --- |
-| 引擎參數 | `%APPDATA%\leapbtw\uxplay-windows\arguments.txt` | 關閉 App 後刪除，下次啟動重建預設值 |
-| UI／引擎設定 | `HKCU\Software\leapbtw\uxplay-windows` | 關閉 App 後刪除整個 key |
+| 引擎／UI 設定 | `%APPDATA%\leapbtw\uxplay-windows\settings.json` | 關閉 App 後刪除，下次啟動用預設值 |
+| 舊 `arguments.txt` | `%APPDATA%\leapbtw\uxplay-windows\arguments.txt.migrated` | 一次性遷移備份，可刪除 |
+| 開機自啟 | `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` | 刪除 `uxplay-windows` 值 |
+| MSI 桌面捷徑 | `HKCU\Software\leapbtw\uxplay-windows` 的 `DesktopShortcut` | 由 MSI 管理 |
 | 日誌 | `%LOCALAPPDATA%\leapbtw\uxplay-windows\logs` | 關閉 App 後刪除目錄 |
 | 單一實例 lock | `%TEMP%\uxplay-windows.lock` | 正常會自動處理；卡住時關閉 App 後刪除 |
 | BLE 狀態檔 | `%APPDATA%\leapbtw\uxplay-windows\uxplay_status.ble` | 引擎停止時自動刪除；必要時手動刪除 |
 
-QSettings 內常用的值：`display_name`、`renderer_mode`、`resolution_mode`、
-`resolution_width`、`resolution_height`、`resolution_refresh`、
-`ble_enabled`、`server_enabled`。
+`settings.json` 主要欄位：`display_name`、`ble_enabled`、`force_fullscreen`、
+`renderer`、`resolution`、`no_hold`、`server_enabled`、`extra_args`。
+`extra_args` 放未納入 UI 的引擎參數（例如 `-h265`、`-fps 60`）。
+
+第一次啟動 Phase 2B 會把舊 QSettings 與 `arguments.txt` 匯入
+`settings.json`；`arguments.txt` 會改名為 `arguments.txt.migrated`，
+舊 QSettings 的引擎 key 會移除。
 
 ## Windows 防火牆規則
 
@@ -157,7 +163,7 @@ Windows 防火牆以**執行檔完整路徑**辨識程式；每個 build 目錄
 | GStreamer plugin 找不到 | `GST_PLUGIN_PATH` 沒指到 UCRT64 plugin | 用 `dev_run.sh`；確認 `$MSYSTEM_PREFIX/lib/gstreamer-1.0` 存在 |
 | 找不到 `libgcc_s_seh-1.dll`／`Qt6Core.dll` | 直接跑了 exe，PATH 沒設 | 用 `dev_run.sh` 或 `build/dev/run-dev.cmd`；debugger 請在 launch config 設 `PATH` |
 | 沒有聲音 | Windows 輸出裝置不對 | 在 `arguments.txt` 用 `-as` 指定 sink；或改系統預設裝置 |
-| 第二次啟動沒叫回視窗 | 第一次還沒建立 IPC，或舊 lock 卡住 | 看 log；必要時刪 `%TEMP%\uxplay-windows.lock` |
+| 第二次啟動沒叫回視窗／卡在 already running | 舊 lock 的 PID 已失效或被重用 | 新版會自動清除 stale lock；仍卡住時刪 `%TEMP%\uxplay-windows.lock` |
 | BLE 找不到裝置 | `uxplay-bluetooth-beacon.exe` 不存在 | 本地 debug 可忽略；要 BLE 請 build beacon |
 | `--restart` 後沒起來 | 舊行程還沒退出 | 等 5 秒；看新行程 log 與 lock |
 
