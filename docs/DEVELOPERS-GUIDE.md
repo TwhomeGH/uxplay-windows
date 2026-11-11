@@ -241,7 +241,7 @@ Windows 防火牆以**執行檔完整路徑**辨識程式；每個 build 目錄
 
 - 固定 tag：`nightly-build-x64`、`nightly-build-arm64`；每晚刪除重建，
   tag 指向當前 `main` commit。
-- 名稱：`Nightly Build <short-sha> (<UTC time>)`。
+- 名稱：`Nightly Build <short-sha> - <台北時間 AM/PM> (UTC+8, Asia/Taipei)`。
 - 內文：commit 連結、workflow run、架構、最近 10 筆 commit。
 - Assets 名稱固定；正式版本、Core／Exp 分類留到 Phase 3。
 

@@ -189,7 +189,9 @@ jobs:
         id: meta
         shell: powershell
         run: |
-          $time = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss") + " UTC"
+          $taipei = [System.TimeZoneInfo]::ConvertTimeBySystemTimeZoneId([DateTime]::UtcNow, "Taipei Standard Time")
+          $stamp = $taipei.ToString("yyyy-MM-dd hh:mm:ss tt", [System.Globalization.CultureInfo]::GetCultureInfo("en-US"))
+          $time = "$stamp (UTC+8, Asia/Taipei)"
           $sha = "${{ github.sha }}"
           "time=$time" >> $env:GITHUB_OUTPUT
           "sha=$sha" >> $env:GITHUB_OUTPUT
@@ -222,7 +224,7 @@ jobs:
         with:
           tag_name: nightly-build-x64
           target_commitish: ${{ github.sha }}
-          name: "Nightly Build ${{ steps.meta.outputs.short_sha }} (${{ steps.meta.outputs.time }})"
+          name: "Nightly Build ${{ steps.meta.outputs.short_sha }} - ${{ steps.meta.outputs.time }}"
           prerelease: true
           body: |
             Nightly build for commit [`${{ steps.meta.outputs.short_sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ steps.meta.outputs.sha }}) on `${{ github.ref_name }}`.

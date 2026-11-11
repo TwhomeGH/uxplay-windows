@@ -1,5 +1,23 @@
 # ChangeHistory
 
+## 2026.11.11 21:34 Nightly release 改用台北時間與 AM/PM
+
+**類型**: 改進 · **檔案**: `.github/workflows/build_uxplay-windows-v2.yml、.github/workflows/build-uxplay-windows-arm64.yml、docs/DEVELOPERS-GUIDE.md`
+
+### 問題 - Nightly release 的 Build time 是 UTC 24 小時制
+
+### 根因 - workflow 用 Get-Date().ToUniversalTime() 並固定 UTC
+
+### 修改 - 改用 Taipei Standard Time、12 小時制 AM/PM，並標註 UTC+8/Asia/Taipei
+
+本機驗證 UTC 13:33:22 → 2026-11-11 09:33:22 PM；推送後 nightly x64/arm64 會重建 release。
+
+- release 標題改為 `Nightly Build <sha> - <time>`
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.11 18:45 修正 VS Code F5 的 0xc0000135
 
 **類型**: 修正 · **檔案**: `.vscode/launch.json、scripts/dev_build.sh、docs/DEVELOPERS-GUIDE.md`
