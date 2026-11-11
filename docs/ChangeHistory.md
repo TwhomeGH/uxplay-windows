@@ -1,5 +1,24 @@
 # ChangeHistory
 
+## 2026.11.12 04:11 新增 Native 原生解析度模式
+
+**類型**: 功能 · **檔案**: `src/settings.cpp、src/mainwindow.cpp、docs/DEVELOPERS-GUIDE.md、TODO.md`
+
+### 問題 - Auto 在 HEVC 下請求 4K，實際變成 3108x2160，不是裝置原生尺寸
+
+### 根因 - AirPlay 沒有查詢原生解析度的欄位；Auto 只代表不送 -s
+
+### 修改 - 新增 Native (device) 模式，送出設定的 width x height
+
+實測 iPad13,18：-s 2360x1640@60 得到 h265 2360x1640；UI 顯示 Native (device)。
+
+- Auto 標示為 client default；Native 停用寬高欄位
+- 文件說明 Native 是設定請求，不是自動查詢
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.12 03:56 釐清 HEVC 只在超過 1080p 時啟用
 
 **類型**: 修正 · **檔案**: `src/mainwindow.cpp、src/mainwindow.h、docs/DEVELOPERS-GUIDE.md`

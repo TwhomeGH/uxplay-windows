@@ -174,6 +174,17 @@ CSV 可畫 RSS 趨勢；report 有首尾 RSS、CPU 平均／峰值、初始連�
 - 既有設定若沒有 `video.codec`：`extra_args` 有 `-h265` 視為
   `hevc`，沒有則保留 `h264`。新安裝預設 `hevc`。
 
+#### 解析度：Auto 與 Native
+
+- `Auto (client default)`：不送 `-s`；`-h265` 時 libuxplay 預設請求
+  4K，client 會依裝置比例調整寬度（例如 3108x2160）。
+- `Native (device)`：送出目前設定的 `width x height`；這台 iPad13,18
+  實測為 `2360x1640`，`-h265` 仍會生效。
+- Native **不是自動查詢**：AirPlay 沒有回報原生解析度的欄位；這些值是
+  已設定的請求。要改成其他尺寸，先選 `Custom` 填入寬高，再選
+  `Native`。
+- Native 模式會停用寬高欄位，避免誤改；refresh 仍以自訂值為準。
+
 ### VS Code F5
 
 `.vscode` 已附可直接用的設定：

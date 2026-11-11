@@ -434,6 +434,7 @@ void AppSettings::sanitize() {
     }
 
     if (resolution.mode != QStringLiteral("auto")
+        && resolution.mode != QStringLiteral("native")
         && resolution.mode != QStringLiteral("1080p")
         && resolution.mode != QStringLiteral("1440p")
         && resolution.mode != QStringLiteral("4k")

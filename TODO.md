@@ -32,6 +32,8 @@
 - [ ] 音訊裝置變更／取樣率切換的 fallback。
 - [ ] 健康狀態（RSS／CPU／last error）寫入 log 或 tray tooltip。
 - [x] 診斷包：ring buffer、Save diagnostics、redaction、issue template。
+- [x] `Native (device)` 解析度預設（2360x1640 實測 H.265）。
+- [ ] Native 依裝置 profile 自動填入（目前使用已設定的寬高）。
 - [ ] 即時診斷面板（codec／resolution／fps／audio／latency）。
 - [ ] Latency／A-V offset instrumentation（sink／pipeline／first NTP）。
 

@@ -221,11 +221,16 @@ void MainWindow::setupUI() {
     auto *resolutionLayout = new QHBoxLayout();
     auto *resolutionLabel = new QLabel("Resolution", this);
     m_resolutionCombo = new QComboBox(this);
-    m_resolutionCombo->addItem("Auto", "auto");
+    m_resolutionCombo->addItem("Auto (client default)", "auto");
+    m_resolutionCombo->addItem("Native (device)", "native");
     m_resolutionCombo->addItem("1920 x 1080", "1080p");
     m_resolutionCombo->addItem("2560 x 1440", "1440p");
     m_resolutionCombo->addItem("3840 x 2160", "4k");
     m_resolutionCombo->addItem("Custom", "custom");
+    m_resolutionCombo->setToolTip(
+        "Native uses the configured width/height below; set Custom first "
+        "to change them. Auto lets the client choose and may become 4K "
+        "when HEVC is enabled.");
     {
         QString saved = m_settings.resolution.mode;
         int idx = m_resolutionCombo->findData(saved);
@@ -580,9 +585,14 @@ void MainWindow::updateResolutionControls() {
 
     bool isAuto = mode == "auto";
     bool isCustom = mode == "custom";
+    bool isNative = mode == "native";
     m_widthSpin->setEnabled(isCustom);
     m_heightSpin->setEnabled(isCustom);
-    m_refreshSpin->setEnabled(!isAuto);
+    m_refreshSpin->setEnabled(!isAuto && !isNative);
+    if (isNative) {
+        m_widthSpin->setEnabled(false);
+        m_heightSpin->setEnabled(false);
+    }
 }
 
 void MainWindow::resetMediaInfo(const QString &status) {
