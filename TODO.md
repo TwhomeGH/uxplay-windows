@@ -60,6 +60,7 @@
   `d3d11videosink` 正常播放。
 - [x] rotation／padding：`videoflip counterclockwise` + `videocrop 8/24`。
 - [x] Clean Output 視窗：frameless、無邊框、固定標題、OBS Window Capture。
+- [x] Clean Output 可拖曳移動、8 px 邊緣縮放、右鍵 Move／Resize fallback。
 - [x] `--usb-obs`／tray／主視窗入口；已有實例走 IPC。
 - [x] rotation 用 `/codec` 的 `display.rotation`；crop 用 h265 caps 計算。
 - [ ] `usb.obs_mode` 持久化到 `settings.json`。
@@ -71,6 +72,7 @@
 - [ ] （A 備案）libusb0 filter installer、`0xFD` 偵測、QuickTime demux。
 - [ ] usbmuxd／libimobiledevice 配對與 trust 流程。
 - [x] `UsbObsController` Qt 控制器與 tray／主視窗入口。
+- [ ] AirPlay 影片視窗共用 CleanOutputWindow（engine window-handle hook）。
 - [ ] `settings.json` 增加 `mode=airplay/usb`。
 - [ ] Apple Mobile Device 依賴與安裝包策略。
 - [ ] 測試矩陣：iPhone 型號、iOS 版本、DRM、長時間、USB 2/3。

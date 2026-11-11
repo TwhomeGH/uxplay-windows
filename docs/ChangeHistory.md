@@ -1,5 +1,24 @@
 # ChangeHistory
 
+## 2026.11.12 00:32 Clean Output 支援拖曳與縮放
+
+**類型**: 修正 · **檔案**: `src/cleanoutputwindow.cpp、src/cleanoutputwindow.h、usbcapture/spike/README.md、TODO.md`
+
+### 問題 - Clean Output 無邊框但無法移動或縮放
+
+### 根因 - frameless 視窗沒有標題列與系統 resize 邊框
+
+### 修改 - 左鍵拖曳呼叫 startSystemMove
+
+實測視窗 (338,108) → (458,168)；大小 1243x864 → 1363x914。
+
+- 8 px 邊緣呼叫 startSystemResize
+- 右鍵選單補 Move／Resize fallback
+
+**相關文件**: usbcapture/spike/README.md
+
+---
+
 ## 2026.11.12 00:24 實作 USB Clean Output 視窗與 --usb-obs
 
 **類型**: 功能 · **檔案**: `src/cleanoutputwindow.cpp、src/cleanoutputwindow.h、src/usbobscontroller.cpp、src/usbobscontroller.h、src/mainwindow.cpp、src/mainwindow.h、src/main.cpp、CMakeLists.txt、docs/DEVELOPERS-GUIDE.md、usbcapture/spike/README.md、TODO.md`

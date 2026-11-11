@@ -149,6 +149,14 @@ The controller starts the Python sidecar, the bridge and GStreamer, and
 applies `display.rotation` and the hvcC crop itself. One capture session
 feeds only the clean window.
 
+The window can be dragged anywhere; resize it from its 8 px edges.
+Right-click offers `Move window`, `Resize window`, `Always on top`,
+`Copy OBS source name`, `Reset size` and `Close`.
+
+AirPlay still renders into the engine's native video window; only the USB
+path uses this `CleanOutputWindow`. A shared AirPlay clean output needs an
+engine-side window-handle hook (see `TODO.md`).
+
 Prerequisites: Python 3 with `pymobiledevice3`, Developer Mode, a mounted
 DDI, and a trusted device. `UXPLAY_USB_PYTHON` overrides the interpreter
 (e.g. `py -3.11`). Video only; AAC-ELD audio is not decoded on Windows yet.

@@ -8,9 +8,15 @@
 #include <QCursor>
 #include <QGuiApplication>
 #include <QMenu>
+#include <QMouseEvent>
 #include <QScreen>
 #include <QShowEvent>
 #include <QToolTip>
+#include <QWindow>
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 CleanOutputWindow::CleanOutputWindow(QWidget *parent)
     : QWidget(parent, Qt::Window | Qt::FramelessWindowHint |
@@ -27,6 +33,7 @@ CleanOutputWindow::CleanOutputWindow(QWidget *parent)
 
     setMinimumSize(320, 200);
     setFocusPolicy(Qt::NoFocus);
+    setMouseTracking(true);
 
     m_menu = new QMenu(this);
     QAction *alwaysOnTop = m_menu->addAction("Always on top");
@@ -44,6 +51,12 @@ CleanOutputWindow::CleanOutputWindow(QWidget *parent)
     });
 
     m_menu->addSeparator();
+    QAction *move = m_menu->addAction("Move window");
+    connect(move, &QAction::triggered, this, &CleanOutputWindow::beginSystemMove);
+    QAction *resize = m_menu->addAction("Resize window");
+    connect(resize, &QAction::triggered, this, [this]() {
+        beginSystemResize(Qt::BottomEdge | Qt::RightEdge);
+    });
     QAction *reset = m_menu->addAction("Reset size");
     connect(reset, &QAction::triggered, this, &CleanOutputWindow::resetSize);
     QAction *closeAction = m_menu->addAction("Close");
@@ -84,6 +97,113 @@ void CleanOutputWindow::showEvent(QShowEvent *event) {
         m_sized = true;
     }
     QWidget::showEvent(event);
+}
+
+Qt::Edges CleanOutputWindow::edgesAt(const QPoint &pos) const {
+    constexpr int margin = 8;
+    Qt::Edges edges;
+    if (pos.x() <= margin) {
+        edges |= Qt::LeftEdge;
+    }
+    if (pos.x() >= width() - margin) {
+        edges |= Qt::RightEdge;
+    }
+    if (pos.y() <= margin) {
+        edges |= Qt::TopEdge;
+    }
+    if (pos.y() >= height() - margin) {
+        edges |= Qt::BottomEdge;
+    }
+    return edges;
+}
+
+void CleanOutputWindow::beginSystemMove() {
+    if (QWindow *handle = windowHandle()) {
+        if (handle->startSystemMove()) {
+            return;
+        }
+    }
+#ifdef _WIN32
+    ReleaseCapture();
+    SendMessageW(reinterpret_cast<HWND>(winId()), WM_NCLBUTTONDOWN, HTCAPTION,
+                 0);
+#endif
+}
+
+void CleanOutputWindow::beginSystemResize(Qt::Edges edges) {
+    if (!edges) {
+        return;
+    }
+    if (QWindow *handle = windowHandle()) {
+        if (handle->startSystemResize(edges)) {
+            return;
+        }
+    }
+#ifdef _WIN32
+    WPARAM hit = HTBOTTOMRIGHT;
+    const bool left = edges.testFlag(Qt::LeftEdge);
+    const bool right = edges.testFlag(Qt::RightEdge);
+    const bool top = edges.testFlag(Qt::TopEdge);
+    const bool bottom = edges.testFlag(Qt::BottomEdge);
+    if (left && top) {
+        hit = HTTOPLEFT;
+    } else if (right && top) {
+        hit = HTTOPRIGHT;
+    } else if (left && bottom) {
+        hit = HTBOTTOMLEFT;
+    } else if (right && bottom) {
+        hit = HTBOTTOMRIGHT;
+    } else if (left) {
+        hit = HTLEFT;
+    } else if (right) {
+        hit = HTRIGHT;
+    } else if (top) {
+        hit = HTTOP;
+    } else if (bottom) {
+        hit = HTBOTTOM;
+    }
+    ReleaseCapture();
+    SendMessageW(reinterpret_cast<HWND>(winId()), WM_NCLBUTTONDOWN, hit, 0);
+#endif
+}
+
+void CleanOutputWindow::mousePressEvent(QMouseEvent *event) {
+    if (event->button() == Qt::LeftButton) {
+        const Qt::Edges edges = edgesAt(event->position().toPoint());
+        if (edges) {
+            beginSystemResize(edges);
+        } else {
+            beginSystemMove();
+        }
+        event->accept();
+        return;
+    }
+    QWidget::mousePressEvent(event);
+}
+
+void CleanOutputWindow::mouseMoveEvent(QMouseEvent *event) {
+    if (!(event->buttons() & Qt::LeftButton)) {
+        const Qt::Edges edges = edgesAt(event->position().toPoint());
+        if (edges == (Qt::LeftEdge | Qt::TopEdge) ||
+            edges == (Qt::RightEdge | Qt::BottomEdge)) {
+            setCursor(Qt::SizeFDiagCursor);
+        } else if (edges == (Qt::RightEdge | Qt::TopEdge) ||
+                   edges == (Qt::LeftEdge | Qt::BottomEdge)) {
+            setCursor(Qt::SizeBDiagCursor);
+        } else if (edges & (Qt::LeftEdge | Qt::RightEdge)) {
+            setCursor(Qt::SizeHorCursor);
+        } else if (edges & (Qt::TopEdge | Qt::BottomEdge)) {
+            setCursor(Qt::SizeVerCursor);
+        } else {
+            unsetCursor();
+        }
+    }
+    QWidget::mouseMoveEvent(event);
+}
+
+void CleanOutputWindow::mouseReleaseEvent(QMouseEvent *event) {
+    unsetCursor();
+    QWidget::mouseReleaseEvent(event);
 }
 
 void CleanOutputWindow::resetSize() {
