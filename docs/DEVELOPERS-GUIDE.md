@@ -161,6 +161,13 @@ CSV 可畫 RSS 趨勢；report 有首尾 RSS、CPU 平均／峰值、初始連�
 
 - `hevc`：引擎帶 `-h265`，宣告 HEVC 能力；client 仍可能選 H.264。
 - `h264`：不帶 `-h265`，不宣告 HEVC，client 使用 H.264。
+- **HEVC 只會在請求高度大於 1080p 時被 client 選用**；`-s
+  1920x1080@60` 會走 H.264，`Stream Size` 也會是 1080 等級。要看
+  HEVC，請選 4K 或 custom 高度 >1080，並優先使用有線網路。
+- 這是 Apple screen-mirroring client 的 codec 選擇行為：server 只能
+  宣告 bit 42 capability，不能強制 1080p 使用 HEVC。
+- 若要在接近 1080p 使用 HEVC，實務上只能提高請求高度（例如 1440p）
+  後在輸出端縮放；這會增加網路與解碼負載，不是真正的 1080p HEVC。
 - 這是能力宣告與偏好，不是強制 actual codec；實際值看 Media Info
   或 diagnostics 的 `Video Codec`。
 - 變更目前需要重啟 app；Phase 2C 會改為只重啟 engine worker。

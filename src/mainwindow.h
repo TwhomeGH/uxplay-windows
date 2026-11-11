@@ -66,6 +66,7 @@ private slots:
     void toggleForceFullscreen(bool checked);
     void onRendererChanged(int index);
     void onVideoCodecChanged(int index);
+    void updateVideoCodecHint();
     void onResolutionChanged();
     void updateMediaInfo(const QString &key, const QString &value);
     void applyDisplayName();
@@ -108,6 +109,7 @@ private:
     
     QComboBox *m_rendererCombo = nullptr;
     QComboBox *m_videoCodecCombo = nullptr;
+    QLabel *m_videoCodecHint = nullptr;
     QComboBox *m_resolutionCombo = nullptr;
     QComboBox *m_obsModeCombo = nullptr;
     QLabel *m_obsHint = nullptr;

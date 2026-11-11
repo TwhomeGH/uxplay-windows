@@ -197,11 +197,11 @@ void MainWindow::setupUI() {
     auto *codecLayout = new QHBoxLayout();
     auto *codecLabel = new QLabel("Video Codec", this);
     m_videoCodecCombo = new QComboBox(this);
-    m_videoCodecCombo->addItem("HEVC / H.265 (default)", "hevc");
+    m_videoCodecCombo->addItem("HEVC / H.265 (needs >1080p)", "hevc");
     m_videoCodecCombo->addItem("H.264 / AVC", "h264");
     m_videoCodecCombo->setToolTip(
-        "HEVC advertises H.265 support; the client may still choose H.264. "
-        "H.264 mode disables HEVC advertisement.");
+        "HEVC requires a requested height above 1080p (for example 4K). "
+        "At 1080p the client uses H.264 even when HEVC is enabled.");
     {
         const int saved = m_videoCodecCombo->findData(m_settings.videoCodec);
         m_videoCodecCombo->setCurrentIndex(saved >= 0 ? saved : 0);
@@ -212,6 +212,11 @@ void MainWindow::setupUI() {
     codecLayout->addWidget(codecLabel);
     codecLayout->addWidget(m_videoCodecCombo, 1);
     layout->addLayout(codecLayout);
+
+    m_videoCodecHint = new QLabel(this);
+    m_videoCodecHint->setWordWrap(true);
+    m_videoCodecHint->setStyleSheet("color:#666;");
+    layout->addWidget(m_videoCodecHint);
 
     auto *resolutionLayout = new QHBoxLayout();
     auto *resolutionLabel = new QLabel("Resolution", this);
@@ -339,6 +344,7 @@ void MainWindow::setupUI() {
     layout->addLayout(bottomLayout);
 
     layout->addStretch();
+    updateVideoCodecHint();
     updateStatus();
 }
 
@@ -468,10 +474,45 @@ void MainWindow::onVideoCodecChanged(int /*index*/) {
             QStringLiteral("settings"), QStringLiteral("video codec changed"),
             QJsonObject{{QStringLiteral("codec"), codec}});
     }
+    updateVideoCodecHint();
+
+    const bool resAllowsHevc =
+        m_settings.resolution.mode == QStringLiteral("auto")
+        || m_settings.resolution.height > 1080;
+    if (codec == QStringLiteral("hevc") && !resAllowsHevc) {
+        m_tray->showMessage(
+            "uxplay-windows",
+            "HEVC needs height above 1080p; this resolution will use H.264.",
+            QSystemTrayIcon::Information, 5000);
+        return;
+    }
 
     m_tray->showMessage("uxplay-windows",
                         "Video codec preference saved. Restart to apply.",
                         QSystemTrayIcon::Information, 3000);
+}
+
+void MainWindow::updateVideoCodecHint() {
+    if (!m_videoCodecHint) {
+        return;
+    }
+
+    const bool hevc = m_settings.videoCodec == QStringLiteral("hevc");
+    const bool resAllowsHevc =
+        m_settings.resolution.mode == QStringLiteral("auto")
+        || m_settings.resolution.height > 1080;
+
+    if (!hevc) {
+        m_videoCodecHint->setText(
+            "H.264 only: HEVC is not advertised to the client.");
+    } else if (!resAllowsHevc) {
+        m_videoCodecHint->setText(
+            "HEVC needs height above 1080p; this resolution will use "
+            "H.264.");
+    } else {
+        m_videoCodecHint->setText(
+            "HEVC advertised; the client may still choose H.264.");
+    }
 }
 
 void MainWindow::onResolutionChanged() {
@@ -511,6 +552,7 @@ void MainWindow::onResolutionChanged() {
 
     m_settings.resolution = next;
     m_settings.save();
+    updateVideoCodecHint();
     m_tray->showMessage("uxplay-windows",
                         "Please restart the uxplay-windows to apply changes.\n(Right-click the Tray Icon)",
                         QSystemTrayIcon::Information, 3000);

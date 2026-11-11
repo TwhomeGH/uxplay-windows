@@ -1,5 +1,26 @@
 # ChangeHistory
 
+## 2026.11.12 03:56 釐清 HEVC 只在超過 1080p 時啟用
+
+**類型**: 修正 · **檔案**: `src/mainwindow.cpp、src/mainwindow.h、docs/DEVELOPERS-GUIDE.md`
+
+### 問題 - 預設 HEVC 但 1080p 實際顯示 H.264，UI 容易誤解
+
+### 根因 - AirPlay client 依請求高度選擇 codec；height<=1080 時送 H.264，server 無法強制
+
+### 修改 - Video Codec 選項標示 needs >1080p，並加動態提示
+
+實測 Media Info：H.264、Stream Size 1554x1080，log 有 `-h265`；
+UxPlay README 1149-1153 與 issue #233 證實需 height>1080。
+Audio Codec 現在為 AAC-ELD。
+
+- 選 HEVC 但解析度不足時，tray 提示將使用 H.264
+- 文件補充 Apple client 行為與 4K／1440p 條件
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.12 03:52 新增 HEVC／H.264 視訊編碼偏好
 
 **類型**: 功能 · **檔案**: `src/settings.cpp、src/settings.h、src/mainwindow.cpp、src/mainwindow.h、src/diagnostics.cpp、docs/DEVELOPERS-GUIDE.md`
