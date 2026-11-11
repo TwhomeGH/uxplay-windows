@@ -1,5 +1,27 @@
 # ChangeHistory
 
+## 2026.11.12 03:15 新增日誌選單與診斷資料夾入口
+
+**類型**: 功能 · **檔案**: `src/logging.cpp、src/logging.h、src/mainwindow.cpp、src/mainwindow.h、docs/DEVELOPERS-GUIDE.md`
+
+### 問題 - Open Log 固定用系統關聯開啟，且沒有診斷資料夾入口
+
+### 根因 - 只有單一 QDesktopServices 開啟，沒有 Open With 與資料夾動作
+
+### 修改 - Open Log 改為日誌選單與資料夾入口
+
+實測 UI：Open Log 有下拉箭頭；USB not started；重啟無 USB 通知。
+
+- Open Log 選單：Open Log／Open Log With...／Open Log Folder／
+  Open Diagnostics Folder
+- tray 新增 Logs & Diagnostics 子選單
+- Open Log 使用 InstantPopup，點擊即展開選單
+- Open Log With 使用 rundll32 OpenAs_RunDLL；診斷資料夾不存在時建立
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.12 03:08 USB 不再隨啟動自動 preflight
 
 **類型**: 修正 · **檔案**: `src/mainwindow.cpp、docs/DEVELOPERS-GUIDE.md、usbcapture/spike/README.md`

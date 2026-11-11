@@ -128,6 +128,14 @@ CSV 可畫 RSS 趨勢；report 有首尾 RSS、CPU 平均／峰值、初始連�
   uxplay-diagnostics-<timestamp>\
 ```
 
+日誌與診斷入口在 tray 的 `Logs & Diagnostics`，或主視窗 `Open Log`
+按鈕（點擊會展開選單）：
+
+- **Open Log**：用系統預設程式開啟。
+- **Open Log With...**：Windows「開啟方式」，可選 VS Code 或其他工具。
+- **Open Log Folder**：開啟日誌資料夾。
+- **Open Diagnostics Folder**：開啟診斷包資料夾（不存在時會建立）。
+
 內容包括 `manifest.json`、`events.jsonl`、`metrics.jsonl`、logs、
 `settings.redacted.json`、`system.txt` 與 `README.txt`。
 

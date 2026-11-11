@@ -7,6 +7,7 @@
 #include <QFileInfo>
 #include <QMutex>
 #include <QMutexLocker>
+#include <QProcess>
 #include <QStandardPaths>
 #include <QUrl>
 
@@ -171,6 +172,56 @@ void openLogFile() {
         QDesktopServices::openUrl(
             QUrl::fromLocalFile(QFileInfo(path).absolutePath()));
     }
+}
+
+void openLogFileWith() {
+    QString path;
+    {
+        QMutexLocker locker(&g_mutex);
+        path = g_path;
+    }
+
+    if (path.isEmpty()) {
+        return;
+    }
+    if (!QFile::exists(path)) {
+        QDesktopServices::openUrl(
+            QUrl::fromLocalFile(QFileInfo(path).absolutePath()));
+        return;
+    }
+
+#ifdef _WIN32
+    const bool started = QProcess::startDetached(
+        QStringLiteral("rundll32.exe"),
+        {QStringLiteral("shell32.dll,OpenAs_RunDLL"),
+         QDir::toNativeSeparators(path)});
+    if (!started) {
+        QDesktopServices::openUrl(QUrl::fromLocalFile(path));
+    }
+#else
+    QDesktopServices::openUrl(QUrl::fromLocalFile(path));
+#endif
+}
+
+void openLogFolder() {
+    QString path;
+    {
+        QMutexLocker locker(&g_mutex);
+        path = g_path;
+    }
+    if (path.isEmpty()) {
+        return;
+    }
+    QDesktopServices::openUrl(
+        QUrl::fromLocalFile(QFileInfo(path).absolutePath()));
+}
+
+void openDiagnosticsFolder() {
+    const QString dir =
+        QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
+        + QStringLiteral("/diagnostics");
+    QDir().mkpath(dir);
+    QDesktopServices::openUrl(QUrl::fromLocalFile(dir));
 }
 
 } // namespace applog

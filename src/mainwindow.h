@@ -18,6 +18,7 @@
 
 class QMenu;
 class QAction;
+class QToolButton;
 class AirPlayWorker;
 class UsbObsController;
 class UsbDeviceConnector;
@@ -86,6 +87,7 @@ private:
     void ensureUsbObsController();
     void ensureUsbConnector();
     void setObsMode(const QString &mode, bool persist);
+    void populateLogMenu(QMenu *menu);
 
     QProcess *m_beacon = nullptr;
 
@@ -119,7 +121,6 @@ private:
     QAction *m_statusAction = nullptr;
     QAction *m_toggleServerAction = nullptr;
     QAction *m_usbObsAction = nullptr;
-    QAction *m_openLogAction = nullptr;
     QAction *m_diagnosticsRecordAction = nullptr;
     QAction *m_saveDiagnosticsAction = nullptr;
     QAction *m_clientAction = nullptr;
@@ -136,7 +137,7 @@ private:
     QPushButton *m_settingsBtn = nullptr;
     QPushButton *m_listargsBtn = nullptr;
     QPushButton *m_licenseBtn = nullptr;
-    QPushButton *m_openLogBtn = nullptr;
+    QToolButton *m_openLogBtn = nullptr;
     QPushButton *m_diagnosticsBtn = nullptr;
     QCheckBox *m_diagnosticsCheckbox = nullptr;
 

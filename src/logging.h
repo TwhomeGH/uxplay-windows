@@ -17,4 +17,13 @@ QString filePath();
 // Opens the log file, or its folder if the file does not exist yet.
 void openLogFile();
 
+// Opens the Windows "Open with" picker for the log file.
+void openLogFileWith();
+
+// Opens the folder containing the current log file.
+void openLogFolder();
+
+// Opens (and creates if needed) the diagnostics bundle folder.
+void openDiagnosticsFolder();
+
 } // namespace applog

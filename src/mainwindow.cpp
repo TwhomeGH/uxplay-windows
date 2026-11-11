@@ -42,6 +42,7 @@
 #include <QStandardItem>
 #include <QStandardItemModel>
 #include <QTimer>
+#include <QToolButton>
 #include <QUrl>
 #include <QVBoxLayout>
 #include <QTextStream>
@@ -289,8 +290,15 @@ void MainWindow::setupUI() {
     m_licenseBtn = new QPushButton("License Information", this);
     connect(m_licenseBtn, &QPushButton::clicked, this, &MainWindow::showLicense);
 
-    m_openLogBtn = new QPushButton("Open Log", this);
-    connect(m_openLogBtn, &QPushButton::clicked, this, &MainWindow::openLogFile);
+    m_openLogBtn = new QToolButton(this);
+    m_openLogBtn->setText("Open Log");
+    m_openLogBtn->setToolButtonStyle(Qt::ToolButtonTextOnly);
+    m_openLogBtn->setPopupMode(QToolButton::InstantPopup);
+    m_openLogBtn->setToolTip(
+        "Open the log, choose a viewer, or open log/diagnostics folders.");
+    auto *logMenu = new QMenu(this);
+    populateLogMenu(logMenu);
+    m_openLogBtn->setMenu(logMenu);
 
     auto *diagnosticsLayout = new QHBoxLayout();
     m_diagnosticsCheckbox = new QCheckBox("Keep diagnostics", this);
@@ -362,7 +370,8 @@ void MainWindow::setupTray() {
     m_toggleServerAction = m_trayMenu->addAction("Stop AirPlay", this, &MainWindow::toggleServer);
     m_usbObsAction = m_trayMenu->addAction("USB Clean Output (experimental)", this,
                                            &MainWindow::toggleUsbObs);
-    m_openLogAction = m_trayMenu->addAction("Open Log", this, &MainWindow::openLogFile);
+    QMenu *logsMenu = m_trayMenu->addMenu("Logs & Diagnostics");
+    populateLogMenu(logsMenu);
     m_diagnosticsRecordAction =
         m_trayMenu->addAction("Keep recent diagnostics");
     m_diagnosticsRecordAction->setCheckable(true);
@@ -1125,6 +1134,24 @@ void MainWindow::setServerEnabled(bool enabled) {
 
 void MainWindow::openLogFile() {
     applog::openLogFile();
+}
+
+void MainWindow::populateLogMenu(QMenu *menu) {
+    QAction *open = menu->addAction("Open Log");
+    connect(open, &QAction::triggered, this, &MainWindow::openLogFile);
+
+    QAction *openWith = menu->addAction("Open Log With...");
+    connect(openWith, &QAction::triggered, this,
+            []() { applog::openLogFileWith(); });
+
+    QAction *logFolder = menu->addAction("Open Log Folder");
+    connect(logFolder, &QAction::triggered, this,
+            []() { applog::openLogFolder(); });
+
+    QAction *diagnosticsFolder =
+        menu->addAction("Open Diagnostics Folder");
+    connect(diagnosticsFolder, &QAction::triggered, this,
+            []() { applog::openDiagnosticsFolder(); });
 }
 
 void MainWindow::toggleDiagnostics(bool enabled) {
