@@ -156,11 +156,15 @@ The persisted mode lives in `settings.json`:
 ```
 
 - `off` (default): USB capture is not started.
-- `window`: start the USB Clean Output; OBS uses Window Capture.
+- `window`: preferred USB Clean Output; it does **not** start at app
+  launch. Press `Connect USB device`, select Clean window, or use
+  `--usb-obs` to start it.
 - `camera`: reserved for the virtual camera, not implemented.
 
-`--usb-obs` selects `window` and persists it. Closing the clean window
-switches the mode back to `off` and stops the sidecar/bridge processes.
+`--usb-obs` selects `window`, persists it, and starts explicitly.
+Closing the clean window switches the mode back to `off` and stops the
+sidecar/bridge processes. Restarting the app does not auto-preflight USB
+or emit a failure notification just because `obs.mode=window`.
 
 ### Power
 

@@ -88,9 +88,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     setupTray();
     setupUI();
 
-    if (m_settings.obsMode == QStringLiteral("window")) {
-        QTimer::singleShot(0, this, [this]() { startUsbObs(false); });
-    }
+    // obs.mode is a preference, not an instruction to capture at launch.
+    // USB is started only by an explicit Connect, mode selection or --usb-obs.
 
     // Force creation of the hidden top-level HWND so Windows power events reach us.
     winId();
@@ -258,12 +257,16 @@ void MainWindow::setupUI() {
     connect(m_obsModeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &MainWindow::onObsModeChanged);
     m_usbStatusLabel = new QLabel("USB: not checked", obsGroup);
+    if (m_settings.obsMode == QStringLiteral("window")) {
+        m_usbStatusLabel->setText("USB: not started (press Connect)");
+    }
     m_usbStatusLabel->setWordWrap(true);
     m_usbConnectBtn = new QPushButton("Connect USB device", obsGroup);
     connect(m_usbConnectBtn, &QPushButton::clicked, this,
             &MainWindow::onConnectUsbClicked);
     m_obsHint = new QLabel(
-        "Clean window: select it in OBS with Window Capture.", obsGroup);
+        "Clean window: press Connect USB device, then select the window in OBS.",
+        obsGroup);
     m_obsHint->setWordWrap(true);
     obsLayout->addWidget(m_obsModeCombo);
     obsLayout->addWidget(m_usbStatusLabel);
@@ -1073,10 +1076,7 @@ void MainWindow::onConnectUsbClicked() {
 }
 
 void MainWindow::toggleUsbObs() {
-    const bool modeWindow =
-        m_obsModeCombo &&
-        m_obsModeCombo->currentData().toString() == QStringLiteral("window");
-    if ((m_usbObs && m_usbObs->isRunning()) || modeWindow) {
+    if (m_usbObs && m_usbObs->isRunning()) {
         setObsMode(QStringLiteral("off"), true);
     } else {
         setObsMode(QStringLiteral("window"), true);

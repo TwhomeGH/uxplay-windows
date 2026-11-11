@@ -1,5 +1,24 @@
 # ChangeHistory
 
+## 2026.11.12 03:08 USB 不再隨啟動自動 preflight
+
+**類型**: 修正 · **檔案**: `src/mainwindow.cpp、docs/DEVELOPERS-GUIDE.md、usbcapture/spike/README.md`
+
+### 問題 - obs.mode=window 每次重啟自動偵測 USB，失敗時反覆發通知
+
+### 根因 - 把輸出模式偏好當成 capture 啟動指令
+
+### 修改 - 移除啟動時自動 startUsbObs；只在 Connect／選 Clean window／--usb-obs 啟動
+
+重啟後 log 無 usb-device／Clean Output；usb_procs=0；obs.mode=window 保留為偏好。
+
+- tray toggle 依實際 running 判斷，不再把偏好當成執行中
+- UI 顯示 USB: not started (press Connect)；文件更新
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.12 03:05 加入診斷包與近期診斷記錄
 
 **類型**: 功能 · **檔案**: `src/diagnostics.cpp、src/diagnostics.h、src/mainwindow.cpp、src/mainwindow.h、src/settings.cpp、src/settings.h、src/main.cpp、CMakeLists.txt、.github/ISSUE_TEMPLATE/bug_report.yml、docs/DEVELOPERS-GUIDE.md、TODO.md`

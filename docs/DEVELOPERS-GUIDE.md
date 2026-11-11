@@ -315,12 +315,16 @@ build\dev\run-dev.cmd --usb-obs
 ```
 
 - `off`：預設，不啟動 USB 擷取。
-- `window`：啟動 USB Clean Output；OBS 用 Window Capture。
+- `window`：偏好使用 USB Clean Output；**不會在 app 啟動時自動開始**，
+  要按 `Connect USB device`、選 Clean window 或 `--usb-obs` 才啟動。
 - `camera`：保留給 virtual camera，尚未實作。
 
 主視窗的 `OBS output (USB capture)` 下拉選單就是這個設定。
-`--usb-obs` 等於選 `window`（會持久化）；關閉 Clean Output 視窗會回到
-`off` 並停止 USB 子程序。
+`--usb-obs` 等於選 `window`（會持久化）並明確啟動；關閉 Clean Output
+視窗會回到 `off` 並停止 USB 子程序。
+
+重啟 app 不會因為 `obs.mode=window` 自動 preflight，也不會發 USB
+失敗通知；這是為了避免每次啟動都變成通知噪音。
 
 選擇 `window` 或按 `Connect USB device` 會先跑 preflight：
 
