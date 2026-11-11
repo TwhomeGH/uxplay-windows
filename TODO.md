@@ -10,7 +10,7 @@
 - [x] 主視窗與 tray 顯示目前連線裝置名稱／型號，連線與斷線時通知。
 - [x] 引擎日誌寫入檔案（rolling log），tray 加「Open Log」，主視窗顯示最後錯誤。
 - [x] tray 新增 Start/Stop AirPlay；圖示與 tooltip 區分 idle／streaming／error
-  （目前以 App 重啟套用，Phase 2 改為引擎熱重啟）。
+  （Phase 2A 已改為引擎熱啟停）。
 - [x] 單一實例保護（QLockFile 或 named mutex），第二次啟動叫回既有視窗。
 - [x] Bonjour 服務改檢查執行狀態並嘗試自動啟動；修正 `ACCESS_DENIED` 被誤判為存在。
 
@@ -18,8 +18,8 @@
 
 - [ ] 設定收斂為單一結構化來源（JSON/INI），命令列參數由設定產生，只留「額外參數」欄位。
 - [ ] 設定變更改為重啟引擎 worker，UI 顯示 pending 變更與單一「套用」動作。
-- [ ] 修正優雅停止路徑：`stop_uxplay()` 實際被呼叫；移除 `cleanup()` 內的 `exit(0)`。
-- [ ] 引擎崩潰重啟加入 backoff，並顯示「引擎連續失敗」狀態。
+- [x] 修正優雅停止路徑：`stop_uxplay()` 實際被呼叫；移除 `cleanup()` 內的 `exit(0)`。
+- [x] 引擎崩潰重啟加入 backoff，並顯示「引擎連續失敗」狀態。
 
 ## Phase 3 — AirPlay 功能
 
@@ -34,6 +34,8 @@
 - [ ] i18n（至少 zh_TW）；`windeployqt` 納入 Qt 翻譯。
 - [ ] 更新檢查器（README 的 TODO 項目）。
 - [ ] `make_release.sh` 補複製 `mDNSResponder.exe`／`dnssd.dll`，與 CI 打包一致。
+- [ ] Release 策略：SemVer／tag、Core／Exp 分類、nightly commit SHA 與版本顯示；
+  先維持 nightly 固定 tag 替換。
 - [ ] 移除未使用的 `m_autostartAction`／`m_statusAction`。
 
 ## 已完成
@@ -42,3 +44,5 @@
 - [x] 建立根目錄 `TODO.md` 並整理 AirPlay 改進分期。
 - [x] 本地建置／除錯腳本與開發者指南
   （`scripts/dev_build.sh`、`scripts/dev_run.sh`、`docs/DEVELOPERS-GUIDE.md`）。
+- [x] Phase 2A：引擎熱啟停、ready callback、崩潰 backoff、`--start`／`--stop` IPC。
+- [x] MSI 固定防火牆規則（WiX Firewall extension）與清理舊 build 規則腳本。
