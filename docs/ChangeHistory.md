@@ -13,7 +13,8 @@ Workflow 在 PowerShell step 用 bash 的 `date` 與
 
 ### 修改 - 改用 PowerShell 產生 UTC 時間與完整／短 SHA
 
-tag 仍為 nightly-build-x64／arm64，assets 名稱不變；release 的建立日期會是當晚。正式版本、Core／Exp 分類仍留到 Phase 3。
+tag 仍為 nightly-build-x64／arm64，assets 名稱不變；release 的建立
+日期會是當晚。正式版本、Core／Exp 分類仍留到 Phase 3。
 
 - release 名稱與內文加入 commit、run 連結、架構、最近 10 筆 commit
 - 每晚刪除重建 nightly release，tag 指向當前 SHA
