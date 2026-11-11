@@ -1,5 +1,23 @@
 # ChangeHistory
 
+## 2026.11.12 04:28 補 h265 無 -s 的明確 log
+
+**類型**: 修正 · **檔案**: `libuxplay/uxplay.cpp`
+
+### 問題 - 直接跑 h265 而沒有 -s 時，只會默默套用 1080p 預設
+
+### 根因 - 預設解析度與 HEVC capability 的關係沒有在 log 說明
+
+### 修改 - 無 -s 且 h265 時記錄 1920x1080 與 H.264 預期
+
+GUI 的 Native 仍送 -s 2360x1640@60，不會走這條路徑。
+
+- 提示 HEVC 需要 -s height>1080
+
+**相關文件**: libuxplay/uxplay.cpp
+
+---
+
 ## 2026.11.12 04:22 修正 h265 不再自動變成 4K
 
 **類型**: 修正 · **檔案**: `libuxplay/uxplay.cpp、libuxplay/README.txt、docs/DEVELOPERS-GUIDE.md`
