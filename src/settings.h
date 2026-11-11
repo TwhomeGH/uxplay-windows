@@ -4,9 +4,9 @@
 #include <QStringList>
 
 struct ResolutionSettings {
-    QString mode = "1080p";
-    int width = 1920;
-    int height = 1080;
+    QString mode = "native";
+    int width = 2360;
+    int height = 1640;
     int refresh = 60;
 };
 

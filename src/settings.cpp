@@ -306,9 +306,9 @@ void AppSettings::migrateLegacy() {
     forceFullscreen = legacy.value(QStringLiteral("force_fs_enabled"), false).toBool();
     renderer = legacy.value(QStringLiteral("renderer_mode"), QStringLiteral("auto")).toString();
     resolution.mode =
-        legacy.value(QStringLiteral("resolution_mode"), QStringLiteral("1080p")).toString();
-    resolution.width = legacy.value(QStringLiteral("resolution_width"), 1920).toInt();
-    resolution.height = legacy.value(QStringLiteral("resolution_height"), 1080).toInt();
+        legacy.value(QStringLiteral("resolution_mode"), QStringLiteral("native")).toString();
+    resolution.width = legacy.value(QStringLiteral("resolution_width"), 2360).toInt();
+    resolution.height = legacy.value(QStringLiteral("resolution_height"), 1640).toInt();
     resolution.refresh = legacy.value(QStringLiteral("resolution_refresh"), 60).toInt();
     serverEnabled = legacy.value(QStringLiteral("server_enabled"), true).toBool();
 
@@ -433,13 +433,15 @@ void AppSettings::sanitize() {
         obsMode = QStringLiteral("off");
     }
 
-    if (resolution.mode != QStringLiteral("auto")
-        && resolution.mode != QStringLiteral("native")
+    if (resolution.mode == QStringLiteral("auto")) {
+        resolution.mode = QStringLiteral("native");
+    }
+    if (resolution.mode != QStringLiteral("native")
         && resolution.mode != QStringLiteral("1080p")
         && resolution.mode != QStringLiteral("1440p")
         && resolution.mode != QStringLiteral("4k")
         && resolution.mode != QStringLiteral("custom")) {
-        resolution.mode = QStringLiteral("1080p");
+        resolution.mode = QStringLiteral("native");
     }
 
     if (resolution.mode == QStringLiteral("1080p")) {

@@ -1,5 +1,24 @@
 # ChangeHistory
 
+## 2026.11.12 04:15 移除 Auto，Native 成為預設解析度
+
+**類型**: 修正 · **檔案**: `src/settings.h、src/settings.cpp、src/mainwindow.cpp、docs/DEVELOPERS-GUIDE.md`
+
+### 問題 - Auto 實質是不送 -s，HEVC 下會變 4K，和「自動選原生」的預期相反
+
+### 根因 - 解析度選單用 Auto 命名一個 client default 行為
+
+### 修改 - 移除 Auto 選項；Native (device) 成為預設 2360x1640
+
+啟動 args 為 -s 2360x1640@60；settings mode=native；HEVC 實際 2360x1640。
+
+- 舊 auto 設定遷移為 native
+- 文件改為 Native 預設與 Custom 調整方式
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.12 04:11 新增 Native 原生解析度模式
 
 **類型**: 功能 · **檔案**: `src/settings.cpp、src/mainwindow.cpp、docs/DEVELOPERS-GUIDE.md、TODO.md`

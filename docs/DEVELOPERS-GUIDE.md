@@ -152,7 +152,7 @@ CSV 可畫 RSS 趨勢；report 有首尾 RSS、CPU 平均／峰值、初始連�
 
 ### 視訊編碼偏好（HEVC / H.264）
 
-主視窗 `Video Codec` 預設 `HEVC / H.265 (default)`，可切回
+主視窗 `Video Codec` 預設 `HEVC / H.265 (needs >1080p)`，可切回
 `H.264 / AVC`。設定存在 `settings.json`：
 
 ```json
@@ -162,8 +162,8 @@ CSV 可畫 RSS 趨勢；report 有首尾 RSS、CPU 平均／峰值、初始連�
 - `hevc`：引擎帶 `-h265`，宣告 HEVC 能力；client 仍可能選 H.264。
 - `h264`：不帶 `-h265`，不宣告 HEVC，client 使用 H.264。
 - **HEVC 只會在請求高度大於 1080p 時被 client 選用**；`-s
-  1920x1080@60` 會走 H.264，`Stream Size` 也會是 1080 等級。要看
-  HEVC，請選 4K 或 custom 高度 >1080，並優先使用有線網路。
+  1920x1080@60` 會走 H.264。Native 預設請求 2360x1640，已可觸發
+  HEVC；若改成 1080p 則會走 H.264。4K 負載最高，建議有線網路。
 - 這是 Apple screen-mirroring client 的 codec 選擇行為：server 只能
   宣告 bit 42 capability，不能強制 1080p 使用 HEVC。
 - 若要在接近 1080p 使用 HEVC，實務上只能提高請求高度（例如 1440p）
@@ -174,15 +174,14 @@ CSV 可畫 RSS 趨勢；report 有首尾 RSS、CPU 平均／峰值、初始連�
 - 既有設定若沒有 `video.codec`：`extra_args` 有 `-h265` 視為
   `hevc`，沒有則保留 `h264`。新安裝預設 `hevc`。
 
-#### 解析度：Auto 與 Native
+#### 解析度：Native 預設
 
-- `Auto (client default)`：不送 `-s`；`-h265` 時 libuxplay 預設請求
-  4K，client 會依裝置比例調整寬度（例如 3108x2160）。
-- `Native (device)`：送出目前設定的 `width x height`；這台 iPad13,18
-  實測為 `2360x1640`，`-h265` 仍會生效。
+- `Native (device)` 是預設，送出目前設定的 `width x height`；這台
+  iPad13,18 預設為 `2360x1640`，`-h265` 仍會生效。
 - Native **不是自動查詢**：AirPlay 沒有回報原生解析度的欄位；這些值是
-  已設定的請求。要改成其他尺寸，先選 `Custom` 填入寬高，再選
-  `Native`。
+  已設定的請求。其他裝置請先選 `Custom` 填入寬高，再選 `Native`。
+- 舊設定的 `auto` 會遷移成 `native`；不再提供「不指定、由 client
+  決定」的選項，因為它在 HEVC 下實際會變成 4K。
 - Native 模式會停用寬高欄位，避免誤改；refresh 仍以自訂值為準。
 
 ### VS Code F5
