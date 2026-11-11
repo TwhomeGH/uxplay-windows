@@ -1,5 +1,24 @@
 # ChangeHistory
 
+## 2026.11.12 01:48 新增 AirPlay soak 監測腳本
+
+**類型**: 工具 · **檔案**: `scripts/airplay_soak.ps1、docs/DEVELOPERS-GUIDE.md`
+
+### 問題 - AirPlay 穩定度沒有可重複的長時間監測
+
+### 根因 - 只靠肉眼與 log，沒有 RSS／CPU 趨勢
+
+### 修改 - 新增 PowerShell soak 腳本，取樣 RSS／CPU／threads／handles 與 log error
+
+1 分鐘自測：6 samples、RSS 392.3→392.5MB、CPU 全核平均 0.8%、0 errors；60 分鐘監測已啟動。
+
+- 輸出 CSV 與 report 到 build/diagnostics
+- 文件補執行方式與判讀方式
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.12 01:44 定位 AirPlay 主線與 USB 可選
 
 **類型**: 文件 · **檔案**: `TODO.md`

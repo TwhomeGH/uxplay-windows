@@ -91,6 +91,27 @@ bash scripts/dev_run.sh --detach         # 背景啟動後返回
 `dev_build.sh` 會把 `$MSYSTEM_PREFIX/bin`（含
 `libgcc_s_seh-1.dll`、Qt6、GStreamer）寫進 `run-dev.cmd` 的 `PATH`。
 
+### AirPlay soak 監測
+
+在 iPad 已連上 AirPlay 時跑：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass `
+  -File scripts\airplay_soak.ps1 -Minutes 60 -IntervalSeconds 60
+```
+
+每 60 秒記錄 `uxplay-windows` 的 CPU、RSS、private bytes、threads、
+handles 與 log 的 ERROR／WARN。輸出：
+
+```text
+build\diagnostics\airplay-soak-<timestamp>.csv
+build\diagnostics\airplay-soak-<timestamp>.txt
+```
+
+CSV 可畫 RSS 趨勢；report 有首尾 RSS、CPU 平均／峰值、初始連線 context
+與 log 事件。監測期間不要關掉 AirPlay 或讓 iPad 睡眠，否則會記錄到
+斷線事件。
+
 ### VS Code F5
 
 `.vscode` 已附可直接用的設定：
