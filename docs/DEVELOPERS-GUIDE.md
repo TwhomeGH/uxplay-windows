@@ -112,6 +112,29 @@ CSV 可畫 RSS 趨勢；report 有首尾 RSS、CPU 平均／峰值、初始連�
 與 log 事件。監測期間不要關掉 AirPlay 或讓 iPad 睡眠，否則會記錄到
 斷線事件。
 
+### 診斷包（Diagnostics）
+
+預設會保留最近 30 分鐘的事件與 1Hz 指標（可在 tray／主視窗關閉）。
+發生問題時：
+
+- 主視窗 **Save Diagnostics** 或 tray 的 **Save Diagnostics**
+- 既有實例：`uxplay-windows.exe --save-diagnostics`
+
+輸出：
+
+```text
+%LOCALAPPDATA%\leapbtw\uxplay-windows\diagnostics\
+  uxplay-diagnostics-<timestamp>.zip
+  uxplay-diagnostics-<timestamp>\
+```
+
+內容包括 `manifest.json`、`events.jsonl`、`metrics.jsonl`、logs、
+`settings.redacted.json`、`system.txt` 與 `README.txt`。
+
+匯出時會 redact 裝置名稱、UDID、MAC、IPv4 與使用者路徑；client model
+等技術欄位會保留。**不會自動上傳**；分享前請自行檢查。回報請使用
+`.github/ISSUE_TEMPLATE/bug_report.yml` 並附上 zip。
+
 ### VS Code F5
 
 `.vscode` 已附可直接用的設定：

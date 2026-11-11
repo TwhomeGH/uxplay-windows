@@ -121,6 +121,12 @@ AppSettings AppSettings::fromJson(const QString &path, bool *ok) {
     settings.serverEnabled =
         object.value(QStringLiteral("server_enabled")).toBool(settings.serverEnabled);
 
+    const QJsonObject diagnostics =
+        object.value(QStringLiteral("diagnostics")).toObject();
+    settings.diagnosticsEnabled =
+        diagnostics.value(QStringLiteral("enabled"))
+            .toBool(settings.diagnosticsEnabled);
+
     const QJsonObject obs = object.value(QStringLiteral("obs")).toObject();
     settings.obsMode =
         obs.value(QStringLiteral("mode")).toString(settings.obsMode);
@@ -163,6 +169,9 @@ bool AppSettings::save() const {
     QJsonObject obsObject;
     obsObject[QStringLiteral("mode")] = obsMode;
 
+    QJsonObject diagnosticsObject;
+    diagnosticsObject[QStringLiteral("enabled")] = diagnosticsEnabled;
+
     QJsonArray extra;
     for (const QString &arg : extraArgs) {
         extra.append(arg);
@@ -178,6 +187,7 @@ bool AppSettings::save() const {
     object[QStringLiteral("no_hold")] = noHold;
     object[QStringLiteral("server_enabled")] = serverEnabled;
     object[QStringLiteral("obs")] = obsObject;
+    object[QStringLiteral("diagnostics")] = diagnosticsObject;
     object[QStringLiteral("extra_args")] = extra;
 
     QSaveFile file(path);

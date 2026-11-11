@@ -21,6 +21,7 @@ class QAction;
 class AirPlayWorker;
 class UsbObsController;
 class UsbDeviceConnector;
+class DiagnosticsRecorder;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -32,6 +33,7 @@ public:
 public slots:
     void setServerEnabled(bool enabled);
     void startUsbObs(bool minimize = false);
+    void saveDiagnostics(bool showDialog = true);
 
 protected:
     void closeEvent(QCloseEvent *event) override;
@@ -58,6 +60,7 @@ private slots:
     void onObsModeChanged(int index);
     void onConnectUsbClicked();
     void openLogFile();
+    void toggleDiagnostics(bool enabled);
     void toggleBle(bool checked); // bluetooth
     void toggleForceFullscreen(bool checked);
     void onRendererChanged(int index);
@@ -117,6 +120,8 @@ private:
     QAction *m_toggleServerAction = nullptr;
     QAction *m_usbObsAction = nullptr;
     QAction *m_openLogAction = nullptr;
+    QAction *m_diagnosticsRecordAction = nullptr;
+    QAction *m_saveDiagnosticsAction = nullptr;
     QAction *m_clientAction = nullptr;
     QAction *m_connectionsAction = nullptr;
     QAction *m_mediaStatusAction = nullptr;
@@ -132,6 +137,8 @@ private:
     QPushButton *m_listargsBtn = nullptr;
     QPushButton *m_licenseBtn = nullptr;
     QPushButton *m_openLogBtn = nullptr;
+    QPushButton *m_diagnosticsBtn = nullptr;
+    QCheckBox *m_diagnosticsCheckbox = nullptr;
 
     QLabel *m_statusLabel = nullptr;
     QLabel *m_errorLabel = nullptr;
@@ -140,6 +147,7 @@ private:
     AirPlayWorker *m_worker = nullptr;
     UsbObsController *m_usbObs = nullptr;
     UsbDeviceConnector *m_usbConnector = nullptr;
+    DiagnosticsRecorder *m_diagnostics = nullptr;
     bool m_usbDeviceReady = false;
 
     QString m_clientName;

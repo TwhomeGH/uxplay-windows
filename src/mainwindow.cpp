@@ -4,6 +4,7 @@
 #include "usbobscontroller.h"
 #include "usbdeviceconnector.h"
 #include "cleanoutputwindow.h"
+#include "diagnostics.h"
 #include "mdns_responder.hpp"
 #include <windows.h>
 #include <winsvc.h>
@@ -11,7 +12,11 @@
 #include <QProcess>
 #include <QAction>
 #include <QApplication>
+#include <QClipboard>
 #include <QCloseEvent>
+#include <QFileInfo>
+#include <QJsonArray>
+#include <QJsonObject>
 
 #include <QDebug>
 #include <QDesktopServices>
@@ -70,6 +75,15 @@ BOOL CALLBACK EnumWindowsProcRename(HWND hwnd, LPARAM lParam) {
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     m_settings = AppSettings::load();
     m_serverEnabled = m_settings.serverEnabled;
+
+    m_diagnostics = new DiagnosticsRecorder(this);
+    m_diagnostics->setSettings(m_settings);
+    m_diagnostics->setEnabled(m_settings.diagnosticsEnabled);
+    m_diagnostics->event(
+        QStringLiteral("app"), QStringLiteral("started"),
+        QJsonObject{{QStringLiteral("args"),
+                     QJsonArray::fromStringList(
+                         QCoreApplication::arguments())}});
 
     setupTray();
     setupUI();
@@ -275,6 +289,20 @@ void MainWindow::setupUI() {
     m_openLogBtn = new QPushButton("Open Log", this);
     connect(m_openLogBtn, &QPushButton::clicked, this, &MainWindow::openLogFile);
 
+    auto *diagnosticsLayout = new QHBoxLayout();
+    m_diagnosticsCheckbox = new QCheckBox("Keep diagnostics", this);
+    m_diagnosticsCheckbox->setChecked(m_settings.diagnosticsEnabled);
+    m_diagnosticsCheckbox->setToolTip(
+        "Keep the last 30 minutes of events and metrics in memory for export.");
+    connect(m_diagnosticsCheckbox, &QCheckBox::toggled, this,
+            &MainWindow::toggleDiagnostics);
+    m_diagnosticsBtn = new QPushButton("Save Diagnostics", this);
+    connect(m_diagnosticsBtn, &QPushButton::clicked, this,
+            [this]() { saveDiagnostics(true); });
+    diagnosticsLayout->addWidget(m_diagnosticsCheckbox, 1);
+    diagnosticsLayout->addWidget(m_diagnosticsBtn);
+    layout->addLayout(diagnosticsLayout);
+
     auto *bottomLayout = new QHBoxLayout();
     bottomLayout->addWidget(m_licenseBtn);
     bottomLayout->addWidget(m_openLogBtn);
@@ -332,6 +360,15 @@ void MainWindow::setupTray() {
     m_usbObsAction = m_trayMenu->addAction("USB Clean Output (experimental)", this,
                                            &MainWindow::toggleUsbObs);
     m_openLogAction = m_trayMenu->addAction("Open Log", this, &MainWindow::openLogFile);
+    m_diagnosticsRecordAction =
+        m_trayMenu->addAction("Keep recent diagnostics");
+    m_diagnosticsRecordAction->setCheckable(true);
+    m_diagnosticsRecordAction->setChecked(m_settings.diagnosticsEnabled);
+    connect(m_diagnosticsRecordAction, &QAction::toggled, this,
+            &MainWindow::toggleDiagnostics);
+    m_saveDiagnosticsAction = m_trayMenu->addAction("Save Diagnostics");
+    connect(m_saveDiagnosticsAction, &QAction::triggered, this,
+            [this]() { saveDiagnostics(true); });
     m_trayMenu->addSeparator();
     m_trayMenu->addAction("Restart", this, &MainWindow::restartApplication);
     m_trayMenu->addAction("Quit", this, &MainWindow::quit);
@@ -467,6 +504,11 @@ void MainWindow::resetMediaInfo(const QString &status) {
 }
 
 void MainWindow::updateMediaInfo(const QString &key, const QString &value) {
+    if (m_diagnostics) {
+        m_diagnostics->event(
+            QStringLiteral("media"), key,
+            QJsonObject{{QStringLiteral("value"), value}});
+    }
     if (m_mediaStatusAction && key != "Video Decoder" && key != "Video Renderer") {
         m_mediaStatusAction->setText("Status: Streaming");
     }
@@ -508,6 +550,15 @@ void MainWindow::onClientConnected(const QString &name, const QString &model,
     m_clientModel = model;
     m_clientDeviceId = deviceid;
 
+    if (m_diagnostics) {
+        m_diagnostics->event(
+            QStringLiteral("client"), QStringLiteral("connected"),
+            QJsonObject{{QStringLiteral("name"), name},
+                        {QStringLiteral("model"), model},
+                        {QStringLiteral("deviceid"), deviceid},
+                        {QStringLiteral("connections"), m_connectionCount}});
+    }
+
     if (m_clientAction) {
         QString text = "Client: " + (name.isEmpty() ? QStringLiteral("unknown") : name);
         if (!model.isEmpty()) {
@@ -536,6 +587,13 @@ void MainWindow::onClientConnected(const QString &name, const QString &model,
 }
 
 void MainWindow::onClientDisconnected() {
+    if (m_diagnostics) {
+        m_diagnostics->event(
+            QStringLiteral("client"), QStringLiteral("disconnected"),
+            QJsonObject{{QStringLiteral("name"), m_clientName},
+                        {QStringLiteral("model"), m_clientModel},
+                        {QStringLiteral("deviceid"), m_clientDeviceId}});
+    }
     if (!m_clientName.isEmpty()) {
         qInfo() << "Client disconnected:" << m_clientName;
         if (m_tray && !m_quitting) {
@@ -554,6 +612,13 @@ void MainWindow::onClientDisconnected() {
 
 void MainWindow::onClientRejected(const QString &name, const QString &model,
                                   const QString &deviceid) {
+    if (m_diagnostics) {
+        m_diagnostics->event(
+            QStringLiteral("client"), QStringLiteral("rejected"),
+            QJsonObject{{QStringLiteral("name"), name},
+                        {QStringLiteral("model"), model},
+                        {QStringLiteral("deviceid"), deviceid}});
+    }
     qWarning() << "Client rejected:" << name << "model:" << model
                << "deviceid:" << deviceid;
     if (m_tray && !m_quitting) {
@@ -565,6 +630,11 @@ void MainWindow::onClientRejected(const QString &name, const QString &model,
 
 void MainWindow::onConnectionCountChanged(int count) {
     m_connectionCount = count;
+    if (m_diagnostics) {
+        m_diagnostics->event(QStringLiteral("client"),
+                             QStringLiteral("connection count"),
+                             QJsonObject{{QStringLiteral("count"), count}});
+    }
     if (m_connectionsAction) {
         m_connectionsAction->setText(QString("Connections: %1").arg(count));
     }
@@ -588,6 +658,11 @@ void MainWindow::applyDisplayName() {
     m_settings.displayName = displayName;
     m_settings.save();
     m_displayNameEdit->setText(displayName);
+    if (m_diagnostics) {
+        m_diagnostics->event(QStringLiteral("settings"),
+                             QStringLiteral("display name changed"),
+                             QJsonObject{{QStringLiteral("name"), displayName}});
+    }
 
     m_tray->showMessage("uxplay-windows",
                         "Restarting uxplay-windows with the new AirPlay name.",
@@ -616,6 +691,12 @@ void MainWindow::startServer() {
     }
 
     qInfo() << "Starting UxPlay engine with arguments:" << args;
+    if (m_diagnostics) {
+        m_diagnostics->event(
+            QStringLiteral("engine"), QStringLiteral("starting"),
+            QJsonObject{{QStringLiteral("args"),
+                         QJsonArray::fromStringList(args)}});
+    }
     clearClientInfo();
     resetMediaInfo("Waiting for stream");
     if (m_lastEngineError.isEmpty() && m_errorLabel) {
@@ -650,6 +731,10 @@ void MainWindow::startServer() {
 
 void MainWindow::stopServer() {
     qInfo() << "Stopping UxPlay engine";
+    if (m_diagnostics) {
+        m_diagnostics->event(QStringLiteral("engine"),
+                             QStringLiteral("stopping"));
+    }
     stopBluetoothBeacon();
     if (m_videoTitleTimer) m_videoTitleTimer->stop();
     if (m_worker) {
@@ -683,6 +768,10 @@ void MainWindow::onAirplayStarted() {
     m_lastEngineError.clear();
     if (m_errorLabel) m_errorLabel->setVisible(false);
     qInfo() << "UxPlay engine ready";
+    if (m_diagnostics) {
+        m_diagnostics->event(QStringLiteral("engine"),
+                             QStringLiteral("ready"));
+    }
     updateStatus();
 
     if (!m_videoTitleTimer) {
@@ -709,6 +798,12 @@ void MainWindow::onAirplayStopped() {
     clearClientInfo();
     resetMediaInfo("Not connected");
     qInfo() << "UxPlay engine stopped";
+    if (m_diagnostics) {
+        m_diagnostics->event(
+            QStringLiteral("engine"), QStringLiteral("stopped"),
+            QJsonObject{{QStringLiteral("restart_attempt"),
+                         m_restartAttempt}});
+    }
 
     if (!m_quitting && m_serverEnabled) {
         static const int delays[] = {1000, 2000, 5000, 10000};
@@ -726,6 +821,11 @@ void MainWindow::onAirplayStopped() {
 
 void MainWindow::onAirplayError(const QString &message) {
     qCritical() << "UxPlay engine error:" << message;
+    if (m_diagnostics) {
+        m_diagnostics->event(
+            QStringLiteral("engine"), QStringLiteral("error"),
+            QJsonObject{{QStringLiteral("message"), message}});
+    }
     m_lastEngineError = message;
     m_appState = AppState::Error;
     if (m_errorLabel) {
@@ -903,6 +1003,12 @@ void MainWindow::setObsMode(const QString &mode, bool persist) {
         m_settings.obsMode = normalized;
         m_settings.save();
     }
+    if (m_diagnostics) {
+        m_diagnostics->setSettings(m_settings);
+        m_diagnostics->event(QStringLiteral("obs"),
+                             QStringLiteral("mode"),
+                             QJsonObject{{QStringLiteral("mode"), normalized}});
+    }
 
     if (normalized == QStringLiteral("window")) {
         ensureUsbConnector();
@@ -991,6 +1097,13 @@ void MainWindow::setServerEnabled(bool enabled) {
     m_settings.serverEnabled = enabled;
     m_settings.save();
     m_restartAttempt = 0;
+    if (m_diagnostics) {
+        m_diagnostics->setSettings(m_settings);
+        m_diagnostics->event(
+            QStringLiteral("engine"),
+            enabled ? QStringLiteral("server enabled")
+                    : QStringLiteral("server disabled"));
+    }
 
     if (enabled) {
         if (!ensureBonjourServiceReady()) {
@@ -1012,6 +1125,99 @@ void MainWindow::setServerEnabled(bool enabled) {
 
 void MainWindow::openLogFile() {
     applog::openLogFile();
+}
+
+void MainWindow::toggleDiagnostics(bool enabled) {
+    if (m_settings.diagnosticsEnabled != enabled) {
+        m_settings.diagnosticsEnabled = enabled;
+        if (m_diagnostics) {
+            m_diagnostics->setSettings(m_settings);
+        }
+        m_settings.save();
+    }
+
+    if (m_diagnostics) {
+        if (enabled) {
+            m_diagnostics->setEnabled(true);
+            m_diagnostics->event(QStringLiteral("diagnostics"),
+                                 QStringLiteral("recording enabled"));
+        } else {
+            m_diagnostics->event(QStringLiteral("diagnostics"),
+                                 QStringLiteral("recording disabled"));
+            m_diagnostics->setEnabled(false);
+        }
+    }
+
+    if (m_diagnosticsCheckbox
+        && m_diagnosticsCheckbox->isChecked() != enabled) {
+        QSignalBlocker blocker(m_diagnosticsCheckbox);
+        m_diagnosticsCheckbox->setChecked(enabled);
+    }
+    if (m_diagnosticsRecordAction
+        && m_diagnosticsRecordAction->isChecked() != enabled) {
+        QSignalBlocker blocker(m_diagnosticsRecordAction);
+        m_diagnosticsRecordAction->setChecked(enabled);
+    }
+}
+
+void MainWindow::saveDiagnostics(bool showDialog) {
+    if (!m_diagnostics) {
+        return;
+    }
+
+    m_diagnostics->setSettings(m_settings);
+    m_diagnostics->event(QStringLiteral("diagnostics"),
+                         QStringLiteral("saving"));
+
+    QString error;
+    const QString path = m_diagnostics->exportBundle(&error);
+    if (path.isEmpty()) {
+        const QString message =
+            error.isEmpty() ? QStringLiteral("Could not save diagnostics.")
+                            : error;
+        qCritical() << "Diagnostics export failed:" << message;
+        if (showDialog) {
+            QMessageBox::warning(this, "Diagnostics", message);
+        } else if (m_tray) {
+            m_tray->showMessage("uxplay-windows", message,
+                                QSystemTrayIcon::Warning, 6000);
+        }
+        return;
+    }
+
+    qInfo() << "Diagnostics bundle saved to" << path;
+    if (!showDialog) {
+        if (m_tray) {
+            m_tray->showMessage("Diagnostics saved", path,
+                                QSystemTrayIcon::Information, 5000);
+        }
+        return;
+    }
+
+    QWidget *dialogParent = isVisible() ? this : nullptr;
+    QMessageBox box(dialogParent);
+    box.setIcon(QMessageBox::Information);
+    box.setWindowTitle("Diagnostics saved");
+    box.setText("Recent diagnostics were saved.");
+    box.setInformativeText(path);
+    box.setDetailedText(
+        "The bundle is generated locally and redacted, but review it before "
+        "sharing. It contains logs, settings, events, metrics and system "
+        "information.");
+    QPushButton *openFolder =
+        box.addButton("Open folder", QMessageBox::AcceptRole);
+    QPushButton *copyPath =
+        box.addButton("Copy path", QMessageBox::ActionRole);
+    box.addButton(QMessageBox::Ok);
+    box.exec();
+
+    if (box.clickedButton() == openFolder) {
+        const QFileInfo info(path);
+        const QString folder = info.isDir() ? path : info.absolutePath();
+        QDesktopServices::openUrl(QUrl::fromLocalFile(folder));
+    } else if (box.clickedButton() == copyPath) {
+        QApplication::clipboard()->setText(path);
+    }
 }
 
 void MainWindow::updateTrayIcon() {
@@ -1209,6 +1415,9 @@ void MainWindow::updateStatus() {
         status = "UxPlay server running - waiting for connection";
     }
 
+    if (m_diagnostics) {
+        m_diagnostics->setStatus(status);
+    }
     if (m_statusLabel) m_statusLabel->setText(status);
     if (m_autostartBtn) {
         m_autostartBtn->setText(isAutostartEnabled()

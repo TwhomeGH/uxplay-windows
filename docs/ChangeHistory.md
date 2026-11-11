@@ -1,5 +1,27 @@
 # ChangeHistory
 
+## 2026.11.12 03:05 加入診斷包與近期診斷記錄
+
+**類型**: 功能 · **檔案**: `src/diagnostics.cpp、src/diagnostics.h、src/mainwindow.cpp、src/mainwindow.h、src/settings.cpp、src/settings.h、src/main.cpp、CMakeLists.txt、.github/ISSUE_TEMPLATE/bug_report.yml、docs/DEVELOPERS-GUIDE.md、TODO.md`
+
+### 問題 - 異常發生時只能靠長 soak 或使用者描述，沒有可交付的近期證據
+
+### 根因 - 缺少結構化事件／指標 ring buffer 與診斷 bundle
+
+### 修改 - DiagnosticsRecorder 保留最近 30 分鐘事件與 1Hz 指標
+
+實測 zip 890KB；manifest app_version `edbd077-dirty`、GStreamer 1.28.3；
+redaction scan 無 agp05／UDID／MAC／display name；YAML parse ok。
+
+- Save Diagnostics 產生 zip：manifest／events／metrics／logs／settings／system
+- redact 裝置名稱、UDID、MAC、IPv4 與使用者路徑
+- tray／主視窗／--save-diagnostics 入口與 Keep diagnostics 開關
+- 新增 GitHub bug report issue template
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.12 01:48 新增 AirPlay soak 監測腳本
 
 **類型**: 工具 · **檔案**: `scripts/airplay_soak.ps1、docs/DEVELOPERS-GUIDE.md`

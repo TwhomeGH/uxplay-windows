@@ -31,6 +31,9 @@
 - [ ] sleep／wake 後自動恢復 engine、Bonjour 與音訊。
 - [ ] 音訊裝置變更／取樣率切換的 fallback。
 - [ ] 健康狀態（RSS／CPU／last error）寫入 log 或 tray tooltip。
+- [x] 診斷包：ring buffer、Save diagnostics、redaction、issue template。
+- [ ] 即時診斷面板（codec／resolution／fps／audio／latency）。
+- [ ] Latency／A-V offset instrumentation（sink／pipeline／first NTP）。
 
 ## Phase 3 — AirPlay 功能
 

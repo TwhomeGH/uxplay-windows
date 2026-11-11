@@ -30,6 +30,7 @@ add_executable(uxplay-windows WIN32
     src/usbobscontroller.cpp
     src/usbpython.cpp
     src/usbdeviceconnector.cpp
+    src/diagnostics.cpp
     src/resources.rc
 )
 
@@ -41,6 +42,10 @@ target_link_libraries(uxplay-windows PRIVATE
     ${USB_GST_LIBRARIES}
 )
 
+if(WIN32)
+    target_link_libraries(uxplay-windows PRIVATE psapi)
+endif()
+
 target_include_directories(uxplay-windows PRIVATE
     ${USB_GST_INCLUDE_DIRS}
 )
@@ -49,6 +54,34 @@ target_compile_options(uxplay-windows PRIVATE ${USB_GST_CFLAGS_OTHER})
 
 target_compile_definitions(uxplay-windows PRIVATE
     USB_BRIDGE_SCRIPT="${CMAKE_SOURCE_DIR}/usbcapture/spike/tools/stream_to_tcp.py"
+)
+
+execute_process(
+    COMMAND git describe --tags --always --dirty --match "v[0-9]*"
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE UXPLAY_APP_VERSION
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+)
+if(NOT UXPLAY_APP_VERSION)
+    set(UXPLAY_APP_VERSION "dev")
+endif()
+
+execute_process(
+    COMMAND git rev-parse --short HEAD
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE UXPLAY_GIT_SHA
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+)
+if(NOT UXPLAY_GIT_SHA)
+    set(UXPLAY_GIT_SHA "unknown")
+endif()
+
+target_compile_definitions(uxplay-windows PRIVATE
+    UXPLAY_APP_VERSION="${UXPLAY_APP_VERSION}"
+    UXPLAY_GIT_SHA="${UXPLAY_GIT_SHA}"
+    UXPLAY_BUILD_TYPE="${CMAKE_BUILD_TYPE}"
 )
 
 add_custom_command(TARGET uxplay-windows POST_BUILD

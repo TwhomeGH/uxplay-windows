@@ -14,6 +14,10 @@
 #include <QSystemTrayIcon>
 #include <QTimer>
 
+#ifndef UXPLAY_APP_VERSION
+#define UXPLAY_APP_VERSION "dev"
+#endif
+
 #ifdef _WIN32
 #include <windows.h>
 #include <cstdio>
@@ -64,6 +68,7 @@ int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
     app.setOrganizationName("leapbtw");
     app.setApplicationName("uxplay-windows");
+    app.setApplicationVersion(QStringLiteral(UXPLAY_APP_VERSION));
     app.setWindowIcon(
         QIcon(QApplication::applicationDirPath() + "/resources/icon.ico"));
 
@@ -78,6 +83,8 @@ int main(int argc, char *argv[]) {
         remoteCommand = "stop";
     } else if (startupArgs.contains(QStringLiteral("--start"))) {
         remoteCommand = "start";
+    } else if (startupArgs.contains(QStringLiteral("--save-diagnostics"))) {
+        remoteCommand = "save-diagnostics";
     } else if (launchUsbObs) {
         remoteCommand = "usb-obs";
     }
@@ -190,6 +197,8 @@ int main(int argc, char *argv[]) {
             window.setServerEnabled(true);
         } else if (command == "usb-obs") {
             window.startUsbObs(false);
+        } else if (command == "save-diagnostics") {
+            window.saveDiagnostics(false);
         } else {
             window.showNormal();
             window.raise();
