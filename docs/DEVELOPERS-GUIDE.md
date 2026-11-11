@@ -139,6 +139,13 @@ CSV 可畫 RSS 趨勢；report 有首尾 RSS、CPU 平均／峰值、初始連�
 內容包括 `manifest.json`、`events.jsonl`、`metrics.jsonl`、logs、
 `settings.redacted.json`、`system.txt` 與 `README.txt`。
 
+保留量：
+
+- 記憶體 ring buffer：3000 events、1800 metrics（1Hz 約 30 分鐘）。
+- 日誌：2MB × 3 個 rotated 檔＋目前檔。
+- 診斷包：只保留最近 **10 組** folder／zip；每次匯出後自動刪除較舊的。
+  要長期保存的 bundle 請先 copy 到其他位置。
+
 匯出時會 redact 裝置名稱、UDID、MAC、IPv4 與使用者路徑；client model
 等技術欄位會保留。**不會自動上傳**；分享前請自行檢查。回報請使用
 `.github/ISSUE_TEMPLATE/bug_report.yml` 並附上 zip。

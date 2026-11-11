@@ -4,6 +4,7 @@
 
 #include <QCoreApplication>
 #include <QDateTime>
+#include <QDebug>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -13,6 +14,7 @@
 #include <QProcess>
 #include <QRegularExpression>
 #include <QScreen>
+#include <QSet>
 #include <QStandardPaths>
 #include <QSysInfo>
 #include <QThread>
@@ -39,6 +41,7 @@ namespace {
 
 constexpr int kMaxEvents = 3000;
 constexpr int kMaxMetrics = 1800;
+constexpr int kMaxBundles = 10;
 
 QString redactText(const QString &input, const QString &displayName,
                    const QString &hostName) {
@@ -319,6 +322,42 @@ bool zipBundle(const QString &rootDir, const QString &folderPath,
     return QFile::exists(zipPath);
 }
 
+void pruneBundles(const QString &rootDir) {
+    QDir dir(rootDir);
+    const QFileInfoList entries = dir.entryInfoList(
+        {QStringLiteral("uxplay-diagnostics-*")},
+        QDir::Dirs | QDir::Files | QDir::NoDotAndDotDot,
+        QDir::Name | QDir::Reversed);
+
+    QSet<QString> keep;
+    for (const QFileInfo &entry : entries) {
+        const QString stem =
+            entry.isDir() ? entry.fileName() : entry.completeBaseName();
+        if (!keep.contains(stem) && keep.size() < kMaxBundles) {
+            keep.insert(stem);
+        }
+    }
+
+    int removed = 0;
+    for (const QFileInfo &entry : entries) {
+        const QString stem =
+            entry.isDir() ? entry.fileName() : entry.completeBaseName();
+        if (keep.contains(stem)) {
+            continue;
+        }
+        if (entry.isDir()) {
+            if (QDir(entry.absoluteFilePath()).removeRecursively()) {
+                ++removed;
+            }
+        } else if (QFile::remove(entry.absoluteFilePath())) {
+            ++removed;
+        }
+    }
+    if (removed > 0) {
+        qInfo() << "Pruned old diagnostics entries:" << removed;
+    }
+}
+
 #ifdef Q_OS_WIN
 struct ProcessSnapshot {
     qint64 cpu100ns = 0;
@@ -480,7 +519,8 @@ QString DiagnosticsRecorder::exportBundle(QString *error) {
 
     const QString rootDir = base + QStringLiteral("/diagnostics");
     const QString stamp =
-        QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd-HHmmss"));
+        QDateTime::currentDateTime().toString(
+            QStringLiteral("yyyyMMdd-HHmmss-zzz"));
     const QString folderName =
         QStringLiteral("uxplay-diagnostics-") + stamp;
     const QString folderPath = rootDir + QLatin1Char('/') + folderName;
@@ -648,6 +688,7 @@ QString DiagnosticsRecorder::exportBundle(QString *error) {
     const QString result =
         zipBundle(rootDir, folderPath, folderName, zipPath) ? zipPath
                                                             : folderPath;
+    pruneBundles(rootDir);
     m_lastBundlePath = result;
     return result;
 }

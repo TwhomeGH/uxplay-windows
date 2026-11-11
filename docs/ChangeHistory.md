@@ -1,5 +1,24 @@
 # ChangeHistory
 
+## 2026.11.12 03:42 限制診斷包保留數量
+
+**類型**: 修正 · **檔案**: `src/diagnostics.cpp、docs/DEVELOPERS-GUIDE.md`
+
+### 問題 - 每次 Save Diagnostics 都累積 folder／zip，磁碟可能無限增長
+
+### 根因 - 沒有診斷包的 retention policy
+
+### 修改 - 每次匯出後只保留最近 10 組 folder／zip
+
+實測 15 組 → 10 組；log 顯示 Pruned old diagnostics entries: 6。
+
+- bundle timestamp 加入毫秒，避免同秒覆蓋
+- 記憶體 3000 events／1800 metrics、日誌 2MB × 3 的上限維持不變
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.12 03:15 新增日誌選單與診斷資料夾入口
 
 **類型**: 功能 · **檔案**: `src/logging.cpp、src/logging.h、src/mainwindow.cpp、src/mainwindow.h、docs/DEVELOPERS-GUIDE.md`
