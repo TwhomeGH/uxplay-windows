@@ -1,5 +1,23 @@
 # ChangeHistory
 
+## 2026.11.12 03:46 修正 audio codec 標示
+
+**類型**: 修正 · **檔案**: `libuxplay/uxplay.cpp`
+
+### 問題 - Audio Codec 把 ALAC 與 AAC-ELD 對調，且缺少 AAC-LC／PCM
+
+### 根因 - audio_get_format 的 ct 標籤映射錯誤
+
+### 修改 - ct=2 → ALAC、ct=8 → AAC-ELD、ct=4 → AAC-LC、ct=1 → PCM
+
+以 audio_renderer／raop_rtp 的定義為準；下次 ct=8 應顯示 AAC-ELD，而非 ALAC。
+
+- unknown ct 顯示實際 ct 值，不再只寫 Unknown
+
+**相關文件**: libuxplay/uxplay.cpp
+
+---
+
 ## 2026.11.12 03:42 限制診斷包保留數量
 
 **類型**: 修正 · **檔案**: `src/diagnostics.cpp、docs/DEVELOPERS-GUIDE.md`
