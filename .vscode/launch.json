@@ -1,0 +1,46 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug uxplay-windows (dev)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}\\build\\dev\\uxplay-windows.exe",
+            "args": [
+                "--engine-debug"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}\\build\\dev",
+            "environment": [
+                {
+                    "name": "PATH",
+                    "value": "${workspaceFolder}\\build\\dev;${config:msys2.prefix}\\bin;${env:PATH}"
+                },
+                {
+                    "name": "QT_PLUGIN_PATH",
+                    "value": "${config:msys2.prefix}\\share\\qt6\\plugins"
+                },
+                {
+                    "name": "GST_PLUGIN_PATH",
+                    "value": "${config:msys2.prefix}\\lib\\gstreamer-1.0"
+                }
+            ],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "${config:msys2.prefix}\\bin\\gdb.exe",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Use Intel disassembly",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "build-dev"
+        }
+    ]
+}

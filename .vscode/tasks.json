@@ -1,0 +1,28 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build-dev",
+            "type": "process",
+            "command": "${config:msys2.root}\\usr\\bin\\bash.exe",
+            "args": [
+                "-lc",
+                "cd \"$(cygpath -u '${workspaceFolder}')\" && bash scripts/dev_build.sh"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "MSYSTEM": "UCRT64",
+                    "MSYSTEM_PREFIX": "/ucrt64"
+                }
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}

@@ -1,5 +1,27 @@
 # ChangeHistory
 
+## 2026.11.11 18:31 新增 VS Code F5 偵錯設定
+
+**類型**: 維護 · **檔案**: `.vscode/launch.json、.vscode/tasks.json、.vscode/settings.json、.vscode/c_cpp_properties.json、docs/DEVELOPERS-GUIDE.md、scripts/dev_build.sh`
+
+### 問題 - VS Code 沒有 launch/tasks，F5 不能直接建置並用 gdb 跑 dev 產物
+
+### 根因 - 原本只有 run-dev.cmd 與 dev_run.sh，UCRT64 gdb 也未安裝
+
+### 修改 - 新增 build-dev task 與 gdb launch config，環境與 run-dev.cmd 一致
+
+安裝 UCRT64 gdb 17.2。以 gdb batch 在 `src/main.cpp:34` 設中斷點，成功停在
+`qMain` 內的 `isUxPlayProcess`；bt 為 `isUxPlayProcess` → `qMain` →
+`qtEntryPoint`。task 的 `MSYSTEM=UCRT64` 命令完成 configure 與 57 個 target；
+四個 `.vscode` JSON 均可解析。VS Code F5 由使用者實際按鍵確認。
+
+- IntelliSense 改用 build/dev/compile_commands.json 與 UCRT64 g++
+- dev_build.sh --clean 失敗時提示資料夾被占用與 BUILD_DIR 替代方案
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.11 18:10 修正強制結束後 stale lock 阻擋啟動
 
 **類型**: 修正 · **檔案**: `src/main.cpp`

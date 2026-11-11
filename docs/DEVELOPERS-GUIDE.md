@@ -51,6 +51,14 @@ bash scripts/dev_build.sh --release  # Release
 bash scripts/dev_build.sh --clean    # 先刪 build/dev 再 configure
 ```
 
+`--clean` 若出現 `Device or resource busy`，代表有程式把 `build/dev`
+當成目前目錄（執行中的 dev app，或開在該資料夾的終端）。關掉它，
+或改用另一個 build dir：
+
+```bash
+BUILD_DIR=/f/uxplay-windows/build/clean bash scripts/dev_build.sh --clean
+```
+
 腳本會：
 
 1. 檢查 `MSYSTEM=UCRT64` 與 UCRT64 toolchain。
@@ -83,10 +91,41 @@ bash scripts/dev_run.sh --detach         # 背景啟動後返回
 `dev_build.sh` 會把 `$MSYSTEM_PREFIX/bin`（含
 `libgcc_s_seh-1.dll`、Qt6、GStreamer）寫進 `run-dev.cmd` 的 `PATH`。
 
-若用 VS Code／gdb 直接啟動 exe，請在 launch config 補上相同的
-環境變數（`PATH`、`QT_PLUGIN_PATH`、`GST_PLUGIN_PATH`），否則 debugger
-不會繼承 MSYS2 shell 的 PATH。UCRT64 的 gdb 可用
-`pacman -S --needed mingw-w64-ucrt-x86_64-gdb` 安裝。
+### VS Code F5
+
+`.vscode` 已附可直接用的設定：
+
+| 檔案 | 用途 |
+| --- | --- |
+| `tasks.json` | `build-dev`（預設 build task） |
+| `launch.json` | `Debug uxplay-windows (dev)`，用 gdb 啟動 |
+| `settings.json` | `msys2.root`／`msys2.prefix` |
+| `c_cpp_properties.json` | 用 `build/dev/compile_commands.json` |
+
+前置：
+
+1. 安裝 C/C++ extension（`ms-vscode.cpptools`）。
+2. UCRT64 gdb：
+   `pacman -S --needed mingw-w64-ucrt-x86_64-gdb`
+
+按 F5 會先跑 `build-dev`，再用 gdb 啟動
+`build/dev/uxplay-windows.exe --engine-debug`；`PATH`、
+`QT_PLUGIN_PATH`、`GST_PLUGIN_PATH` 與 `run-dev.cmd` 相同。
+中斷點可直接設在 `src/main.cpp`、`src/mainwindow.cpp`。
+
+注意：
+
+- F5 前先結束已在執行的 dev app；否則連結失敗，或新 instance
+  因單一實例鎖直接退出。
+- 預設 build 是 `RelWithDebInfo`（`-O2 -g`），已可設中斷點；
+  要完整 Debug 用 `bash scripts/dev_build.sh --debug`，但 F5 的
+  `build-dev` 會再 configure 回 RelWithDebInfo。
+- `.vscode/settings.json` 的 `msys2.root`／`msys2.prefix` 是這台機器
+  的路徑；MSYS2 換位置時改這裡。
+
+若用其他 editor／gdb 直接啟動 exe，請補上相同的環境變數
+（`PATH`、`QT_PLUGIN_PATH`、`GST_PLUGIN_PATH`），否則 debugger
+不會繼承 MSYS2 shell 的 PATH。
 
 `dev_run.sh` 會設定：
 

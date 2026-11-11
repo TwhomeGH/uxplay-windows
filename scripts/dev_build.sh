@@ -70,7 +70,13 @@ export BONJOUR_SDK_HOME
 
 if [[ "$CLEAN" -eq 1 ]]; then
     echo "==> Removing $BUILD_DIR"
-    rm -rf "$BUILD_DIR"
+    if ! rm -rf "$BUILD_DIR"; then
+        echo "ERROR: cannot remove $BUILD_DIR." >&2
+        echo "       A running app or a terminal whose CWD is that folder may block it." >&2
+        echo "       Close it, or build into another folder:" >&2
+        echo "       BUILD_DIR=\"$REPO_ROOT/build/clean\" bash scripts/dev_build.sh" >&2
+        exit 1
+    fi
 fi
 
 mkdir -p "$BUILD_DIR"
