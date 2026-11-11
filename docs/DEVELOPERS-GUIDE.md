@@ -166,6 +166,8 @@ CSV 可畫 RSS 趨勢；report 有首尾 RSS、CPU 平均／峰值、初始連�
   HEVC；若改成 1080p 則會走 H.264。4K 負載最高，建議有線網路。
 - 這是 Apple screen-mirroring client 的 codec 選擇行為：server 只能
   宣告 bit 42 capability，不能強制 1080p 使用 HEVC。
+- `-h265` 只宣告能力，不是解析度選項；沒有 `-s` 時 libuxplay 預設
+  1920x1080。要 HEVC 必須明確請求 height >1080（Native 預設即符合）。
 - 若要在接近 1080p 使用 HEVC，實務上只能提高請求高度（例如 1440p）
   後在輸出端縮放；這會增加網路與解碼負載，不是真正的 1080p HEVC。
 - 這是能力宣告與偏好，不是強制 actual codec；實際值看 Media Info
@@ -181,7 +183,8 @@ CSV 可畫 RSS 趨勢；report 有首尾 RSS、CPU 平均／峰值、初始連�
 - Native **不是自動查詢**：AirPlay 沒有回報原生解析度的欄位；這些值是
   已設定的請求。其他裝置請先選 `Custom` 填入寬高，再選 `Native`。
 - 舊設定的 `auto` 會遷移成 `native`；不再提供「不指定、由 client
-  決定」的選項，因為它在 HEVC 下實際會變成 4K。
+  決定」的選項。即使直接跑引擎，`-h265` 也不再改變預設解析度；
+  沒有 `-s` 時固定 1080p。
 - Native 模式會停用寬高欄位，避免誤改；refresh 仍以自訂值為準。
 
 ### VS Code F5
@@ -265,7 +268,8 @@ grep -E "register_dnssd|Initialized server socket|using system MAC" \
 
 `settings.json` 主要欄位：`display_name`、`ble_enabled`、`force_fullscreen`、
 `renderer`、`resolution`、`no_hold`、`server_enabled`、`extra_args`。
-`extra_args` 放未納入 UI 的引擎參數（例如 `-h265`、`-fps 60`）。
+`extra_args` 放未納入 UI 的引擎參數（例如 `-fps 60`）；`-h265`
+由 `video.codec` 管理，不會留在 `extra_args`。
 
 第一次啟動 Phase 2B 會把舊 QSettings 與 `arguments.txt` 匯入
 `settings.json`；`arguments.txt` 會改名為 `arguments.txt.migrated`，

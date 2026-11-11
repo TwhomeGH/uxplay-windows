@@ -1,5 +1,24 @@
 # ChangeHistory
 
+## 2026.11.12 04:22 修正 h265 不再自動變成 4K
+
+**類型**: 修正 · **檔案**: `libuxplay/uxplay.cpp、libuxplay/README.txt、docs/DEVELOPERS-GUIDE.md`
+
+### 問題 - 沒有 -s 時 h265 會把預設解析度改成 4K，造成 Auto 意外的 3108x2160
+
+### 根因 - 把 codec capability 和 resolution default 綁在一起
+
+### 修改 - h265 只宣告 HEVC；無 -s 時預設固定 1920x1080
+
+GUI 啟動 args 為 -s 2360x1640@60；實測 H.265 2360x1640；自動 4K fallback 已移除。
+
+- HEVC 必須明確請求 height >1080；GUI Native 預設 2360x1640
+- 更新 -h 說明與 libuxplay README
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.12 04:15 移除 Auto，Native 成為預設解析度
 
 **類型**: 修正 · **檔案**: `src/settings.h、src/settings.cpp、src/mainwindow.cpp、docs/DEVELOPERS-GUIDE.md`
