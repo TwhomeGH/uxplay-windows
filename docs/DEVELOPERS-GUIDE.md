@@ -247,6 +247,23 @@ Windows 防火牆以**執行檔完整路徑**辨識程式；每個 build 目錄
   避免 `ftp2.osuosl.org` 慢速造成 nightly 失敗。
 - Assets 名稱固定；正式版本、Core／Exp 分類留到 Phase 3。
 
+## USB capture backend（規劃中）
+
+QuickTime USB 擷取**不是 AirPlay**，也不是 `libuxplay` 的一部分；實作
+放在 top-level `usbcapture/`，預設不編譯。
+
+```bash
+cmake -S . -B build/usb -G Ninja \
+  -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+  -DENABLE_USB_CAPTURE=ON
+cmake --build build/usb
+```
+
+需要 `libimobiledevice`、`libusbmuxd`、GStreamer，以及 Windows 的
+Apple Mobile Device Service（usbmuxd）。目前只有 skeleton，
+`isBackendAvailable()` 固定回 false；協定 spike 見
+`usbcapture/README.md`。
+
 ## 目前限制（Phase 2A 後）
 
 - 設定變更（顯示名稱、解析度、renderer）仍會重啟 App；

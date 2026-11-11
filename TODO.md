@@ -46,3 +46,14 @@
   （`scripts/dev_build.sh`、`scripts/dev_run.sh`、`docs/DEVELOPERS-GUIDE.md`）。
 - [x] Phase 2A：引擎熱啟停、ready callback、崩潰 backoff、`--start`／`--stop` IPC。
 - [x] MSI 固定防火牆規則（WiX Firewall extension）與清理舊 build 規則腳本。
+
+## Phase 5 - USB (QuickTime) 擷取（探索）
+
+- [x] 建立 `usbcapture/` 骨架與 `ENABLE_USB_CAPTURE`（預設 OFF）。
+- [ ] 用 `quicktime_video_hack`／`pymobiledevice3` 做 Windows＋iPhone spike。
+- [ ] usbmuxd／libimobiledevice 配對與 trust 流程。
+- [ ] QuickTime H.264／音訊 demux 接到 GStreamer。
+- [ ] `src/usbworker` Qt 轉接層與 UI 模式切換。
+- [ ] `settings.json` 增加 `mode=airplay/usb`。
+- [ ] Apple Mobile Device 依賴與安裝包策略。
+- [ ] 測試矩陣：iPhone 型號、iOS 版本、DRM、長時間、USB 2/3。

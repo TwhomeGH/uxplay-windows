@@ -1,5 +1,27 @@
 # ChangeHistory
 
+## 2026.11.11 23:07 建立 usbcapture 骨架與 USB 擷取開關
+
+**類型**: 維護 · **檔案**: `usbcapture/CMakeLists.txt、usbcapture/README.md、usbcapture/include/usbcapture/capture.h、usbcapture/include/usbcapture/device.h、usbcapture/include/usbcapture/session.h、usbcapture/src/capture.cpp、usbcapture/src/device.cpp、usbcapture/src/session.cpp、usbcapture/src/usbmuxd_client.cpp、usbcapture/src/quicktime_session.cpp、usbcapture/src/pipeline.cpp、usbcapture/tests/README.md、CMakeLists.txt、docs/DEVELOPERS-GUIDE.md、TODO.md`
+
+### 問題 - USB 模式沒有獨立邊界，容易和 AirPlay engine 混在一起
+
+### 根因 - AirPlay 走 IP/mDNS，USB 走 QuickTime/usbmuxd，是不同協定
+
+### 修改 - 新增 top-level usbcapture library、公開 API、README 與測試計畫
+
+`isBackendAvailable()` 回 false、`createSession()` 回 nullptr；預設 dev
+build 成功；`usbcapture` 原始碼在 UCRT64 以 `-fsyntax-only` 通過；
+`libimobiledevice`／`libusbmuxd` 尚未安裝，`ENABLE_USB_CAPTURE=ON`
+會停在 pkg-config。
+
+- CMake 加 ENABLE_USB_CAPTURE（預設 OFF），AirPlay-only build 不受影響
+- TODO 新增 Phase 5 USB spike 項目
+
+**相關文件**: usbcapture/README.md
+
+---
+
 ## 2026.11.11 21:42 修正 arm64 nightly 的 pacman 下載逾時
 
 **類型**: 修正 · **檔案**: `.github/workflows/build-uxplay-windows-arm64.yml、.github/workflows/build_uxplay-windows-v2.yml、docs/DEVELOPERS-GUIDE.md`
