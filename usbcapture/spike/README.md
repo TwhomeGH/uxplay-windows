@@ -13,13 +13,14 @@ This is **not AirPlay**. The library is `usbcapture/`; the AirPlay engine
 - `usbcapture` builds with `-DENABLE_USB_CAPTURE=ON`.
 - `libimobiledevice` 1.3.0 and `libusbmuxd` 2.1.1 are installed in UCRT64.
 - Apple Mobile Device Service is running.
-- The iPad appears as Apple Mobile Device USB Composite Device, but
-  `idevice_id -l` is empty: unlock the device and tap **Trust This
-  Computer**, then retry.
-- `quicktime_video_hack` does not build on Windows: its `gstadapter`
-  imports `github.com/danielpaulus/gst`, which is CGO/Linux-only and fails
-  with `build constraints exclude all Go files`. Use `pymobiledevice3` or
-  a Linux/macOS host for the spike.
+- iPad `00008101-000531C2229B001E` (iPad13,18, iOS 27.3) is visible;
+  `idevicepair validate` is SUCCESS and `check_env.ps1` returns OK.
+- `quicktime_video_hack`'s GStreamer adapter is removed; the patched tool
+  builds with CGO + libusb (`CGO_ENABLED=1`).
+- Windows runtime is still blocked: `libusb: i/o error` because the Apple
+  driver owns the QuickTime interface, and the tool dials the Unix socket
+  `/var/run/usbmuxd`. Live capture needs Linux/macOS or a Windows backend.
+- `pymobiledevice3` DVT screenshot works; no live stream.
 
 ## Check
 
@@ -38,8 +39,14 @@ H:\FIX_VIAP\msys64\ucrt64\bin\ideviceinfo.exe -k ProductVersion
 
 ## Capture
 
-`capture.ps1` expects `tools/quicktime_video_hack/quicktime_video_hack.exe`.
-On Windows the upstream Go tool currently does not build; on Linux/macOS:
+`capture.ps1` uses the patched `record` command and adds UCRT64's `bin` to
+PATH so the CGO binary can load `libusb-1.0.dll`:
+
+```powershell
+.\capture.ps1 -Udid 00008101-000531C2229B001E -Seconds 15
+```
+
+The upstream Linux/macOS build remains the reference for the protocol:
 
 ```bash
 cd tools

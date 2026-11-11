@@ -1,5 +1,28 @@
 # ChangeHistory
 
+## 2026.11.11 23:33 加入 quicktime_video_hack Windows patch 與擷取結果
+
+**類型**: 維護 · **檔案**: `usbcapture/spike/README.md、usbcapture/spike/capture.ps1、usbcapture/spike/patches/quicktime_video_hack-windows.patch`
+
+### 問題 - quicktime_video_hack 在 Windows 無法建置，也無法直接做 live QuickTime 擷取
+
+### 根因 - gstadapter 依賴 Linux-only GStreamer；Windows 無 Unix usbmuxd socket
+
+### 修改 - 移除 gstadapter 與 GStreamer 命令，保留 AVFileWriter 的 record 路徑
+
+patched build 成功；實際 `record` 回報 `libusb: i/o error` 與
+`dial unix /var/run/usbmuxd`。iPad 已配對成功
+（`00008101-000531C2229B001E` / iOS 27.3）；`pymobiledevice3` 只有
+DVT screenshot，沒有 live stream。結論：Windows 需另寫 backend，
+或改用 Linux/macOS 做協議 spike。
+
+- 以 CGO + libusb 成功建置 patched tool
+- spike capture 改用 record，並補 UCRT64 PATH
+
+**相關文件**: usbcapture/spike/README.md
+
+---
+
 ## 2026.11.11 23:14 修正 USB 擷取依賴並加入 spike 腳本
 
 **類型**: 維護 · **檔案**: `usbcapture/CMakeLists.txt、usbcapture/spike/README.md、usbcapture/spike/check_env.ps1、usbcapture/spike/capture.ps1、usbcapture/spike/.gitignore`

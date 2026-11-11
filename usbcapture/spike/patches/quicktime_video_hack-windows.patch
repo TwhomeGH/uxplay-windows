@@ -1,0 +1,155 @@
+diff --git a/main.go b/main.go
+index bc22e68..aece0d3 100644
+--- a/main.go
++++ b/main.go
+@@ -14,7 +14,6 @@ import (
+ 	"github.com/danielpaulus/quicktime_video_hack/screencapture"
+ 	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
+ 	"github.com/danielpaulus/quicktime_video_hack/screencapture/diagnostics"
+-	"github.com/danielpaulus/quicktime_video_hack/screencapture/gstadapter"
+ 	"github.com/docopt/docopt-go"
+ 	log "github.com/sirupsen/logrus"
+ )
+@@ -29,8 +28,7 @@ Usage:
+   qvh activate [--udid=<udid>] [-v]
+   qvh deactivate [--udid=<udid>] [-v]
+   qvh record <h264file> <wavfile> [--udid=<udid>] [-v]
+-  qvh audio <outfile> (--mp3 | --ogg | --wav) [--udid=<udid>] [-v]
+-  qvh gstreamer [--pipeline=<pipeline>] [--examples] [--udid=<udid>] [-v]
++  qvh audio <outfile> [--udid=<udid>] [-v]
+   qvh diagnostics <outfile> [--dump=<dumpfile>] [--udid=<udid>]
+   qvh --version | version
+ 
+@@ -52,13 +50,7 @@ The commands work as following:
+ 	            	Audio will be saved in a uncompressed wav file. Run like: "qvh record /home/yourname/out.h264 /home/yourname/out.wav"
+ 
+ 	audio		Records only audio from the device. It does not change the status bar like the video recording mode does.
+-			The recorded audio will be saved in <outfile> with the selected format. Currently (--mp3 | --ogg | --wav) are supported.
+-			Adding more formats is trivial though so create an issue or a PR if you need something :-)
+-
+-	gstreamer	If no additional param is provided, qvh will open a new window and push AV data to gstreamer.
+-			If "qvh gstreamer --examples" is provided, qvh will print some common gstreamer pipeline examples.
+-			If --pipeline is provided, qvh will use the provided gstreamer pipeline instead of 
+-			displaying audio and video in a window. 
++			The recorded audio will be saved in <outfile> as wav.
+ 
+ 	diagnostics	The diagnostics mode is added for running longterm tests to debug and ensure stability. 
+ 			It will log several metrics and debug logs. Optionally specify a dump file with the --dump option that
+@@ -113,19 +105,7 @@ The commands work as following:
+ 			return
+ 		}
+ 		log.Infof("Recording audio only to file: %s", outfile)
+-		mp3, _ := arguments.Bool("--mp3")
+-		ogg, _ := arguments.Bool("--ogg")
+-		wav, _ := arguments.Bool("--wav")
+-		log.Debugf("recording audio only format mp3:%t ogg: %t wav:%t to file: %s", mp3, ogg, wav, outfile)
+-		if wav {
+-			recordAudioWav(outfile, device)
+-			return
+-		}
+-		if ogg {
+-			recordAudioGst(outfile, device, gstadapter.OGG)
+-			return
+-		}
+-		recordAudioGst(outfile, device, gstadapter.MP3)
++		recordAudioWav(outfile, device)
+ 		return
+ 	}
+ 
+@@ -164,20 +144,7 @@ The commands work as following:
+ 			return
+ 		}
+ 		record(h264FilePath, waveFilePath, device)
+-	}
+-	gstreamerCommand, _ := arguments.Bool("gstreamer")
+-	if gstreamerCommand {
+-		shouldPrintExamples, _ := arguments.Bool("--examples")
+-		if shouldPrintExamples {
+-			printExamples()
+-			return
+-		}
+-		gstPipeline, _ := arguments.String("--pipeline")
+-		if gstPipeline == "" {
+-			startGStreamer(device)
+-			return
+-		}
+-		startGStreamerWithCustomPipeline(device, gstPipeline)
++		return
+ 	}
+ }
+ 
+@@ -203,42 +170,6 @@ func printVersion() {
+ 	printJSON(versionMap)
+ }
+ 
+-func printExamples() {
+-
+-	examples := `Examples:
+-	
+-	Writing an MP4 file
+-	This pipeline will save the recording in video.mp4 with h264 and aac format. The default settings 
+-	of this pipeline will create a compressed video that takes up way less space than raw h264.
+-	Note that you need to set "ignore-length" on the wavparse because we are streaming and do not know the length in advance.
+-
+-	Write MP4 file Mac OSX: 
+-	vtdec is the hardware accelerated decoder on the mac. 
+-
+-	qvh gstreamer --pipeline "mp4mux name=mux ! filesink location=video.mp4 \
+-	queue name=audio_target ! wavparse ignore-length=true ! audioconvert ! faac ! aacparse ! mux. \
+-	queue name=video_target ! h264parse ! vtdec ! videoconvert ! x264enc  tune=zerolatency !  mux."
+-	
+-	Write MP4 file Linux:
+-    note that I am using software en and decoding, if you have intel VAAPI available, maybe use those. 
+-
+-	gstreamer --pipeline "mp4mux name=mux ! filesink location=video.mp4 \
+-    queue name=audio_target ! wavparse ignore-length=true ! audioconvert ! avenc_aac ! aacparse ! mux. \
+-    queue name=video_target ! h264parse ! avdec_h264 ! videoconvert ! x264enc tune=zerolatency ! mux."
+-	`
+-	fmt.Print(examples)
+-}
+-
+-func recordAudioGst(outfile string, device screencapture.IosDevice, audiotype string) {
+-	log.Debug("Starting Gstreamer with audio pipeline")
+-	gStreamer, err := gstadapter.NewWithAudioPipeline(outfile, audiotype)
+-	if err != nil {
+-		printErrJSON(err, "Failed creating custom pipeline")
+-		return
+-	}
+-	startWithConsumer(gStreamer, device, true)
+-}
+-
+ func runDiagnostics(outfile string, dump bool, dumpFile string, device screencapture.IosDevice) {
+ 	log.Debugf("diagnostics mode: %s  dump:%t %s device:%s", outfile, dump, dumpFile, device.SerialNumber)
+ 	metricsFile, err := os.Create(outfile)
+@@ -255,7 +186,7 @@ func runDiagnostics(outfile string, dump bool, dumpFile string, device screencap
+ }
+ 
+ func recordAudioWav(outfile string, device screencapture.IosDevice) {
+-	log.Debug("Starting Gstreamer with audio pipeline")
++	log.Debug("Recording audio only to wav")
+ 	wavFile, err := os.Create(outfile)
+ 	if err != nil {
+ 		log.Debugf("Error creating wav file:%s", err)
+@@ -281,22 +212,6 @@ func recordAudioWav(outfile string, device screencapture.IosDevice) {
+ 	startWithConsumer(wavFileWriter, device, true)
+ }
+ 
+-func startGStreamerWithCustomPipeline(device screencapture.IosDevice, pipelineString string) {
+-	log.Debug("Starting Gstreamer with custom pipeline")
+-	gStreamer, err := gstadapter.NewWithCustomPipeline(pipelineString)
+-	if err != nil {
+-		printErrJSON(err, "Failed creating custom pipeline")
+-		return
+-	}
+-	startWithConsumer(gStreamer, device, false)
+-}
+-
+-func startGStreamer(device screencapture.IosDevice) {
+-	log.Debug("Starting Gstreamer")
+-	gStreamer := gstadapter.New()
+-	startWithConsumer(gStreamer, device, false)
+-}
+-
+ // Just dump a list of what was discovered to the console
+ func devices() {
+ 	deviceList, err := screencapture.FindIosDevices()
