@@ -134,6 +134,12 @@ AppSettings AppSettings::fromJson(const QString &path, bool *ok) {
         diagnostics.value(QStringLiteral("enabled"))
             .toBool(settings.diagnosticsEnabled);
 
+    const QJsonObject hud = object.value(QStringLiteral("hud")).toObject();
+    settings.hudEnabled =
+        hud.value(QStringLiteral("enabled")).toBool(settings.hudEnabled);
+    settings.hudCorner =
+        hud.value(QStringLiteral("corner")).toString(settings.hudCorner);
+
     const QJsonObject obs = object.value(QStringLiteral("obs")).toObject();
     settings.obsMode =
         obs.value(QStringLiteral("mode")).toString(settings.obsMode);
@@ -216,6 +222,10 @@ bool AppSettings::save() const {
     QJsonObject diagnosticsObject;
     diagnosticsObject[QStringLiteral("enabled")] = diagnosticsEnabled;
 
+    QJsonObject hudObject;
+    hudObject[QStringLiteral("enabled")] = hudEnabled;
+    hudObject[QStringLiteral("corner")] = hudCorner;
+
     QJsonArray extra;
     for (const QString &arg : extraArgs) {
         extra.append(arg);
@@ -234,6 +244,7 @@ bool AppSettings::save() const {
     object[QStringLiteral("video")] = videoObject;
     object[QStringLiteral("video_window")] = videoWindowObject;
     object[QStringLiteral("diagnostics")] = diagnosticsObject;
+    object[QStringLiteral("hud")] = hudObject;
     object[QStringLiteral("extra_args")] = extra;
 
     QSaveFile file(path);
@@ -500,6 +511,11 @@ void AppSettings::sanitize() {
     videoWindow.height = qBound(0, videoWindow.height, 10000);
     if (videoWindow.width <= 0 || videoWindow.height <= 0) {
         videoWindow.hasGeometry = false;
+    }
+
+    if (hudCorner != QStringLiteral("top-left")
+        && hudCorner != QStringLiteral("top-right")) {
+        hudCorner = QStringLiteral("top-left");
     }
 }
 

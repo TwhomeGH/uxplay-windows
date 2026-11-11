@@ -24,6 +24,7 @@ class AirPlayWorker;
 class UsbObsController;
 class UsbDeviceConnector;
 class DiagnosticsRecorder;
+class MediaInfoHud;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -63,6 +64,7 @@ private slots:
     void onConnectUsbClicked();
     void openLogFile();
     void toggleDiagnostics(bool enabled);
+    void toggleHud(bool enabled);
     void toggleBle(bool checked); // bluetooth
     void toggleForceFullscreen(bool checked);
     void onRendererChanged(int index);
@@ -94,6 +96,8 @@ private:
     void applyVideoWindowGeometry(const QRect &geometry);
     void fitVideoWindowToStream(int width, int height);
     void saveVideoWindowGeometry();
+    void updateHud();
+    void setHudCorner(const QString &corner);
     void populateLogMenu(QMenu *menu);
 
     QProcess *m_beacon = nullptr;
@@ -132,6 +136,9 @@ private:
     QAction *m_usbObsAction = nullptr;
     QAction *m_diagnosticsRecordAction = nullptr;
     QAction *m_saveDiagnosticsAction = nullptr;
+    QAction *m_hudAction = nullptr;
+    QAction *m_hudTopLeftAction = nullptr;
+    QAction *m_hudTopRightAction = nullptr;
     QAction *m_clientAction = nullptr;
     QAction *m_connectionsAction = nullptr;
     QAction *m_mediaStatusAction = nullptr;
@@ -150,6 +157,7 @@ private:
     QPushButton *m_diagnosticsBtn = nullptr;
     QCheckBox *m_diagnosticsCheckbox = nullptr;
 
+    QCheckBox *m_hudCheckbox = nullptr;
     QLabel *m_statusLabel = nullptr;
     QLabel *m_errorLabel = nullptr;
     QTimer *m_wakeRestartTimer = nullptr;
@@ -158,6 +166,7 @@ private:
     UsbObsController *m_usbObs = nullptr;
     UsbDeviceConnector *m_usbConnector = nullptr;
     DiagnosticsRecorder *m_diagnostics = nullptr;
+    MediaInfoHud *m_hud = nullptr;
     bool m_usbDeviceReady = false;
 
     QString m_clientName;

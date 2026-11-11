@@ -38,6 +38,8 @@ public:
     bool noHold = true;
     bool serverEnabled = true;
     bool diagnosticsEnabled = true;
+    bool hudEnabled = false;
+    QString hudCorner = "top-left";
     QString obsMode = "off";
     QStringList extraArgs;
 

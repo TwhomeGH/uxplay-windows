@@ -5,6 +5,7 @@
 #include "usbdeviceconnector.h"
 #include "cleanoutputwindow.h"
 #include "diagnostics.h"
+#include "mediainfohud.h"
 #include "mdns_responder.hpp"
 #include <windows.h>
 #include <winsvc.h>
@@ -103,6 +104,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
                      QJsonArray::fromStringList(
                          QCoreApplication::arguments())}});
 
+    m_hud = new MediaInfoHud(nullptr);
+
     setupTray();
     setupUI();
 
@@ -141,6 +144,8 @@ MainWindow::~MainWindow() {
         m_usbObs->stop();
     }
     stopServer();
+    delete m_hud;
+    m_hud = nullptr;
 }
 
 
@@ -359,6 +364,14 @@ void MainWindow::setupUI() {
     diagnosticsLayout->addWidget(m_diagnosticsBtn);
     layout->addLayout(diagnosticsLayout);
 
+    m_hudCheckbox = new QCheckBox("Media Info HUD", this);
+    m_hudCheckbox->setChecked(m_settings.hudEnabled);
+    m_hudCheckbox->setToolTip(
+        "Show a click-through information overlay on the AirPlay video window.");
+    connect(m_hudCheckbox, &QCheckBox::toggled, this,
+            &MainWindow::toggleHud);
+    layout->addWidget(m_hudCheckbox);
+
     auto *bottomLayout = new QHBoxLayout();
     bottomLayout->addWidget(m_licenseBtn);
     bottomLayout->addWidget(m_openLogBtn);
@@ -427,6 +440,21 @@ void MainWindow::setupTray() {
     m_saveDiagnosticsAction = m_trayMenu->addAction("Save Diagnostics");
     connect(m_saveDiagnosticsAction, &QAction::triggered, this,
             [this]() { saveDiagnostics(true); });
+    m_hudAction = m_trayMenu->addAction("Media Info HUD");
+    m_hudAction->setCheckable(true);
+    m_hudAction->setChecked(m_settings.hudEnabled);
+    connect(m_hudAction, &QAction::toggled, this, &MainWindow::toggleHud);
+    QMenu *hudPosition = m_trayMenu->addMenu("HUD position");
+    m_hudTopLeftAction = hudPosition->addAction("Top left");
+    m_hudTopLeftAction->setCheckable(true);
+    m_hudTopRightAction = hudPosition->addAction("Top right");
+    m_hudTopRightAction->setCheckable(true);
+    connect(m_hudTopLeftAction, &QAction::triggered, this, [this]() {
+        setHudCorner(QStringLiteral("top-left"));
+    });
+    connect(m_hudTopRightAction, &QAction::triggered, this, [this]() {
+        setHudCorner(QStringLiteral("top-right"));
+    });
     m_trayMenu->addSeparator();
     m_trayMenu->addAction("Restart", this, &MainWindow::restartApplication);
     m_trayMenu->addAction("Quit", this, &MainWindow::quit);
@@ -941,6 +969,7 @@ void MainWindow::syncVideoWindow() {
             m_videoWindowApplied = false;
             m_lastVideoWindowRect = QRect();
         }
+        updateHud();
         return;
     }
 
@@ -977,6 +1006,7 @@ void MainWindow::syncVideoWindow() {
     if (m_videoWindowApplied) {
         saveVideoWindowGeometry();
     }
+    updateHud();
 }
 
 void MainWindow::applyVideoWindowGeometry(const QRect &geometry) {
@@ -1447,6 +1477,89 @@ void MainWindow::toggleDiagnostics(bool enabled) {
     }
 }
 
+void MainWindow::toggleHud(bool enabled) {
+    m_settings.hudEnabled = enabled;
+    m_settings.save();
+    updateHud();
+}
+
+void MainWindow::setHudCorner(const QString &corner) {
+    if (corner != QStringLiteral("top-left")
+        && corner != QStringLiteral("top-right")) {
+        return;
+    }
+    m_settings.hudCorner = corner;
+    m_settings.save();
+    updateHud();
+}
+
+void MainWindow::updateHud() {
+    if (!m_hud) {
+        return;
+    }
+
+    if (m_hudCheckbox
+        && m_hudCheckbox->isChecked() != m_settings.hudEnabled) {
+        QSignalBlocker blocker(m_hudCheckbox);
+        m_hudCheckbox->setChecked(m_settings.hudEnabled);
+    }
+    if (m_hudAction
+        && m_hudAction->isChecked() != m_settings.hudEnabled) {
+        QSignalBlocker blocker(m_hudAction);
+        m_hudAction->setChecked(m_settings.hudEnabled);
+    }
+    if (m_hudTopLeftAction) {
+        m_hudTopLeftAction->setChecked(
+            m_settings.hudCorner == QStringLiteral("top-left"));
+    }
+    if (m_hudTopRightAction) {
+        m_hudTopRightAction->setChecked(
+            m_settings.hudCorner == QStringLiteral("top-right"));
+    }
+
+    if (!m_settings.hudEnabled || !m_running || m_clientName.isEmpty()
+        || !m_videoWindowHandle) {
+        m_hud->hide();
+        return;
+    }
+
+    QStringList lines;
+    auto actionText = [](QAction *action) {
+        return action ? action->text() : QString();
+    };
+
+    if (m_clientAction) {
+        lines << actionText(m_clientAction);
+    }
+    if (m_mediaStatusAction) {
+        lines << actionText(m_mediaStatusAction);
+    }
+    if (m_videoCodecAction) {
+        QString video = actionText(m_videoCodecAction);
+        if (m_streamSizeAction) {
+            video += QStringLiteral("  ")
+                     + actionText(m_streamSizeAction);
+        }
+        lines << video;
+    }
+    if (m_videoDecoderAction) {
+        lines << actionText(m_videoDecoderAction);
+    }
+    if (m_videoRendererAction) {
+        lines << actionText(m_videoRendererAction);
+    }
+    if (m_audioCodecAction) {
+        lines << actionText(m_audioCodecAction);
+    }
+    if (m_audioFormatAction) {
+        lines << actionText(m_audioFormatAction);
+    }
+
+    m_hud->setCorner(m_settings.hudCorner);
+    m_hud->setLines(lines);
+    m_hud->updateForWindow(m_videoWindowHandle);
+}
+
 void MainWindow::saveDiagnostics(bool showDialog) {
     if (!m_diagnostics) {
         return;
@@ -1722,6 +1835,7 @@ void MainWindow::updateStatus() {
         }
         m_tray->setToolTip(tip);
     }
+    updateHud();
     updateTrayIcon();
 }
 

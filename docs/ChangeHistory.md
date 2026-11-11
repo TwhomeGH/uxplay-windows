@@ -1,5 +1,25 @@
 # ChangeHistory
 
+## 2026.11.12 05:02 新增 Media Info HUD 疊層
+
+**類型**: 功能 · **檔案**: `src/mediainfohud.h、src/mediainfohud.cpp、src/mainwindow.h、src/mainwindow.cpp、src/settings.h、src/settings.cpp、CMakeLists.txt、docs/DEVELOPERS-GUIDE.md、TODO.md`
+
+### 問題 - Media Info 只能在托盤查看，觀察時要一直找選單
+
+### 根因 - 沒有影片視窗上的即時資訊層
+
+### 修改 - 新增 MediaInfoHud：半透明、always-on-top、點擊穿透
+
+主視窗 checkbox 已驗證；疊層需 iPad 連線後實測位置與穿透。
+
+- 主視窗 checkbox 與 tray 開關，tray 可選左上／右上
+- 顯示 Client／Status／Video／Decoder／Renderer／Audio
+- settings.json 新增 hud.enabled／hud.corner，預設關閉
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.12 04:59 記住 AirPlay 影片視窗幾何
 
 **類型**: 功能 · **檔案**: `src/settings.h、src/settings.cpp、src/mainwindow.h、src/mainwindow.cpp`

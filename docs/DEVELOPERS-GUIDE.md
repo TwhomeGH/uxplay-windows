@@ -260,6 +260,19 @@ grep -E "register_dnssd|Initialized server socket|using system MAC" \
   "$LOCALAPPDATA/leapbtw/uxplay-windows/logs/uxplay-windows.log"
 ```
 
+### Media Info HUD
+
+主視窗 `Media Info HUD` 勾選後，會在 AirPlay 影片視窗上顯示一個
+半透明、點擊穿透的資訊疊層：
+
+- 內容：Client、Status、Video Codec／Stream Size、Decoder、
+  Renderer、Audio Codec、Audio Format。
+- 開關：主視窗 checkbox、tray `Media Info HUD`。
+- 位置：tray `HUD position` 可選 `Top left`／`Top right`；預設
+  `top-left`。
+- 只會在已連線且有影片視窗時顯示；不影響滑鼠操作。
+- 設定存在 `settings.json` 的 `hud.enabled`／`hud.corner`；預設關閉。
+
 ## 狀態位置與重置
 
 | 狀態 | 位置 | 重置方式 |

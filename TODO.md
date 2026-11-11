@@ -34,6 +34,8 @@
 - [x] 診斷包：ring buffer、Save diagnostics、redaction、issue template。
 - [x] `Native (device)` 解析度預設（2360x1640 實測 H.265）。
 - [x] 新增 720p 解析度，補效能／codec 測試缺口。
+- [x] Media Info HUD：點擊穿透疊層、主視窗／tray 開關、左上／右上。
+- [ ] 即時診斷面板：fps／bitrate／latency／A-V offset／事件時間軸。
 - [ ] `-s` 測試矩陣：720p／1080p／1440p／Native／4K 的實際尺寸、codec、CPU／GPU。
 - [ ] reconnect 後 audio 有聲但 video 未進 pipeline 的根因。
 - [ ] 讀取設定後套用解析度不需重啟 App（目前仍需重啟）。
