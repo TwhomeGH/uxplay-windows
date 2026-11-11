@@ -1,5 +1,26 @@
 # ChangeHistory
 
+## 2026.11.11 23:14 修正 USB 擷取依賴並加入 spike 腳本
+
+**類型**: 維護 · **檔案**: `usbcapture/CMakeLists.txt、usbcapture/spike/README.md、usbcapture/spike/check_env.ps1、usbcapture/spike/capture.ps1、usbcapture/spike/.gitignore`
+
+### 問題 - USB spike 的 libusbmuxd pkg-config 名稱錯誤，且 Windows quicktime_video_hack 無法建置
+
+### 根因 - MSYS2 模組是 libusbmuxd-2.0；quicktime_video_hack 依賴 Linux-only gst
+
+### 修改 - CMake 改用 libusbmuxd-2.0；ENABLE_USB_CAPTURE=ON 可完整建置 usbcapture
+
+`libimobiledevice` 1.3.0／`libusbmuxd` 2.1.1 已安裝；Apple Mobile Device
+Service running；iPad 尚未被 `idevice_id` 看到（需解鎖／信任）；
+`quicktime_video_hack` 在 Windows 因 gst build constraints 失敗，
+README 建議 `pymobiledevice3` 或 Linux/macOS。
+
+- 新增 spike 的環境檢查、擷取腳本與 Windows 限制說明
+
+**相關文件**: usbcapture/spike/README.md
+
+---
+
 ## 2026.11.11 23:07 建立 usbcapture 骨架與 USB 擷取開關
 
 **類型**: 維護 · **檔案**: `usbcapture/CMakeLists.txt、usbcapture/README.md、usbcapture/include/usbcapture/capture.h、usbcapture/include/usbcapture/device.h、usbcapture/include/usbcapture/session.h、usbcapture/src/capture.cpp、usbcapture/src/device.cpp、usbcapture/src/session.cpp、usbcapture/src/usbmuxd_client.cpp、usbcapture/src/quicktime_session.cpp、usbcapture/src/pipeline.cpp、usbcapture/tests/README.md、CMakeLists.txt、docs/DEVELOPERS-GUIDE.md、TODO.md`

@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.16)
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(IMOBILEDEVICE REQUIRED IMPORTED_TARGET libimobiledevice-1.0)
-pkg_check_modules(USBMUXD REQUIRED IMPORTED_TARGET libusbmuxd)
+pkg_check_modules(USBMUXD REQUIRED IMPORTED_TARGET libusbmuxd-2.0)
 pkg_check_modules(GSTREAMER REQUIRED IMPORTED_TARGET
     gstreamer-1.0 gstreamer-app-1.0 gstreamer-video-1.0
 )
