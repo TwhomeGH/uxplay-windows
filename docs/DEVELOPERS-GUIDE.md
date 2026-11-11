@@ -150,6 +150,23 @@ CSV 可畫 RSS 趨勢；report 有首尾 RSS、CPU 平均／峰值、初始連�
 等技術欄位會保留。**不會自動上傳**；分享前請自行檢查。回報請使用
 `.github/ISSUE_TEMPLATE/bug_report.yml` 並附上 zip。
 
+### 視訊編碼偏好（HEVC / H.264）
+
+主視窗 `Video Codec` 預設 `HEVC / H.265 (default)`，可切回
+`H.264 / AVC`。設定存在 `settings.json`：
+
+```json
+"video": { "codec": "hevc" }
+```
+
+- `hevc`：引擎帶 `-h265`，宣告 HEVC 能力；client 仍可能選 H.264。
+- `h264`：不帶 `-h265`，不宣告 HEVC，client 使用 H.264。
+- 這是能力宣告與偏好，不是強制 actual codec；實際值看 Media Info
+  或 diagnostics 的 `Video Codec`。
+- 變更目前需要重啟 app；Phase 2C 會改為只重啟 engine worker。
+- 既有設定若沒有 `video.codec`：`extra_args` 有 `-h265` 視為
+  `hevc`，沒有則保留 `h264`。新安裝預設 `hevc`。
+
 ### VS Code F5
 
 `.vscode` 已附可直接用的設定：

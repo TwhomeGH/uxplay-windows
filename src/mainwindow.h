@@ -65,6 +65,7 @@ private slots:
     void toggleBle(bool checked); // bluetooth
     void toggleForceFullscreen(bool checked);
     void onRendererChanged(int index);
+    void onVideoCodecChanged(int index);
     void onResolutionChanged();
     void updateMediaInfo(const QString &key, const QString &value);
     void applyDisplayName();
@@ -106,6 +107,7 @@ private:
     QLineEdit *m_displayNameEdit = nullptr;
     
     QComboBox *m_rendererCombo = nullptr;
+    QComboBox *m_videoCodecCombo = nullptr;
     QComboBox *m_resolutionCombo = nullptr;
     QComboBox *m_obsModeCombo = nullptr;
     QLabel *m_obsHint = nullptr;

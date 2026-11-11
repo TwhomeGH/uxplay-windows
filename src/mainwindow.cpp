@@ -194,6 +194,25 @@ void MainWindow::setupUI() {
 
     layout->addWidget(m_rendererCombo);
 
+    auto *codecLayout = new QHBoxLayout();
+    auto *codecLabel = new QLabel("Video Codec", this);
+    m_videoCodecCombo = new QComboBox(this);
+    m_videoCodecCombo->addItem("HEVC / H.265 (default)", "hevc");
+    m_videoCodecCombo->addItem("H.264 / AVC", "h264");
+    m_videoCodecCombo->setToolTip(
+        "HEVC advertises H.265 support; the client may still choose H.264. "
+        "H.264 mode disables HEVC advertisement.");
+    {
+        const int saved = m_videoCodecCombo->findData(m_settings.videoCodec);
+        m_videoCodecCombo->setCurrentIndex(saved >= 0 ? saved : 0);
+    }
+    connect(m_videoCodecCombo,
+            QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &MainWindow::onVideoCodecChanged);
+    codecLayout->addWidget(codecLabel);
+    codecLayout->addWidget(m_videoCodecCombo, 1);
+    layout->addLayout(codecLayout);
+
     auto *resolutionLayout = new QHBoxLayout();
     auto *resolutionLabel = new QLabel("Resolution", this);
     m_resolutionCombo = new QComboBox(this);
@@ -432,6 +451,26 @@ void MainWindow::onRendererChanged(int /*index*/) {
     m_settings.save();
     m_tray->showMessage("uxplay-windows",
                         "Please restart the uxplay-windows to apply changes.\n(Right-click the Tray Icon)",
+                        QSystemTrayIcon::Information, 3000);
+}
+
+void MainWindow::onVideoCodecChanged(int /*index*/) {
+    if (!m_videoCodecCombo) return;
+
+    const QString codec = m_videoCodecCombo->currentData().toString();
+    if (m_settings.videoCodec == codec) return;
+
+    m_settings.videoCodec = codec;
+    m_settings.save();
+    if (m_diagnostics) {
+        m_diagnostics->setSettings(m_settings);
+        m_diagnostics->event(
+            QStringLiteral("settings"), QStringLiteral("video codec changed"),
+            QJsonObject{{QStringLiteral("codec"), codec}});
+    }
+
+    m_tray->showMessage("uxplay-windows",
+                        "Video codec preference saved. Restart to apply.",
                         QSystemTrayIcon::Information, 3000);
 }
 

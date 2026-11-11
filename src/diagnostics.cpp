@@ -136,6 +136,9 @@ QJsonObject redactedSettings(const AppSettings &settings,
     QJsonObject obsObject;
     obsObject[QStringLiteral("mode")] = settings.obsMode;
 
+    QJsonObject videoObject;
+    videoObject[QStringLiteral("codec")] = settings.videoCodec;
+
     QJsonObject diagnosticsObject;
     diagnosticsObject[QStringLiteral("enabled")] = settings.diagnosticsEnabled;
 
@@ -163,6 +166,7 @@ QJsonObject redactedSettings(const AppSettings &settings,
     object[QStringLiteral("no_hold")] = settings.noHold;
     object[QStringLiteral("server_enabled")] = settings.serverEnabled;
     object[QStringLiteral("obs")] = obsObject;
+    object[QStringLiteral("video")] = videoObject;
     object[QStringLiteral("diagnostics")] = diagnosticsObject;
     object[QStringLiteral("extra_args")] = extra;
     return object;

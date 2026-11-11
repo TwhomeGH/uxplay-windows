@@ -1,5 +1,25 @@
 # ChangeHistory
 
+## 2026.11.12 03:52 新增 HEVC／H.264 視訊編碼偏好
+
+**類型**: 功能 · **檔案**: `src/settings.cpp、src/settings.h、src/mainwindow.cpp、src/mainwindow.h、src/diagnostics.cpp、docs/DEVELOPERS-GUIDE.md`
+
+### 問題 - HEVC 只能透過 extra_args 的 -h265，沒有 UI，也無法表達 H.264 偏好
+
+### 根因 - video codec 沒有結構化設定
+
+### 修改 - settings.json 新增 video.codec=hevc／h264，預設 hevc
+
+實測 h264：args 無 -h265；hevc：args 有 -h265；畫面顯示 HEVC / H.265 (default)。
+
+- 主視窗 Video Codec 下拉選單；變更提示重啟
+- engineArguments 管理 -h265；extra_args 不再保留
+- diagnostics 的 settings.redacted 顯示 video.codec
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.12 03:46 修正 audio codec 標示
 
 **類型**: 修正 · **檔案**: `libuxplay/uxplay.cpp`

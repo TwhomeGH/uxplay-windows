@@ -117,6 +117,11 @@ AppSettings AppSettings::fromJson(const QString &path, bool *ok) {
         object.value(QStringLiteral("force_fullscreen")).toBool(settings.forceFullscreen);
     settings.renderer =
         object.value(QStringLiteral("renderer")).toString(settings.renderer);
+
+    const QJsonObject video = object.value(QStringLiteral("video")).toObject();
+    settings.videoCodec =
+        video.value(QStringLiteral("codec")).toString(settings.videoCodec);
+    const bool hasVideoCodec = video.contains(QStringLiteral("codec"));
     settings.noHold = object.value(QStringLiteral("no_hold")).toBool(settings.noHold);
     settings.serverEnabled =
         object.value(QStringLiteral("server_enabled")).toBool(settings.serverEnabled);
@@ -149,6 +154,14 @@ AppSettings AppSettings::fromJson(const QString &path, bool *ok) {
         }
     }
 
+    if (!hasVideoCodec) {
+        // Preserve pre-video.codec behavior: -h265 in extra_args meant HEVC.
+        settings.videoCodec =
+            settings.extraArgs.contains(QStringLiteral("-h265"))
+                ? QStringLiteral("hevc")
+                : QStringLiteral("h264");
+    }
+
     *ok = true;
     return settings;
 }
@@ -169,6 +182,9 @@ bool AppSettings::save() const {
     QJsonObject obsObject;
     obsObject[QStringLiteral("mode")] = obsMode;
 
+    QJsonObject videoObject;
+    videoObject[QStringLiteral("codec")] = videoCodec;
+
     QJsonObject diagnosticsObject;
     diagnosticsObject[QStringLiteral("enabled")] = diagnosticsEnabled;
 
@@ -187,6 +203,7 @@ bool AppSettings::save() const {
     object[QStringLiteral("no_hold")] = noHold;
     object[QStringLiteral("server_enabled")] = serverEnabled;
     object[QStringLiteral("obs")] = obsObject;
+    object[QStringLiteral("video")] = videoObject;
     object[QStringLiteral("diagnostics")] = diagnosticsObject;
     object[QStringLiteral("extra_args")] = extra;
 
@@ -208,6 +225,10 @@ bool AppSettings::save() const {
 
 QStringList AppSettings::engineArguments(const QString &bleFilePath, bool engineDebug) const {
     QStringList args = stripManagedArgs(extraArgs);
+
+    if (videoCodec == QStringLiteral("hevc")) {
+        args << QStringLiteral("-h265");
+    }
 
     QString name = displayName.trimmed();
     if (name.isEmpty()) {
@@ -270,7 +291,7 @@ QStringList AppSettings::stripManagedArgs(const QStringList &args) {
             continue;
         }
         if (arg == QStringLiteral("-fs") || arg == QStringLiteral("-nh")
-            || arg == QStringLiteral("-d")) {
+            || arg == QStringLiteral("-d") || arg == QStringLiteral("-h265")) {
             continue;
         }
         result << arg;
@@ -305,6 +326,7 @@ void AppSettings::migrateLegacy() {
     bool haveRenderer = false;
     bool haveFullscreen = false;
     bool haveBle = false;
+    bool haveH265 = false;
     QString nameFromArgs;
     QString rendererFromArgs;
     ResolutionSettings resolutionFromArgs;
@@ -347,6 +369,8 @@ void AppSettings::migrateLegacy() {
             }
         } else if (arg == QStringLiteral("-nh")) {
             // The old GUI always added -nh; keep that behavior.
+        } else if (arg == QStringLiteral("-h265")) {
+            haveH265 = true;
         } else if (arg == QStringLiteral("-d")) {
             // Engine debug is controlled by --engine-debug, not persisted.
         } else {
@@ -374,6 +398,11 @@ void AppSettings::migrateLegacy() {
         bleEnabled = true;
     }
 
+    videoCodec = haveH265 ? QStringLiteral("hevc") : QStringLiteral("h264");
+    if (!legacyFound) {
+        videoCodec = QStringLiteral("hevc");
+    }
+
     noHold = true;
     extraArgs = legacyFound ? extra
                             : QStringList{QStringLiteral("-h265"),
@@ -389,6 +418,11 @@ void AppSettings::sanitize() {
 
     if (renderer != QStringLiteral("d3d11") && renderer != QStringLiteral("d3d12")) {
         renderer = QStringLiteral("auto");
+    }
+
+    if (videoCodec != QStringLiteral("hevc")
+        && videoCodec != QStringLiteral("h264")) {
+        videoCodec = QStringLiteral("hevc");
     }
 
     if (obsMode == QStringLiteral("camera")) {

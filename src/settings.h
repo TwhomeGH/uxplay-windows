@@ -23,6 +23,7 @@ public:
     bool bleEnabled = true;
     bool forceFullscreen = false;
     QString renderer = "auto";
+    QString videoCodec = "hevc";
     ResolutionSettings resolution;
     bool noHold = true;
     bool serverEnabled = true;
