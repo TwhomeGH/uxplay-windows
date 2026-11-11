@@ -1,5 +1,28 @@
 # ChangeHistory
 
+## 2026.11.11 08:26 Nightly release 加入 SHA、run 連結與最近 10 筆 commit
+
+**類型**: 維護 · **檔案**: `.github/workflows/build_uxplay-windows-v2.yml、.github/workflows/build-uxplay-windows-arm64.yml、docs/DEVELOPERS-GUIDE.md`
+
+### 問題 - Release 標題時間空白，tag 停在舊 commit
+
+### 根因 - PowerShell step 用了 bash 的 date 與輸出語法
+
+Workflow 在 PowerShell step 用 bash 的 `date` 與
+`$GITHUB_OUTPUT`；固定 tag 沒有更新到當前 commit。
+
+### 修改 - 改用 PowerShell 產生 UTC 時間與完整／短 SHA
+
+tag 仍為 nightly-build-x64／arm64，assets 名稱不變；release 的建立日期會是當晚。正式版本、Core／Exp 分類仍留到 Phase 3。
+
+- release 名稱與內文加入 commit、run 連結、架構、最近 10 筆 commit
+- 每晚刪除重建 nightly release，tag 指向當前 SHA
+- fetch-depth 改為 20 取得 commit log
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.11 08:21 MSI 建立固定防火牆規則並清理舊 build 規則
 
 **類型**: 修正 · **檔案**: `product.wxs、scripts/build_msi.ps1、scripts/clean_firewall_rules.ps1、.github/workflows/build_uxplay-windows-v2.yml、.github/workflows/build-uxplay-windows-arm64.yml、docs/DEVELOPERS-GUIDE.md、README.md`

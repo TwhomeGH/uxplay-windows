@@ -27,7 +27,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           submodules: recursive
-          fetch-depth: 1
+          fetch-depth: 20
 
       - name: cache mDNSResponder build artifacts (Bonjour SDK)
         uses: actions/cache@v5
@@ -194,19 +194,55 @@ jobs:
           name: uxplay-windows-arm64
           path: arm/
 
-      - name: Get build time
-        id: buildtime
-        run: echo "time=$(date +'%Y-%m-%d %H:%M:%S')" >> $GITHUB_OUTPUT
-      
+      - name: Get build metadata
+        id: meta
+        shell: powershell
+        run: |
+          $time = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss") + " UTC"
+          $sha = "${{ github.sha }}"
+          "time=$time" >> $env:GITHUB_OUTPUT
+          "sha=$sha" >> $env:GITHUB_OUTPUT
+          "short_sha=$($sha.Substring(0,7))" >> $env:GITHUB_OUTPUT
+
+      - name: Collect recent commits
+        id: commits
+        shell: powershell
+        run: |
+          $log = git log -10 --pretty=format:"- %h %s"
+          "log<<COMMIT_LOG" >> $env:GITHUB_OUTPUT
+          $log >> $env:GITHUB_OUTPUT
+          "COMMIT_LOG" >> $env:GITHUB_OUTPUT
+
+      - name: Remove previous nightly release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete nightly-build-arm64 --yes --cleanup-tag || true
+
+      - name: Update nightly tag
+        shell: bash
+        run: |
+          git tag -f nightly-build-arm64 "$GITHUB_SHA"
+          git push -f origin nightly-build-arm64
+
       - name: Create Pre-release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: nightly-build-arm64
-          name: "Nightly Build (${{ steps.buildtime.outputs.time }})"
+          target_commitish: ${{ github.sha }}
+          name: "Nightly Build ${{ steps.meta.outputs.short_sha }} (${{ steps.meta.outputs.time }})"
           prerelease: true
           body: |
-            Nightly build generated at ${{ steps.buildtime.outputs.time }}.
-            Includes arm64 artifacts.
+            Nightly build for commit [`${{ steps.meta.outputs.short_sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ steps.meta.outputs.sha }}) on `${{ github.ref_name }}`.
+
+            - Build time: ${{ steps.meta.outputs.time }}
+            - Workflow: [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            - Architecture: arm64
+
+            Recent commits:
+
+            ${{ steps.commits.outputs.log }}
           files: |
             arm/*.zip
             uxplaywindows-installer-arm64.msi

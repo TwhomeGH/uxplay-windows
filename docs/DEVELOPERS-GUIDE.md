@@ -187,9 +187,18 @@ Windows 防火牆以**執行檔完整路徑**辨識程式；每個 build 目錄
   `docs/` 複製。
 - `release/` 的內容必須對應目標架構（x64 或 arm64）。
 
-## 目前限制（Phase 1）
+### Nightly release
 
-- Start/Stop 以「重啟 App」套用；Phase 2 會改成引擎熱重啟。
-- 引擎的 `cleanup()` 仍會 `exit(0)`；Phase 2 會改為正常返回。
-- 客戶端連線事件已接到 UI，但尚未用真實 iPhone 驗證；連上後看
-  `[engine]`／`Client connected` 與 tray 的 `Client` 欄位。
+- 固定 tag：`nightly-build-x64`、`nightly-build-arm64`；每晚刪除重建，
+  tag 指向當前 `main` commit。
+- 名稱：`Nightly Build <short-sha> (<UTC time>)`。
+- 內文：commit 連結、workflow run、架構、最近 10 筆 commit。
+- Assets 名稱固定；正式版本、Core／Exp 分類留到 Phase 3。
+
+## 目前限制（Phase 2A 後）
+
+- 設定變更（顯示名稱、解析度、renderer）仍會重啟 App；
+  Phase 2B／2C 會改為套用設定並重啟引擎 worker。
+- Core／Exp release channel、SemVer tag 尚未定義；nightly 仍用固定 tag。
+- 客戶端連線事件已接到 UI；實機驗證請看 `[engine]`／
+  `Client connected` 與 tray 的 `Client` 欄位。
