@@ -1,5 +1,28 @@
 # ChangeHistory
 
+## 2026.11.11 23:46 完成 USB 擷取 spike：QuickTime 不可行、CoreDevice 可用
+
+**類型**: 研究 · **檔案**: `usbcapture/spike/README.md、usbcapture/spike/tools、TODO.md`
+
+### 問題 - Windows 上沒有可用的 USB 擷取路徑
+
+### 根因 - Apple UMDF filter 阻擋 user mode；iOS 27 QT subclass 改為 0xFD
+
+### 修改 - 記錄四組 USB config 與 QT interface ff/fd
+
+5 秒影片 1646 packets／1.8 MB，HEVC Main 1648x2384，ffmpeg 與
+GStreamer 均可解碼；5 秒音訊 504 packets，PT=101 AAC-ELD。
+QuickTime 路徑需 libusb0 upper filter 與簽章 driver；CoreDevice 需
+Developer Mode + DDI（iOS 27+）。
+
+- 驗證 Apple filter 拒絕 WinUSB 開啟（ERROR_NOT_SUPPORTED）
+- 以 CoreDevice display 擷取 5 秒 HEVC 與 AAC-ELD
+- 加入 pyusb／WinUSB／RTP 工具
+
+**相關文件**: usbcapture/spike/README.md
+
+---
+
 ## 2026.11.11 23:33 加入 quicktime_video_hack Windows patch 與擷取結果
 
 **類型**: 維護 · **檔案**: `usbcapture/spike/README.md、usbcapture/spike/capture.ps1、usbcapture/spike/patches/quicktime_video_hack-windows.patch`

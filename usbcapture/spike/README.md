@@ -1,77 +1,142 @@
-# QuickTime USB capture spike
+# USB capture spike
 
 ## Goal
 
-Prove on this Windows machine that an iPad/iPhone can be captured over USB
-through the QuickTime service, before wiring anything into the app.
+Prove how an iPad/iPhone screen and audio can be captured over USB on
+Windows, before wiring anything into the app.
 
 This is **not AirPlay**. The library is `usbcapture/`; the AirPlay engine
 (`libuxplay`) is untouched.
 
-## Current state (2026-11-11)
+## Verdict (2026-11-11)
 
-- `usbcapture` builds with `-DENABLE_USB_CAPTURE=ON`.
-- `libimobiledevice` 1.3.0 and `libusbmuxd` 2.1.1 are installed in UCRT64.
-- Apple Mobile Device Service is running.
-- iPad `00008101-000531C2229B001E` (iPad13,18, iOS 27.3) is visible;
-  `idevicepair validate` is SUCCESS and `check_env.ps1` returns OK.
-- `quicktime_video_hack`'s GStreamer adapter is removed; the patched tool
-  builds with CGO + libusb (`CGO_ENABLED=1`).
-- Windows runtime is still blocked: `libusb: i/o error` because the Apple
-  driver owns the QuickTime interface, and the tool dials the Unix socket
-  `/var/run/usbmuxd`. Live capture needs Linux/macOS or a Windows backend.
-- `pymobiledevice3` DVT screenshot works; no live stream.
+Two Windows-capable paths were evaluated on an iPad13,18 (iOS 27.3):
 
-## Check
+| Path | Driver | Developer Mode | iOS | Status |
+| --- | --- | --- | --- | --- |
+| QuickTime USB | kernel filter (libusb0) | no | broad | blocked in user mode |
+| CoreDevice display | none | yes + DDI | 27+ | **verified** |
+
+- **QuickTime USB** needs a kernel-mode filter driver on Windows. A normal
+  process cannot open the Apple mux interface or switch the device to its
+  QuickTime configuration.
+- **CoreDevice display** streams live HEVC video and AAC-ELD audio through
+  the no-root userspace RSD tunnel. It needs Developer Mode and a mounted
+  DDI, but no driver. Video and audio were captured and decoded on this
+  machine.
+
+## Device descriptors
+
+PID `05ac:12ab` exposes four USB configurations:
+
+| Config | Interfaces |
+| --- | --- |
+| 1 | PTP |
+| 2 | audio + HID |
+| 3 | PTP + Apple mux `ff/fe/02` |
+| 4 | PTP + Apple mux + `ff/fd/01` (QT) |
+
+- Active config is 3. Windows creates two children: `MI_00` (PTP, WPD)
+  and `MI_01` (Apple mux, `WINUSB` behind Apple's UMDF filter).
+- The QuickTime interface is config 4, interface 2: class `ff`, subclass
+  `fd`, protocol `01`, alternates 0/1/2, bulk IN `0x86` and OUT `0x05`.
+- `quicktime_video_hack` hardcodes `QuicktimeSubclass = 0x2A`, so it finds
+  zero devices on iOS 27.3. The subclass on this device is `0xFD`.
+
+## Why QuickTime USB fails in user mode
+
+- `libusb_open` returns `LIBUSB_ERROR_IO` on the composite device.
+- Opening Apple's WinUSB mux interface (`{664be590-...}`) fails with
+  `ERROR_NOT_SUPPORTED` (50) for read, write, none and overlapped access.
+- Apple's `oem55.inf` binds WinUSB to `MI_01` only, behind
+  `WUDFRd`, `AppleKmdfFilter` and the UMDF `AppleUsbFilter`; there is no
+  binding for the QT interface.
+- The known working design is a per-device **libusb0 upper filter** on the
+  Apple `usbccgp` device, because only libusb-win32 supports
+  `usb_set_configuration` on Windows (see iPhoneMirror and qvh issue 122).
+  Do **not** replace the parent driver with Zadig; that breaks Apple's
+  service.
+- That path needs a signed kernel driver and an installer. It is not
+  implemented in this spike.
+
+## CoreDevice display stream (verified)
+
+Requirements: iOS 27+, Developer Mode, Developer Disk Image mounted.
+The RSD tunnel is a pure-Python userspace stack, so no admin is needed.
 
 ```powershell
-.\check_env.ps1
+py -3.11 -m pymobiledevice3 amfi developer-mode-status
+py -3.11 -m pymobiledevice3 mounter auto-mount
+py -3.11 -m pymobiledevice3 developer core-device display `
+    get-media-support-info
+py -3.11 -m pymobiledevice3 developer core-device display `
+    start-video-stream out\ipad.rtp --duration 5
+py -3.11 tools\rtp_dump.py out\ipad.rtp out\ipad.h265
+ffprobe -hide_banner out\ipad.h265
+ffmpeg -framerate 60 -i out\ipad.h265 -frames:v 1 out\ipad-frame.png
+py -3.11 -m pymobiledevice3 developer core-device display `
+    start-audio-stream out\ipad-audio.rtp --duration 5
 ```
 
-## Pair and list
+Measured result:
+
+- 5 s video: 1646 RTP packets, 1.8 MB, HEVC Main 1648x2384.
+- 5 s audio: 504 packets, payload type 101, AAC-ELD (mode 8).
+- The extracted frame shows the iPad screen; `ffmpeg` and GStreamer
+  `avdec_h265` both decode the stream.
+
+### Live viewer
 
 ```powershell
-H:\FIX_VIAP\msys64\ucrt64\bin\idevice_id.exe -l
-H:\FIX_VIAP\msys64\ucrt64\bin\idevicepair.exe pair
-H:\FIX_VIAP\msys64\ucrt64\bin\idevicepair.exe validate
-H:\FIX_VIAP\msys64\ucrt64\bin\ideviceinfo.exe -k ProductVersion
+py -3.11 -m pymobiledevice3 developer core-device display `
+    serve-web --http-port 8099
 ```
 
-## Capture
+Open `http://127.0.0.1:8099/` in Edge or Chrome. The page decodes HEVC
+with WebCodecs; this machine reported `hev1.1.6.L150.B0` and held 60-67
+fps. The viewer also exposes rotate, zoom, volume, Home/Siri/Swipe,
+clipboard and accessibility controls.
 
-`capture.ps1` uses the patched `record` command and adds UCRT64's `bin` to
-PATH so the CGO binary can load `libusb-1.0.dll`:
+The raw stream follows the device orientation (`landscapeLeft` on this
+iPad), so the viewer needs its rotate control; a native integration must
+apply the same transform. Older browsers without HEVC WebCodecs support
+cannot decode this page.
 
-```powershell
-.\capture.ps1 -Udid 00008101-000531C2229B001E -Seconds 15
-```
+Limitations:
 
-The upstream Linux/macOS build remains the reference for the protocol:
+- Developer Mode and a mounted DDI are hard requirements. This is not a
+  normal consumer flow.
+- The CLI documents video streaming as iOS 27+.
+- DRM-protected video may render black, as with any screen capture.
+- Product integration needs the CoreDevice display service and RTP
+  depacketizer ported to C++ (or a Python sidecar).
+
+## Tools in this directory
+
+- `check_env.ps1`: pairing and device checks.
+- `capture.ps1`: QuickTime record path (not usable on Windows yet).
+- `tools/enumerate_usb.py`: descriptor dump through pyusb (read-only).
+- `tools/qt_winusb.py`: WinUSB access probe; documents the Apple filter
+  rejection.
+- `tools/rtp_dump.py`: RTP/HEVC unwrap to Annex-B `.h265`.
+- `patches/quicktime_video_hack-windows.patch`: GStreamer removal and
+  CGO build fix for the upstream tool.
+
+## QuickTime reference (Linux/macOS)
 
 ```bash
 cd tools
 git clone https://github.com/danielpaulus/quicktime_video_hack
 cd quicktime_video_hack
 go build -o quicktime_video_hack .
-./quicktime_video_hack -udid <udid> -o out.h264
+./quicktime_video_hack record out.h264 out.wav --udid <udid>
 ```
 
-Then inspect:
-
-```bash
-ffprobe -hide_banner out.h264
-ffplay out.h264
-gst-launch-1.0 filesrc location=out.h264 ! h264parse ! avdec_h264 ! d3d12videosink
-```
-
-Alternative: `pymobiledevice3` for device services and screenshots; confirm
-whether the current version exposes a live QuickTime stream before
-committing to it.
+On iOS 27 the QT subclass must be detected as `0xFD`, not only `0x2A`.
 
 ## Acceptance
 
-1. `idevice_id -l` lists the device.
-2. `idevicepair validate` returns paired.
-3. H.264 frames arrive for 10 minutes.
-4. Audio is present or the limitation is documented.
-5. Unplug/replug recovers without restarting the app.
+1. Device is paired and trusted.
+2. A 10 minute stream runs without stalling.
+3. Video and audio both arrive, or the limitation is documented.
+4. Unplug/replug recovers without restarting the app.

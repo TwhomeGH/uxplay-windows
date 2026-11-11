@@ -1,3 +1,7 @@
-tools/
 out/
+tools/quicktime_video_hack/
+tools/*.exe
 *.h264
+*.h265
+*.rtp
+*.wav

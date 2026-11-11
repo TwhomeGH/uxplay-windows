@@ -47,10 +47,17 @@
 - [x] Phase 2A：引擎熱啟停、ready callback、崩潰 backoff、`--start`／`--stop` IPC。
 - [x] MSI 固定防火牆規則（WiX Firewall extension）與清理舊 build 規則腳本。
 
-## Phase 5 - USB (QuickTime) 擷取（探索）
+## Phase 5 - USB 擷取（探索）
 
 - [x] 建立 `usbcapture/` 骨架與 `ENABLE_USB_CAPTURE`（預設 OFF）。
-- [ ] 用 `quicktime_video_hack`／`pymobiledevice3` 做 Windows＋iPhone spike。
+- [x] Windows spike：QuickTime USB 在 user mode 不可行，需 libusb0 upper
+  filter；CoreDevice display stream 可用（iOS 27+，需 Developer Mode + DDI）。
+- [x] iOS 27 QuickTime subclass 由 `0x2A` 改為 `0xFD`，已記錄於 spike README。
+- [ ] 決定 USB backend：
+  - A) QuickTime + libusb0 filter（免 Developer Mode，需簽章 driver）
+  - B) CoreDevice display stream（免 driver，需 Developer Mode + DDI）
+- [ ] 若選 B：把 displayservice／RTP 接到 GStreamer（C++ 或 sidecar）。
+- [ ] 若選 A：libusb0 filter installer、0xFD 偵測、Qt worker。
 - [ ] usbmuxd／libimobiledevice 配對與 trust 流程。
 - [ ] QuickTime H.264／音訊 demux 接到 GStreamer。
 - [ ] `src/usbworker` Qt 轉接層與 UI 模式切換。
