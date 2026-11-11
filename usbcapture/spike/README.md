@@ -110,22 +110,25 @@ length-prefixed HEVC access units as Annex-B to a local TCP socket:
 ```powershell
 py -3.11 tools\stream_to_tcp.py --http-port 8099 --tcp-port 5005
 gst-launch-1.0 tcpclientsrc host=127.0.0.1 port=5005 ! `
-    h265parse ! avdec_h265 ! d3d11videosink
+    h265parse ! avdec_h265 ! videoflip method=counterclockwise ! `
+    videocrop right=8 bottom=12 ! videoconvert ! d3d11videosink
 ```
 
 The bridge prepends VPS/SPS/PPS from the `/codec` hvcC record on keyframes.
-To capture one decoded frame instead of opening a window:
+Verified on 2026-11-12:
 
-```powershell
-gst-launch-1.0 tcpclientsrc host=127.0.0.1 port=5005 ! `
-    h265parse ! avdec_h265 ! videoconvert ! pngenc ! `
-    identity eos-after=1 ! filesink location=out\frame.png
-```
+- 240+ access units reached GStreamer; the live `d3d11videosink` window
+  played without errors.
+- Raw frames are 1648x2384; `/codec` reports 1640x2360 with
+  `rotation: -90`.
+- `videoflip method=counterclockwise` makes the UI upright; this is the
+  same orientation the web viewer applies.
+- `videocrop right=8 bottom=12` removes the encoder padding and restores
+  the 1640x2360 display aspect ratio.
 
-The sidecar prints `rotation: -90` when the display turns. A native
-renderer must apply that rotation once. The clean OBS output must not draw
-the debug viewer's device frame, and must not use the viewer's
-stretch-to-fill canvas lock.
+The bridge itself does not rotate; the renderer owns rotation. The clean
+OBS output must not draw the debug viewer's device frame and must not use
+the viewer's stretch-to-fill canvas lock.
 
 Limitations:
 

@@ -1,5 +1,25 @@
 # ChangeHistory
 
+## 2026.11.12 00:10 實測 USB CoreDevice 到 GStreamer 的 bridge 與 rotation
+
+**類型**: 研究 · **檔案**: `usbcapture/spike/README.md、TODO.md`
+
+### 問題 - browser viewer 不能作為 OBS 輸出，rotation 也未套用
+
+### 根因 - raw HEVC 是 1648x2384 portrait，display 1640x2360，rotation -90
+
+### 修改 - bridge 實測 240+ access units，live d3d11videosink 播放成功
+
+iPad 重插後 usbmux 恢復；PnP present 但 idevice_id 空時，重插可 reset mux。Clean Output 尚未實作。
+
+- videoflip counterclockwise 讓 UI 正立
+- videocrop right=8 bottom=12 還原 1640x2360
+- 更新 spike README 與 TODO
+
+**相關文件**: usbcapture/spike/README.md
+
+---
+
 ## 2026.11.12 00:02 加入 USB CoreDevice 串流到 GStreamer 的 bridge 原型
 
 **類型**: 研究 · **檔案**: `usbcapture/spike/tools/stream_to_tcp.py、usbcapture/spike/README.md、TODO.md`

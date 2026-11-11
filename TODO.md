@@ -56,7 +56,9 @@
 - [x] iOS 27 QuickTime subclass 由 `0x2A` 改為 `0xFD`，已記錄於 spike README。
 - [x] CoreDevice `/stream.bin` → Annex-B → GStreamer bridge 原型
   （`usbcapture/spike/tools/stream_to_tcp.py`）。
-- [ ] bridge 實測（iPad 未連接；接回後用 `tcpclientsrc` 驗證）。
+- [x] bridge 實測：240+ access units 進入 GStreamer，live
+  `d3d11videosink` 正常播放。
+- [x] rotation／padding：`videoflip counterclockwise` + `videocrop 8/12`。
 - [ ] Clean Output 視窗：frameless、無邊框、固定標題、OBS Window Capture。
 - [ ] `--usb-obs`／`usb.obs_mode`／tray 入口（已有實例走 IPC）。
 - [ ] rotation 一律用 `/codec` 的 `display.rotation`，不依賴 browser type 4。
