@@ -162,6 +162,11 @@ The persisted mode lives in `settings.json`:
 `--usb-obs` selects `window` and persists it. Closing the clean window
 switches the mode back to `off` and stops the sidecar/bridge processes.
 
+The OBS group also has a USB status line and `Connect USB device`
+button. It runs the preflight (usbmux list -> lockdown pair if needed ->
+Developer Mode -> mounter auto-mount) and only starts the sidecar when
+ready. `--usb-obs` uses the same preflight.
+
 The window can be dragged anywhere; resize it from its 8 px edges.
 Right-click offers `Move window`, `Resize window`, `Always on top`,
 `Copy OBS source name`, `Reset size` and `Close`.

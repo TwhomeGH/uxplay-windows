@@ -1,6 +1,7 @@
 #include "usbobscontroller.h"
 
 #include "cleanoutputwindow.h"
+#include "usbpython.h"
 
 #include <QCoreApplication>
 #include <QDir>
@@ -528,33 +529,10 @@ void UsbObsController::parserCapsCallback(GObject *object, GParamSpec *,
 }
 
 bool UsbObsController::choosePython() {
-    m_python.clear();
-    m_pythonArgs.clear();
-
-    const QString override = qEnvironmentVariable("UXPLAY_USB_PYTHON");
-    if (!override.isEmpty()) {
-        const QStringList parts = QProcess::splitCommand(override);
-        if (!parts.isEmpty()) {
-            m_python = parts.first();
-            m_pythonArgs = parts.mid(1);
-        }
-    }
-
-    if (m_python.isEmpty()) {
-        const QString py = QStandardPaths::findExecutable(
-            QStringLiteral("py"));
-        if (!py.isEmpty()) {
-            m_python = py;
-            m_pythonArgs << QStringLiteral("-3.11");
-        } else {
-            const QString python = QStandardPaths::findExecutable(
-                QStringLiteral("python"));
-            if (!python.isEmpty()) {
-                m_python = python;
-            }
-        }
-    }
-    return !m_python.isEmpty();
+    const UsbPython python = UsbPython::find();
+    m_python = python.program;
+    m_pythonArgs = python.arguments;
+    return python.valid();
 }
 
 QString UsbObsController::findBridgeScript() const {

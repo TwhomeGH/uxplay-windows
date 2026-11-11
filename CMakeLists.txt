@@ -28,6 +28,8 @@ add_executable(uxplay-windows WIN32
     src/mdns_responder.cpp
     src/cleanoutputwindow.cpp
     src/usbobscontroller.cpp
+    src/usbpython.cpp
+    src/usbdeviceconnector.cpp
     src/resources.rc
 )
 

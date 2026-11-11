@@ -20,6 +20,7 @@ class QMenu;
 class QAction;
 class AirPlayWorker;
 class UsbObsController;
+class UsbDeviceConnector;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -55,6 +56,7 @@ private slots:
     void toggleServer();
     void toggleUsbObs();
     void onObsModeChanged(int index);
+    void onConnectUsbClicked();
     void openLogFile();
     void toggleBle(bool checked); // bluetooth
     void toggleForceFullscreen(bool checked);
@@ -79,6 +81,7 @@ private:
     void updateResolutionControls();
     void resetMediaInfo(const QString &status);
     void ensureUsbObsController();
+    void ensureUsbConnector();
     void setObsMode(const QString &mode, bool persist);
 
     QProcess *m_beacon = nullptr;
@@ -101,6 +104,8 @@ private:
     QComboBox *m_resolutionCombo = nullptr;
     QComboBox *m_obsModeCombo = nullptr;
     QLabel *m_obsHint = nullptr;
+    QLabel *m_usbStatusLabel = nullptr;
+    QPushButton *m_usbConnectBtn = nullptr;
     QSpinBox *m_widthSpin = nullptr;
     QSpinBox *m_heightSpin = nullptr;
     QSpinBox *m_refreshSpin = nullptr;
@@ -134,6 +139,8 @@ private:
 
     AirPlayWorker *m_worker = nullptr;
     UsbObsController *m_usbObs = nullptr;
+    UsbDeviceConnector *m_usbConnector = nullptr;
+    bool m_usbDeviceReady = false;
 
     QString m_clientName;
     QString m_clientModel;

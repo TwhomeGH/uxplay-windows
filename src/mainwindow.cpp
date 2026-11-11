@@ -2,6 +2,7 @@
 #include "airplayworker.h"
 #include "logging.h"
 #include "usbobscontroller.h"
+#include "usbdeviceconnector.h"
 #include "cleanoutputwindow.h"
 #include "mdns_responder.hpp"
 #include <windows.h>
@@ -102,6 +103,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 
 MainWindow::~MainWindow() {
     m_quitting = true;
+    if (m_usbConnector) {
+        m_usbConnector->cancel();
+    }
     if (m_usbObs) {
         m_usbObs->stop();
     }
@@ -113,7 +117,7 @@ MainWindow::~MainWindow() {
 void MainWindow::setupUI() {
     setWindowTitle("uxplay-windows");
     setWindowIcon(QApplication::windowIcon());
-    setFixedSize(420, 600);
+    setFixedSize(420, 680);
 
     auto *central = new QWidget(this);
     setCentralWidget(central);
@@ -239,10 +243,17 @@ void MainWindow::setupUI() {
     }
     connect(m_obsModeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &MainWindow::onObsModeChanged);
+    m_usbStatusLabel = new QLabel("USB: not checked", obsGroup);
+    m_usbStatusLabel->setWordWrap(true);
+    m_usbConnectBtn = new QPushButton("Connect USB device", obsGroup);
+    connect(m_usbConnectBtn, &QPushButton::clicked, this,
+            &MainWindow::onConnectUsbClicked);
     m_obsHint = new QLabel(
         "Clean window: select it in OBS with Window Capture.", obsGroup);
     m_obsHint->setWordWrap(true);
     obsLayout->addWidget(m_obsModeCombo);
+    obsLayout->addWidget(m_usbStatusLabel);
+    obsLayout->addWidget(m_usbConnectBtn);
     obsLayout->addWidget(m_obsHint);
     layout->addWidget(obsGroup);
 
@@ -776,6 +787,71 @@ void MainWindow::ensureUsbObsController() {
             });
 }
 
+void MainWindow::ensureUsbConnector() {
+    if (m_usbConnector) {
+        return;
+    }
+
+    m_usbConnector = new UsbDeviceConnector(this);
+    connect(m_usbConnector, &UsbDeviceConnector::statusChanged, this,
+            [this](const QString &text, bool busy) {
+                if (m_usbStatusLabel) {
+                    m_usbStatusLabel->setText(text);
+                    m_usbStatusLabel->setStyleSheet(busy ? "color:#666;" : "");
+                }
+                if (m_usbConnectBtn) {
+                    m_usbConnectBtn->setEnabled(!busy);
+                }
+                if (m_usbObsAction) {
+                    if (busy) {
+                        m_usbObsAction->setText("Cancel USB check");
+                    } else if (!(m_usbObs && m_usbObs->isRunning())) {
+                        m_usbObsAction->setText(
+                            "USB Clean Output (experimental)");
+                    }
+                }
+                qInfo() << "[usb-device]" << text;
+            });
+    connect(m_usbConnector, &UsbDeviceConnector::ready, this,
+            [this](const QString &name) {
+                m_usbDeviceReady = true;
+                if (m_usbStatusLabel) {
+                    m_usbStatusLabel->setStyleSheet("color:#1b7f3a;");
+                }
+                if (m_usbConnectBtn) {
+                    m_usbConnectBtn->setText("Reconnect USB device");
+                }
+                if (m_obsModeCombo &&
+                    m_obsModeCombo->currentData().toString() ==
+                        QStringLiteral("window")) {
+                    ensureUsbObsController();
+                    if (m_usbObs && !m_usbObs->isRunning()) {
+                        m_usbObs->start();
+                    }
+                }
+                if (m_tray) {
+                    m_tray->showMessage(
+                        "uxplay-windows",
+                        QStringLiteral("USB ready: %1").arg(name),
+                        QSystemTrayIcon::Information, 3000);
+                }
+            });
+    connect(m_usbConnector, &UsbDeviceConnector::failed, this,
+            [this](const QString &message) {
+                m_usbDeviceReady = false;
+                if (m_usbStatusLabel) {
+                    m_usbStatusLabel->setStyleSheet("color:#b00020;");
+                }
+                if (m_usbConnectBtn) {
+                    m_usbConnectBtn->setText("Retry USB connection");
+                }
+                if (m_tray) {
+                    m_tray->showMessage("uxplay-windows", message,
+                                        QSystemTrayIcon::Warning, 7000);
+                }
+            });
+}
+
 void MainWindow::setObsMode(const QString &mode, bool persist) {
     QString normalized = mode;
     if (normalized != QStringLiteral("off") &&
@@ -797,20 +873,30 @@ void MainWindow::setObsMode(const QString &mode, bool persist) {
     }
 
     if (normalized == QStringLiteral("window")) {
+        ensureUsbConnector();
         ensureUsbObsController();
-        if (!m_usbObs) {
+        if (!m_usbObs || !m_usbConnector) {
             return;
         }
-        if (m_usbObs->isRunning()) {
-            if (m_usbObs->outputWindow()) {
-                m_usbObs->outputWindow()->show();
-                m_usbObs->outputWindow()->raise();
+        if (m_usbDeviceReady) {
+            if (m_usbObs->isRunning()) {
+                if (m_usbObs->outputWindow()) {
+                    m_usbObs->outputWindow()->show();
+                    m_usbObs->outputWindow()->raise();
+                }
+            } else {
+                m_usbObs->start();
             }
         } else {
-            m_usbObs->start();
+            m_usbConnector->connectDevice();
         }
-    } else if (m_usbObs) {
-        m_usbObs->stop();
+    } else {
+        if (m_usbConnector) {
+            m_usbConnector->cancel();
+        }
+        if (m_usbObs) {
+            m_usbObs->stop();
+        }
     }
 }
 
@@ -832,8 +918,27 @@ void MainWindow::onObsModeChanged(int /*index*/) {
     setObsMode(mode, true);
 }
 
+void MainWindow::onConnectUsbClicked() {
+    ensureUsbConnector();
+    if (!m_obsModeCombo ||
+        m_obsModeCombo->currentData().toString() != QStringLiteral("window")) {
+        setObsMode(QStringLiteral("window"), true);
+        return;
+    }
+    m_usbDeviceReady = false;
+    if (m_usbConnectBtn) {
+        m_usbConnectBtn->setText("Connect USB device");
+    }
+    if (m_usbConnector) {
+        m_usbConnector->connectDevice();
+    }
+}
+
 void MainWindow::toggleUsbObs() {
-    if (m_usbObs && m_usbObs->isRunning()) {
+    const bool modeWindow =
+        m_obsModeCombo &&
+        m_obsModeCombo->currentData().toString() == QStringLiteral("window");
+    if ((m_usbObs && m_usbObs->isRunning()) || modeWindow) {
         setObsMode(QStringLiteral("off"), true);
     } else {
         setObsMode(QStringLiteral("window"), true);
@@ -993,6 +1098,9 @@ void MainWindow::showLicense() {
 
 void MainWindow::quit() {
     m_quitting = true;
+    if (m_usbConnector) {
+        m_usbConnector->cancel();
+    }
     if (m_usbObs) {
         m_usbObs->stop();
     }

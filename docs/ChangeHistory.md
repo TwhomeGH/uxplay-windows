@@ -1,5 +1,25 @@
 # ChangeHistory
 
+## 2026.11.12 00:53 加入 USB 連線與配對入口
+
+**類型**: 功能 · **檔案**: `src/usbdeviceconnector.cpp、src/usbdeviceconnector.h、src/usbpython.cpp、src/usbpython.h、src/mainwindow.cpp、src/mainwindow.h、src/usbobscontroller.cpp、CMakeLists.txt、docs/DEVELOPERS-GUIDE.md、usbcapture/spike/README.md、TODO.md`
+
+### 問題 - OBS 模式有了，但沒有偵測／配對／掛 DDI 的 USB 入口
+
+### 根因 - USB 模式直接啟動 sidecar，失敗原因只留在 log
+
+### 修改 - 新增 UsbDeviceConnector preflight：usbmux → lockdown pair → amfi → mounter
+
+實測 00:51:09 開始檢查，00:51:17 USB ready，00:51:22 串流開始；狀態列顯示 USB ready: iPad。
+
+- 主視窗 USB 狀態列與 Connect／Reconnect 按鈕
+- window 模式先 preflight，ready 才啟動 Clean Output
+- 共用 UsbPython 解析 UXPLAY_USB_PYTHON
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.12 00:43 規範 OBS 輸出模式設定
 
 **類型**: 功能 · **檔案**: `src/settings.cpp、src/settings.h、src/mainwindow.cpp、src/mainwindow.h、docs/DEVELOPERS-GUIDE.md、usbcapture/spike/README.md、TODO.md`

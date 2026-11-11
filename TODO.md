@@ -63,6 +63,8 @@
 - [x] Clean Output 可拖曳移動、8 px 邊緣縮放、右鍵 Move／Resize fallback。
 - [x] `--usb-obs`／tray／主視窗入口；已有實例走 IPC。
 - [x] `obs.mode` schema（off／window；camera 保留）與主視窗下拉選單。
+- [x] USB 連線／配對／DDI preflight 按鈕與狀態列。
+- [x] usbmuxd／pymobiledevice3 配對與 trust 流程（preflight 內）。
 - [x] rotation 用 `/codec` 的 `display.rotation`；crop 用 h265 caps 計算。
 - [ ] diagnostic web：同一個 session 的 telemetry，不另開 stream。
 - [ ] AAC-ELD 音訊解碼（Windows 需非 AudioToolbox 解碼器）。
@@ -70,10 +72,10 @@
 - [ ] USB backend 最終選擇：B（CoreDevice）為目前驗證路線；A 需簽章
   driver，暫不投入。
 - [ ] （A 備案）libusb0 filter installer、`0xFD` 偵測、QuickTime demux。
-- [ ] usbmuxd／libimobiledevice 配對與 trust 流程。
 - [x] `UsbObsController` Qt 控制器與 tray／主視窗入口。
 - [ ] AirPlay 影片視窗共用 CleanOutputWindow（engine window-handle hook）。
 - [ ] Virtual camera（Media Foundation）可行性 spike 與實作。
+- [ ] 多台 USB 裝置的 UDID 選擇（目前 preflight 取第一台）。
 - [ ] `settings.json` 增加 `mode=airplay/usb`。
 - [ ] Apple Mobile Device 依賴與安裝包策略。
 - [ ] 測試矩陣：iPhone 型號、iOS 版本、DRM、長時間、USB 2/3。

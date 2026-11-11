@@ -278,6 +278,18 @@ build\dev\run-dev.cmd --usb-obs
 `--usb-obs` 等於選 `window`（會持久化）；關閉 Clean Output 視窗會回到
 `off` 並停止 USB 子程序。
 
+選擇 `window` 或按 `Connect USB device` 會先跑 preflight：
+
+1. `usbmux list` 偵測裝置。
+2. `lockdown info` 檢查配對；未配對時跑 `lockdown pair`，需要在 iPad
+   上按 **Trust This Computer**。
+3. `amfi developer-mode-status` 檢查 Developer Mode；關閉時顯示指示。
+4. `mounter auto-mount` 掛載 DDI（第一次可能需要下載）。
+5. 全部通過才啟動 sidecar 與 Clean Output。
+
+狀態列會顯示目前步驟與錯誤原因；失敗不會啟動 sidecar。
+`Connect USB device`／`Reconnect USB device` 可重跑 preflight。
+
 目前 video-only；AAC-ELD 在 Windows 還沒解碼。QuickTime USB 在
 user mode 不可行，需 libusb0 upper filter 與簽章 driver，未實作。
 `ENABLE_USB_CAPTURE=ON` 仍只編譯 QuickTime skeleton，與這條路無關。
