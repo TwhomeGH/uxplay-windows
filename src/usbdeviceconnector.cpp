@@ -32,6 +32,10 @@ void UsbDeviceConnector::connectDevice() {
     m_busy = true;
     m_deviceName.clear();
     m_udid.clear();
+    m_powerSummary.clear();
+    m_batteryPercent = -1;
+    m_adapterWatts = 0;
+    m_charging = false;
     m_python = UsbPython::find();
     if (!m_python.valid()) {
         finish(false,
@@ -159,8 +163,93 @@ void UsbDeviceConnector::mountDdi() {
                            lastLine(output));
                 return;
             }
-            finish(true, QStringLiteral("USB ready: %1").arg(m_deviceName));
+            readPower();
         });
+}
+
+void UsbDeviceConnector::readPower() {
+    Q_EMIT statusChanged(QStringLiteral("Reading battery and power..."),
+                         true);
+
+    QStringList batteryArgs{QStringLiteral("lockdown"),
+                            QStringLiteral("get"),
+                            QStringLiteral("com.apple.mobile.battery")};
+    if (!m_udid.isEmpty()) {
+        batteryArgs << QStringLiteral("--udid") << m_udid;
+    }
+    run(batteryArgs, 15000, [this](bool ok, const QByteArray &output) {
+        if (ok) {
+            QJsonParseError error;
+            const QJsonDocument document =
+                QJsonDocument::fromJson(output, &error);
+            if (error.error == QJsonParseError::NoError &&
+                document.isObject()) {
+                const QJsonObject object = document.object();
+                m_batteryPercent =
+                    object.value(QStringLiteral("BatteryCurrentCapacity"))
+                        .toInt(-1);
+                m_charging =
+                    object.value(QStringLiteral("BatteryIsCharging"))
+                        .toBool(false);
+            }
+        }
+
+        QStringList diagArgs{QStringLiteral("diagnostics"),
+                             QStringLiteral("battery"),
+                             QStringLiteral("single")};
+        if (!m_udid.isEmpty()) {
+            diagArgs << QStringLiteral("--udid") << m_udid;
+        }
+        run(diagArgs, 15000, [this](bool ok2, const QByteArray &output2) {
+            if (ok2) {
+                QJsonParseError error;
+                const QJsonDocument document =
+                    QJsonDocument::fromJson(output2, &error);
+                if (error.error == QJsonParseError::NoError &&
+                    document.isObject()) {
+                    const QJsonObject adapter =
+                        document.object()
+                            .value(QStringLiteral("AdapterDetails"))
+                            .toObject();
+                    m_adapterWatts =
+                        adapter.value(QStringLiteral("Watts")).toInt(0);
+                    if (m_adapterWatts <= 0) {
+                        const double volts =
+                            adapter.value(QStringLiteral("AdapterVoltage"))
+                                .toDouble(0);
+                        const double amps =
+                            adapter.value(QStringLiteral("Current"))
+                                .toDouble(0);
+                        if (volts > 0 && amps > 0) {
+                            m_adapterWatts =
+                                qRound(volts * amps / 1000000.0);
+                        }
+                    }
+                }
+            }
+            buildPowerSummary();
+            QString message = QStringLiteral("USB ready: %1").arg(m_deviceName);
+            if (!m_powerSummary.isEmpty()) {
+                message += QStringLiteral(" · ") + m_powerSummary;
+            }
+            finish(true, message);
+        });
+    });
+}
+
+void UsbDeviceConnector::buildPowerSummary() {
+    QStringList parts;
+    if (m_batteryPercent >= 0) {
+        parts << QStringLiteral("%1%").arg(m_batteryPercent);
+    }
+    if (m_batteryPercent >= 0) {
+        parts << (m_charging ? QStringLiteral("charging")
+                             : QStringLiteral("not charging"));
+    }
+    if (m_adapterWatts > 0) {
+        parts << QStringLiteral("%1W adapter").arg(m_adapterWatts);
+    }
+    m_powerSummary = parts.join(QStringLiteral(" · "));
 }
 
 void UsbDeviceConnector::run(const QStringList &args, int timeoutMs,

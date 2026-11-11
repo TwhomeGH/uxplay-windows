@@ -23,6 +23,10 @@ public:
     void connectDevice();
     void cancel();
     bool isReady() const { return m_ready; }
+    QString powerSummary() const { return m_powerSummary; }
+    bool isCharging() const { return m_charging; }
+    int batteryPercent() const { return m_batteryPercent; }
+    int adapterWatts() const { return m_adapterWatts; }
 
 signals:
     void statusChanged(const QString &text, bool busy);
@@ -40,6 +44,8 @@ private:
     void pairDevice();
     void checkDeveloperMode();
     void mountDdi();
+    void readPower();
+    void buildPowerSummary();
     static QString lastLine(const QByteArray &output);
 
     UsbPython m_python;
@@ -48,6 +54,10 @@ private:
     Done m_onDone;
     QString m_deviceName;
     QString m_udid;
+    QString m_powerSummary;
+    int m_batteryPercent = -1;
+    int m_adapterWatts = 0;
+    bool m_charging = false;
     bool m_ready = false;
     bool m_busy = false;
     bool m_completing = false;

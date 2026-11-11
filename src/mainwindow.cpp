@@ -815,8 +815,24 @@ void MainWindow::ensureUsbConnector() {
     connect(m_usbConnector, &UsbDeviceConnector::ready, this,
             [this](const QString &name) {
                 m_usbDeviceReady = true;
+                const bool charging =
+                    m_usbConnector ? m_usbConnector->isCharging() : true;
+                const int percent =
+                    m_usbConnector ? m_usbConnector->batteryPercent() : -1;
+                const int watts =
+                    m_usbConnector ? m_usbConnector->adapterWatts() : 0;
                 if (m_usbStatusLabel) {
-                    m_usbStatusLabel->setStyleSheet("color:#1b7f3a;");
+                    m_usbStatusLabel->setStyleSheet(
+                        charging ? "color:#1b7f3a;" : "color:#b26a00;");
+                    QString tooltip =
+                        m_usbConnector ? m_usbConnector->powerSummary()
+                                       : QString();
+                    if (!charging) {
+                        tooltip += QStringLiteral(
+                            "\nUSB uses the iPad's only port. Unplug to "
+                            "charge, or use a PD dock.");
+                    }
+                    m_usbStatusLabel->setToolTip(tooltip);
                 }
                 if (m_usbConnectBtn) {
                     m_usbConnectBtn->setText("Reconnect USB device");
@@ -830,10 +846,26 @@ void MainWindow::ensureUsbConnector() {
                     }
                 }
                 if (m_tray) {
-                    m_tray->showMessage(
-                        "uxplay-windows",
-                        QStringLiteral("USB ready: %1").arg(name),
-                        QSystemTrayIcon::Information, 3000);
+                    QString warning;
+                    if (!charging && watts > 0 && watts < 10) {
+                        warning = QStringLiteral(
+                                      "iPad is not charging (%1W adapter); "
+                                      "USB uses its only port. Unplug to "
+                                      "charge, or use a PD dock.")
+                                      .arg(watts);
+                    } else if (!charging && percent >= 0 && percent < 20) {
+                        warning = QStringLiteral("iPad battery is low (%1%).")
+                                      .arg(percent);
+                    }
+                    if (!warning.isEmpty()) {
+                        m_tray->showMessage("uxplay-windows", warning,
+                                            QSystemTrayIcon::Warning, 10000);
+                    } else {
+                        m_tray->showMessage(
+                            "uxplay-windows",
+                            QStringLiteral("USB ready: %1").arg(name),
+                            QSystemTrayIcon::Information, 3000);
+                    }
                 }
             });
     connect(m_usbConnector, &UsbDeviceConnector::failed, this,

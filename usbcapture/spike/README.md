@@ -162,6 +162,23 @@ The persisted mode lives in `settings.json`:
 `--usb-obs` selects `window` and persists it. Closing the clean window
 switches the mode back to `off` and stops the sidecar/bridge processes.
 
+### Power
+
+USB capture is data-only; the PC port may not charge the iPad. Measured
+here (iPad13,18, iOS 27.3): `AdapterDetails` reports 5000mV / 500mA /
+3W and `Amperage` is about -1976 mA, while `BatteryIsCharging` is false.
+Stopping the clean output lowers the load but does not free the port: the
+iPad has one USB-C port, and while the data cable occupies it the device
+still sees only 3W. To charge, unplug and use a charger (AirPlay), or use
+a PD dock/injector that carries data and power together.
+The preflight reads the battery and adapter details, shows them in the
+status line, and warns (amber) when the iPad is not charging.
+
+A powered USB-C dock with PD passthrough and a 30W-or-more USB-C PD
+charger can supply power while keeping USB data to the PC. The dock's
+downstream USB-C port must support both data and charging; a laptop dock
+that only forwards PD to its upstream host will not charge the iPad.
+
 The OBS group also has a USB status line and `Connect USB device`
 button. It runs the preflight (usbmux list -> lockdown pair if needed ->
 Developer Mode -> mounter auto-mount) and only starts the sidecar when

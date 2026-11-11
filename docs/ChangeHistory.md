@@ -1,5 +1,29 @@
 # ChangeHistory
 
+## 2026.11.12 01:09 顯示 iPad 電池與 USB 供電狀態
+
+**類型**: 功能 · **檔案**: `src/usbdeviceconnector.cpp、src/usbdeviceconnector.h、src/mainwindow.cpp、docs/DEVELOPERS-GUIDE.md、usbcapture/spike/README.md、TODO.md`
+
+### 問題 - USB 模式會邊用邊掉電，但 app 沒有揭露供電不足
+
+### 根因 - PC USB 埠只給 5V／0.5A／3W，app 沒有讀電池與 adapter 資訊
+
+### 修改 - preflight 讀 com.apple.mobile.battery 與 diagnostics battery single
+
+實測 `AdapterDetails` 5000mV／500mA／3W、`Amperage` -1976mA、
+`BatteryIsCharging=false`；停止 live 只降低負載，不恢復充電；
+preflight 顯示
+`USB ready: iPad · 50% · not charging · 3W adapter`。
+
+- 狀態列顯示電量、是否充電、adapter 瓦數；未充電顯示橘色
+- tray 低電／未充電警告，明示 USB 佔用唯一埠
+- 明示 USB 佔用唯一埠：停止串流只降低負載，不會恢復充電
+- 文件補供電拓撲與 PD dock 注意事項
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.12 00:53 加入 USB 連線與配對入口
 
 **類型**: 功能 · **檔案**: `src/usbdeviceconnector.cpp、src/usbdeviceconnector.h、src/usbpython.cpp、src/usbpython.h、src/mainwindow.cpp、src/mainwindow.h、src/usbobscontroller.cpp、CMakeLists.txt、docs/DEVELOPERS-GUIDE.md、usbcapture/spike/README.md、TODO.md`

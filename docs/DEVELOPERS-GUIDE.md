@@ -290,6 +290,55 @@ build\dev\run-dev.cmd --usb-obs
 狀態列會顯示目前步驟與錯誤原因；失敗不會啟動 sidecar。
 `Connect USB device`／`Reconnect USB device` 可重跑 preflight。
 
+### USB 供電
+
+USB 模式只負責資料，不負責供電。PC 的 USB 埠不會因為 app 而提高
+電流；USB 2.0 預設 500mA、USB 3.x 900mA，USB-C 在沒有 PD 協商時
+通常只有 5V/1.5A 或 3A。
+
+本機實測（iPad13,18，iOS 27.3，接在主機 USB 埠）：
+
+```text
+AdapterDetails: 5000mV / 500mA / 3W ("usb brick")
+Amperage: -1976 mA（放電）
+BatteryIsCharging: false
+BatteryCurrentCapacity: 51%
+```
+
+也就是邊串流邊掉電。**就算停止 Clean Output，只要 USB 資料線還插在
+iPad 唯一的 USB-C 埠上，它仍然只能從這個埠取得 3W；停止串流只降低
+負載，不會恢復充電。** 要充電只有兩條路：拔掉 USB 線改用充電器
+（AirPlay），或使用可同時供電與資料的 PD dock／USB-C 供電分接器。
+preflight 會讀
+`com.apple.mobile.battery` 與 `diagnostics battery single`，狀態列顯示
+`USB ready: iPad · 50% · not charging · 3W adapter`；未充電時顯示橘色
+並在 tray 警告，但不會阻止啟動。
+
+長期使用要外接供電，接法：
+
+```text
+iPad USB-C ── USB-C hub/dock ── PC USB（資料）
+                    │
+                    └── USB-C PD 充電器（30W 以上）
+```
+
+名詞：
+
+- **upstream**：接電腦那側；**downstream**：接 iPad 那側。
+- **PD passthrough**：dock 把充電器的 USB PD 電力轉給下游裝置。
+- **CDP**（Charging Downstream Port）：可同時提供資料與充電的 USB 埠。
+
+選購與接線要確認：
+
+- dock/hub 的 downstream USB-C 必須同時支援資料與供電；只充電的埠、
+  或把 PD 只往 upstream 電腦送的 laptop dock 不會給 iPad 供電。
+- 充電器至少 30W USB-C PD（iPad 10 代原廠 20W，30W 有餘裕）。
+- 線材要支援資料；charge-only 線不會被列舉成 USB 裝置。
+- 不要用被動 Y 線分接電源，可能逆灌且不符合 USB-C 規範。
+
+替代方案：長期使用走 AirPlay，USB-C 埠留給充電器；USB 模式留給短
+時間、低延遲的場合。
+
 目前 video-only；AAC-ELD 在 Windows 還沒解碼。QuickTime USB 在
 user mode 不可行，需 libusb0 upper filter 與簽章 driver，未實作。
 `ENABLE_USB_CAPTURE=ON` 仍只編譯 QuickTime skeleton，與這條路無關。
