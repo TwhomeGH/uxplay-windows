@@ -35,7 +35,10 @@ You can also set it to run automatically when your PC starts
 >
 > Just click on `More info` and it will let you install. It complains because the executable is not signed. If you don't trust this software you can always build it yourself! See below.
 >
-> If prompted by Windows Firewall, please **allow** uxplay-windows to ensure it functions properly.
+> If prompted by Windows Firewall, please **allow** uxplay-windows to
+> ensure it functions properly. The MSI installer creates one managed
+> rule for the installed executable; development builds in different
+> paths create separate Windows rules.
 
 
 > [!NOTE]

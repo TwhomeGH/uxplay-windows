@@ -16,6 +16,7 @@ public:
                             const QString &deviceid,
                             int openConnections);
     void publishEngineLog(int level, const QString &message);
+    void publishEngineReady();
     void stopAirplay();
 
 signals:

@@ -732,8 +732,12 @@ void MainWindow::startServer() {
     qInfo() << "Starting UxPlay engine with arguments:" << args;
     clearClientInfo();
     resetMediaInfo("Waiting for stream");
-    if (m_errorLabel) m_errorLabel->setVisible(false);
-    m_appState = AppState::Starting;
+    if (m_lastEngineError.isEmpty() && m_errorLabel) {
+        m_errorLabel->setVisible(false);
+    }
+    if (m_lastEngineError.isEmpty()) {
+        m_appState = AppState::Starting;
+    }
     updateStatus();
 
     m_worker = new AirPlayWorker(this);
@@ -761,17 +765,17 @@ void MainWindow::startServer() {
 void MainWindow::stopServer() {
     qInfo() << "Stopping UxPlay engine";
     stopBluetoothBeacon();
+    if (m_videoTitleTimer) m_videoTitleTimer->stop();
     if (m_worker) {
         AirPlayWorker *worker = m_worker;
         m_worker = nullptr;
         worker->disconnect();
-        if (worker->isRunning()) {
-            QMetaObject::invokeMethod(worker, &AirPlayWorker::stopAirplay, Qt::QueuedConnection);
-            if (!worker->wait(1000)) {
-                qWarning() << "Engine did not stop within 1s; terminating thread";
-                worker->terminate();
-                worker->wait(1000);
-            }
+        worker->requestInterruption();
+        worker->stopAirplay();
+        if (!worker->wait(5000)) {
+            qWarning() << "Engine did not stop within 5s; terminating thread";
+            worker->terminate();
+            worker->wait(1000);
         }
         if (!worker->isRunning()) {
             worker->deleteLater();
@@ -789,49 +793,54 @@ void MainWindow::stopServer() {
 void MainWindow::onAirplayStarted() {
     m_running = true;
     m_appState = AppState::Waiting;
+    m_restartAttempt = 0;
+    m_lastEngineError.clear();
     if (m_errorLabel) m_errorLabel->setVisible(false);
-    qInfo() << "UxPlay engine started";
+    qInfo() << "UxPlay engine ready";
     updateStatus();
 
-    // rename video window when it pops up
-    printf("onAirplayStarted()!\n");
-    QTimer *monitorTimer = new QTimer(this);
-    connect(monitorTimer, &QTimer::timeout, this, [this, monitorTimer]() {
-        if (!m_running) {
-            monitorTimer->stop();
-            monitorTimer->deleteLater();
-            return;
-        }
+    if (!m_videoTitleTimer) {
+        m_videoTitleTimer = new QTimer(this);
+        connect(m_videoTitleTimer, &QTimer::timeout, this, [this]() {
+            if (!m_running) {
+                m_videoTitleTimer->stop();
+                return;
+            }
 
-        RenameData info;
-        info.pid = GetCurrentProcessId();
-        info.newTitle = "AirPlay Video Stream (ALT+ENTER for Fullscreen)"; 
+            RenameData info;
+            info.pid = GetCurrentProcessId();
+            info.newTitle = "AirPlay Video Stream (ALT+ENTER for Fullscreen)";
 
-        EnumWindows(EnumWindowsProcRename, reinterpret_cast<LPARAM>(&info));
-    });
-    monitorTimer->start(5000);
-
+            EnumWindows(EnumWindowsProcRename, reinterpret_cast<LPARAM>(&info));
+        });
+    }
+    m_videoTitleTimer->start(5000);
 }
 
 void MainWindow::onAirplayStopped() {
     m_running = false;
+    if (m_videoTitleTimer) m_videoTitleTimer->stop();
     clearClientInfo();
     resetMediaInfo("Not connected");
     qInfo() << "UxPlay engine stopped";
 
-    if (m_appState != AppState::Error && m_serverEnabled) {
-        m_appState = AppState::Starting;
+    if (!m_quitting && m_serverEnabled) {
+        static const int delays[] = {1000, 2000, 5000, 10000};
+        const int delay = delays[qMin(m_restartAttempt, 3)];
+        m_appState = AppState::Error;
+        qInfo() << "Engine stopped; restarting in" << delay
+                << "ms (attempt" << (m_restartAttempt + 1) << ")";
+        ++m_restartAttempt;
+        QTimer::singleShot(delay, this, &MainWindow::startServer);
+    } else if (!m_serverEnabled) {
+        m_appState = AppState::Disabled;
     }
     updateStatus();
-    
-    if (!m_quitting && m_serverEnabled) {
-        qInfo() << "Session ended, restarting engine in 1s to stay ready...";
-        QTimer::singleShot(1000, this, &MainWindow::startServer);
-    }
 }
 
 void MainWindow::onAirplayError(const QString &message) {
     qCritical() << "UxPlay engine error:" << message;
+    m_lastEngineError = message;
     m_appState = AppState::Error;
     if (m_errorLabel) {
         m_errorLabel->setText(message);
@@ -846,19 +855,38 @@ void MainWindow::onAirplayError(const QString &message) {
 
 void MainWindow::toggleServer() {
     const bool enable = !m_serverEnabled;
-    QSettings settings;
-    settings.setValue("server_enabled", enable);
-    m_serverEnabled = enable;
-
-    qInfo() << (enable ? "Enabling" : "Disabling") << "AirPlay; restarting to apply";
     if (m_tray) {
         m_tray->showMessage(
             "uxplay-windows",
-            enable ? "Starting AirPlay. The app will restart to apply."
-                   : "Stopping AirPlay. The app will restart to apply.",
-            QSystemTrayIcon::Information, 2500);
+            enable ? "Starting AirPlay" : "Stopping AirPlay",
+            QSystemTrayIcon::Information, 2000);
     }
-    restartApplication();
+    setServerEnabled(enable);
+}
+
+void MainWindow::setServerEnabled(bool enabled) {
+    if (m_serverEnabled == enabled) return;
+
+    QSettings settings;
+    settings.setValue("server_enabled", enabled);
+    m_serverEnabled = enabled;
+    m_restartAttempt = 0;
+
+    if (enabled) {
+        if (!ensureBonjourServiceReady()) {
+            m_serverEnabled = false;
+            settings.setValue("server_enabled", false);
+            qWarning() << "Cannot start AirPlay: Bonjour Service is not ready";
+            updateStatus();
+            return;
+        }
+        qInfo() << "Starting AirPlay (hot)";
+        startServer();
+    } else {
+        qInfo() << "Stopping AirPlay (hot)";
+        stopServer();
+    }
+    updateStatus();
 }
 
 void MainWindow::openLogFile() {
@@ -1041,7 +1069,7 @@ void MainWindow::updateStatus() {
         m_appState = AppState::Disabled;
         status = "AirPlay stopped";
     } else if (m_appState == AppState::Error) {
-        status = "UxPlay error - see log";
+        status = "Engine failing - see log";
     } else if (!m_running) {
         m_appState = AppState::Starting;
         status = "UxPlay server starting...";

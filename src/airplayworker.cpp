@@ -29,6 +29,12 @@ static void logCallback(int level, const char *message) {
     activeWorker->publishEngineLog(level, QString::fromUtf8(message));
 }
 
+static void readyCallback() {
+    if (!activeWorker) return;
+
+    activeWorker->publishEngineReady();
+}
+
 AirPlayWorker::AirPlayWorker(QObject *parent) : QThread(parent) {}
 
 void AirPlayWorker::setArgs(const QStringList &args) {
@@ -75,6 +81,10 @@ void AirPlayWorker::publishEngineLog(int level, const QString &message) {
     }
 }
 
+void AirPlayWorker::publishEngineReady() {
+    emit started();
+}
+
 void AirPlayWorker::run() {
     std::vector<QByteArray> argBytes;
     std::vector<char *> argv;
@@ -89,29 +99,23 @@ void AirPlayWorker::run() {
     }
 
     qDebug() << "Starting UxPlay engine with arguments:" << m_args;
-    emit started();
     activeWorker = this;
     set_uxplay_media_info_callback(mediaInfoCallback);
     set_uxplay_client_callback(clientCallback);
     set_uxplay_log_callback(logCallback);
+    set_uxplay_ready_callback(readyCallback);
 
-    int ret = 0;
+    const int ret = start_uxplay(static_cast<int>(argv.size()), argv.data());
 
-    // Loop con controllo di interruzione
-    while (!isInterruptionRequested()) {
-        ret = start_uxplay(static_cast<int>(argv.size()), argv.data());
-
-        // Se il processo termina, esci dal loop
-        if (ret != 0) {
-            emit errorOccurred(QString("Engine exited with code %1").arg(ret));
-            break;
-        }
-    }
-
+    set_uxplay_ready_callback(nullptr);
     set_uxplay_media_info_callback(nullptr);
     set_uxplay_client_callback(nullptr);
     set_uxplay_log_callback(nullptr);
     activeWorker = nullptr;
+
+    if (ret != 0 && !isInterruptionRequested()) {
+        emit errorOccurred(QString("Engine exited with code %1").arg(ret));
+    }
     emit stopped();
 }
 

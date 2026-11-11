@@ -40,11 +40,33 @@ int main(int argc, char *argv[]) {
     // Only one tray process may own the engine and the mDNS registration.
     // A second launch asks the first instance to show its window instead.
     const QString instanceKey = QStringLiteral("uxplay-windows-single-instance");
+    const QStringList startupArgs = QCoreApplication::arguments();
+
+    QByteArray remoteCommand;
+    if (startupArgs.contains(QStringLiteral("--stop"))) {
+        remoteCommand = "stop";
+    } else if (startupArgs.contains(QStringLiteral("--start"))) {
+        remoteCommand = "start";
+    }
+    if (!remoteCommand.isEmpty()) {
+        QLocalSocket socket;
+        socket.connectToServer(instanceKey);
+        if (socket.waitForConnected(1000)) {
+            socket.write(remoteCommand);
+            socket.flush();
+            socket.waitForBytesWritten(500);
+            return 0;
+        }
+        qWarning() << "No running uxplay-windows instance for command:"
+                   << remoteCommand;
+        return 0;
+    }
+
     const bool restarting =
-        QCoreApplication::arguments().contains(QStringLiteral("--restart"));
+        startupArgs.contains(QStringLiteral("--restart"));
     QLockFile instanceLock(
         QDir(QDir::tempPath()).filePath(QStringLiteral("uxplay-windows.lock")));
-    if (!instanceLock.tryLock(restarting ? 5000 : 100)) {
+    if (!instanceLock.tryLock(restarting ? 10000 : 100)) {
         if (!restarting) {
             QLocalSocket socket;
             socket.connectToServer(instanceKey);
@@ -102,14 +124,30 @@ int main(int argc, char *argv[]) {
     }
 
     MainWindow window;
+    auto dispatchCommand = [&window](QLocalSocket *socket) {
+        if (!socket) return;
+        const QByteArray command = socket->readAll().trimmed();
+        if (command.isEmpty()) return;
+        if (command == "stop") {
+            window.setServerEnabled(false);
+        } else if (command == "start") {
+            window.setServerEnabled(true);
+        } else {
+            window.showNormal();
+            window.raise();
+            window.activateWindow();
+        }
+        socket->deleteLater();
+    };
     QObject::connect(
         &instanceServer, &QLocalServer::newConnection, &app,
-        [&instanceServer, &window]() {
+        [&instanceServer, dispatchCommand]() {
             while (QLocalSocket *socket = instanceServer.nextPendingConnection()) {
-                socket->deleteLater();
-                window.showNormal();
-                window.raise();
-                window.activateWindow();
+                QObject::connect(socket, &QLocalSocket::readyRead, socket,
+                                 [dispatchCommand, socket]() {
+                                     dispatchCommand(socket);
+                                 });
+                dispatchCommand(socket);
             }
         });
 

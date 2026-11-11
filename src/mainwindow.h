@@ -25,6 +25,9 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow() override;
 
+public slots:
+    void setServerEnabled(bool enabled);
+
 protected:
     void closeEvent(QCloseEvent *event) override;
     bool nativeEvent(const QByteArray &eventType, void *message, qintptr *result) override;
@@ -134,6 +137,9 @@ private:
     bool m_quitting = false;
     bool m_serverEnabled = true;
     bool m_streaming = false;
+    int m_restartAttempt = 0;
+    QString m_lastEngineError;
+    QTimer *m_videoTitleTimer = nullptr;
     enum class AppState { Disabled, Starting, Waiting, Streaming, Error };
     AppState m_appState = AppState::Starting;
 };

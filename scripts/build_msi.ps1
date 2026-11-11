@@ -25,10 +25,15 @@ Push-Location $root
 try {
     wix extension add WixToolset.UI.wixext -acceptEula wix7
     if ($LASTEXITCODE -ne 0) {
-        throw "wix extension add failed with exit code $LASTEXITCODE"
+        throw "wix extension add (UI) failed with exit code $LASTEXITCODE"
+    }
+    wix extension add WixToolset.Firewall.wixext -acceptEula wix7
+    if ($LASTEXITCODE -ne 0) {
+        throw "wix extension add (Firewall) failed with exit code $LASTEXITCODE"
     }
     $out = Join-Path $root "uxplaywindows-installer-$Arch.msi"
-    wix build -acceptEula wix7 product.wxs -arch $Arch -out $out -ext WixToolset.UI.wixext
+    wix build -acceptEula wix7 product.wxs -arch $Arch -out $out `
+        -ext WixToolset.UI.wixext -ext WixToolset.Firewall.wixext
     if ($LASTEXITCODE -ne 0) {
         throw "wix build failed with exit code $LASTEXITCODE"
     }

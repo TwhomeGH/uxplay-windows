@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
-     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
+     xmlns:fw="http://wixtoolset.org/schemas/v4/wxs/firewall">
      
   <!-- version number is mayor.minor.zero.uxplayversion -->
   <Package
@@ -49,6 +50,12 @@
         <File Id="AppExeFile"
               Source="./release/uxplay-windows.exe"
               KeyPath="yes">
+          <fw:FirewallException
+            Id="UxPlayFirewall"
+            Name="uxplay-windows"
+            Description="Allow AirPlay mirroring and audio streaming"
+            Grouping="uxplay-windows"
+            IgnoreFailure="yes" />
           <Shortcut
             Name="uxplay-windows"
             Directory="ProgramMenuFolder"

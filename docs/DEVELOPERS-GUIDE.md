@@ -128,11 +128,30 @@ QSettings 內常用的值：`display_name`、`renderer_mode`、`resolution_mode`
 `resolution_width`、`resolution_height`、`resolution_refresh`、
 `ble_enabled`、`server_enabled`。
 
+## Windows 防火牆規則
+
+Windows 防火牆以**執行檔完整路徑**辨識程式；每個 build 目錄
+（`build/dev`、`build/fix`、`build/phase2a`、Temp 解壓）都是一個
+不同的程式，因此會各自產生一組規則。
+
+- 日常開發固定使用 `build/dev`；`BUILD_DIR` 只用於一次性隔離測試。
+- MSI 安裝時會建立一組 `uxplay-windows` 規則（Grouping 同為
+  `uxplay-windows`），指向
+  `C:\Program Files\uxplay-windows\uxplay-windows.exe`。
+- 清除舊 build／Temp 規則（需要管理員）：
+
+  ```powershell
+  .\scripts\clean_firewall_rules.ps1
+  ```
+
+  腳本保留 MSI 的 `uxplay-windows` group，移除其他 uxplay 規則。
+- 若 Windows 仍跳出提示，允許一次即可；同一路徑不會再重複建立。
+
 ## 疑難排解
 
 | 症狀 | 可能原因 | 處理 |
 | --- | --- | --- |
-| iPhone 看不到 PC | Bonjour 沒跑、防火牆擋 UDP 5353、不同網段 | 看 log 是否有 `register_dnssd`；啟動 Bonjour Service；允許 uxplay-windows 通過防火牆 |
+| iPhone 看不到 PC | Bonjour 沒跑、防火牆擋 UDP 5353、不同網段 | 看 log 是否有 `register_dnssd`；啟動 Bonjour Service；確認 MSI 的 `uxplay-windows` 防火牆規則存在 |
 | `register_dnssd` 失敗 | 名稱或 MAC 衝突、port 被佔用 | 關閉其他實例；必要時在 `arguments.txt` 加 `-m`／`-p` |
 | 引擎一啟動就退出 | 參數錯誤、GStreamer／Bonjour 初始化失敗 | 看 log 的 `[engine]` 與 `*** ERROR` 行；先用 `--engine-debug` |
 | GStreamer plugin 找不到 | `GST_PLUGIN_PATH` 沒指到 UCRT64 plugin | 用 `dev_run.sh`；確認 `$MSYSTEM_PREFIX/lib/gstreamer-1.0` 存在 |

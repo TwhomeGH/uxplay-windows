@@ -153,6 +153,7 @@ jobs:
           $env:PATH += ";$env:USERPROFILE\.dotnet\tools"
 
           wix extension add WixToolset.UI.wixext -acceptEula wix7
+          wix extension add WixToolset.Firewall.wixext -acceptEula wix7
 
           # 建立一個簡單 LICENSE.rtf
           Set-Content -Path LICENSE.rtf -Value "{\rtf1\ansi This is a sample license agreement.}"
@@ -160,7 +161,8 @@ jobs:
           wix build -acceptEula wix7 product.wxs `
             -arch x64 `
             -out uxplaywindows-installer.msi `
-            -ext WixToolset.UI.wixext
+            -ext WixToolset.UI.wixext `
+            -ext WixToolset.Firewall.wixext
 
 
           echo "x64 Done" > marker-x64.txt

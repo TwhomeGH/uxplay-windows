@@ -1,5 +1,56 @@
 # ChangeHistory
 
+## 2026.11.11 08:21 MSI 建立固定防火牆規則並清理舊 build 規則
+
+**類型**: 修正 · **檔案**: `product.wxs、scripts/build_msi.ps1、scripts/clean_firewall_rules.ps1、.github/workflows/build_uxplay-windows-v2.yml、.github/workflows/build-uxplay-windows-arm64.yml、docs/DEVELOPERS-GUIDE.md、README.md`
+
+### 問題 - 每次換 build 目錄就多一組 Windows 防火牆規則
+
+### 根因 - Windows 防火牆以執行檔完整路徑辨識程式
+
+build/dev、build/fix、build/phase2a、Temp 解壓都是不同程式，因此各自建立規則；程式本身沒有建立規則。
+
+### 修改 - MSI 透過 WiX Firewall extension 建立一組 uxplay-windows group 規則
+
+本機 MSI 已含 Wix5FirewallException table 與 install／uninstall custom
+actions；CI 同步加入 WixToolset.Firewall.wixext。舊規則是 Windows
+依程式路徑自動建立，不是 App 寫入。
+
+- 新增 clean_firewall_rules.ps1，保留 MSI group、移除舊 build／Temp 規則
+- 文件改為固定使用 build/dev，BUILD_DIR 只做一次性隔離
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
+## 2026.11.11 08:21 Phase 2A：引擎支援熱啟停與崩潰 backoff
+
+**類型**: 功能 · **檔案**: `libuxplay/uxplay.cpp、libuxplay/uxplay_api.h、src/airplayworker.cpp、src/airplayworker.h、src/mainwindow.cpp、src/mainwindow.h、src/main.cpp`
+
+### 問題 - Start/Stop 只能重啟整個 App，引擎停止不乾淨
+
+stop_uxplay 走 QueuedConnection 永遠不會被 worker 執行，cleanup 又直接 exit(0)。
+
+### 根因 - AirPlayWorker 沒有 Qt event loop，Queued 訊號不會派送
+
+worker 的 run() 是自訂阻塞迴圈，GUI 端只能用 Direct call 或引擎自己的 shutdown 狀態。
+
+### 修改 - 引擎改為單次 start_uxplay，stop 由引擎 thread 自行拆除
+
+以 build/phase2a 連續 Stop/Start 5 次：每次都重新
+Initialized server socket(s)、register_dnssd、UxPlay engine ready，
+App 全程存活，無 terminate。ready 回呼在引擎真正就緒後才發出，
+UI 不再提前顯示 started。
+
+- 新增 ready callback、reset_engine_options／reset_uxplay_state
+- cleanup 移除 exit，錯誤改回傳負數 exit code
+- GUI 直接呼叫 stopAirplay 並等待，崩潰 backoff 1／2／5／10 秒
+- 新增 --start／--stop IPC，托盤 Start/Stop 改為熱切換
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.11 06:57 修正安裝包缺少 FFmpeg DLL 導致引擎啟動即退出
 
 **類型**: 修正 · **檔案**: `make_release_CI.sh、make_release_CI_arm64.sh、product.wxs`
