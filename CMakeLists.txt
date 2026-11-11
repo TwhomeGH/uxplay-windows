@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 
 find_package(Qt6 COMPONENTS Core Widgets Network REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(USB_GST REQUIRED gstreamer-1.0 gstreamer-video-1.0)
 
 option(ENABLE_USB_CAPTURE "Build the QuickTime USB capture backend (experimental)" OFF)
 
@@ -24,6 +26,8 @@ add_executable(uxplay-windows WIN32
     src/settings.cpp
     src/logging.cpp
     src/mdns_responder.cpp
+    src/cleanoutputwindow.cpp
+    src/usbobscontroller.cpp
     src/resources.rc
 )
 
@@ -32,6 +36,25 @@ target_link_libraries(uxplay-windows PRIVATE
     Qt6::Widgets
     Qt6::Network
     uxplay
+    ${USB_GST_LIBRARIES}
+)
+
+target_include_directories(uxplay-windows PRIVATE
+    ${USB_GST_INCLUDE_DIRS}
+)
+
+target_compile_options(uxplay-windows PRIVATE ${USB_GST_CFLAGS_OTHER})
+
+target_compile_definitions(uxplay-windows PRIVATE
+    USB_BRIDGE_SCRIPT="${CMAKE_SOURCE_DIR}/usbcapture/spike/tools/stream_to_tcp.py"
+)
+
+add_custom_command(TARGET uxplay-windows POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+        "$<TARGET_FILE_DIR:uxplay-windows>/usbcapture"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_SOURCE_DIR}/usbcapture/spike/tools/stream_to_tcp.py"
+        "$<TARGET_FILE_DIR:uxplay-windows>/usbcapture/stream_to_tcp.py"
 )
 
 if(ENABLE_USB_CAPTURE)

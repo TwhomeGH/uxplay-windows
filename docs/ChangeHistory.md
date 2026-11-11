@@ -1,5 +1,26 @@
 # ChangeHistory
 
+## 2026.11.12 00:24 實作 USB Clean Output 視窗與 --usb-obs
+
+**類型**: 功能 · **檔案**: `src/cleanoutputwindow.cpp、src/cleanoutputwindow.h、src/usbobscontroller.cpp、src/usbobscontroller.h、src/mainwindow.cpp、src/mainwindow.h、src/main.cpp、CMakeLists.txt、docs/DEVELOPERS-GUIDE.md、usbcapture/spike/README.md、TODO.md`
+
+### 問題 - USB 畫面只能在 browser viewer 看，不能當 OBS 來源
+
+### 根因 - browser viewer 有 chrome 與 device frame，且沒有原生輸出視窗
+
+### 修改 - 新增 frameless Clean Output 視窗與固定標題
+
+實測視窗標題正確、60 fps、無外框；OBS Window Capture 可直接選。音訊尚未解碼。
+
+- UsbObsController 啟動 sidecar／bridge／GStreamer
+- rotation 用 /codec、crop 用 h265 caps
+- --usb-obs、tray、主視窗入口與 IPC
+- 修正 GStreamer bus 跨執行緒 QTimer
+
+**相關文件**: usbcapture/spike/README.md
+
+---
+
 ## 2026.11.12 00:10 實測 USB CoreDevice 到 GStreamer 的 bridge 與 rotation
 
 **類型**: 研究 · **檔案**: `usbcapture/spike/README.md、TODO.md`

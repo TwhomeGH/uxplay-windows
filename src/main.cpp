@@ -12,6 +12,7 @@
 #include <QProcessEnvironment>
 #include <QStandardPaths>
 #include <QSystemTrayIcon>
+#include <QTimer>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -72,10 +73,13 @@ int main(int argc, char *argv[]) {
     const QStringList startupArgs = QCoreApplication::arguments();
 
     QByteArray remoteCommand;
+    const bool launchUsbObs = startupArgs.contains(QStringLiteral("--usb-obs"));
     if (startupArgs.contains(QStringLiteral("--stop"))) {
         remoteCommand = "stop";
     } else if (startupArgs.contains(QStringLiteral("--start"))) {
         remoteCommand = "start";
+    } else if (launchUsbObs) {
+        remoteCommand = "usb-obs";
     }
     if (!remoteCommand.isEmpty()) {
         QLocalSocket socket;
@@ -86,9 +90,11 @@ int main(int argc, char *argv[]) {
             socket.waitForBytesWritten(500);
             return 0;
         }
-        qWarning() << "No running uxplay-windows instance for command:"
-                   << remoteCommand;
-        return 0;
+        if (remoteCommand != "usb-obs") {
+            qWarning() << "No running uxplay-windows instance for command:"
+                       << remoteCommand;
+            return 0;
+        }
     }
 
     const bool restarting =
@@ -170,6 +176,10 @@ int main(int argc, char *argv[]) {
     }
 
     MainWindow window;
+    if (launchUsbObs) {
+        QTimer::singleShot(0, &window,
+                           [&window]() { window.startUsbObs(true); });
+    }
     auto dispatchCommand = [&window](QLocalSocket *socket) {
         if (!socket) return;
         const QByteArray command = socket->readAll().trimmed();
@@ -178,6 +188,8 @@ int main(int argc, char *argv[]) {
             window.setServerEnabled(false);
         } else if (command == "start") {
             window.setServerEnabled(true);
+        } else if (command == "usb-obs") {
+            window.startUsbObs(false);
         } else {
             window.showNormal();
             window.raise();

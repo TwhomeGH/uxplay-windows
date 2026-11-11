@@ -19,6 +19,7 @@
 class QMenu;
 class QAction;
 class AirPlayWorker;
+class UsbObsController;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -29,6 +30,7 @@ public:
 
 public slots:
     void setServerEnabled(bool enabled);
+    void startUsbObs(bool minimize = false);
 
 protected:
     void closeEvent(QCloseEvent *event) override;
@@ -51,6 +53,7 @@ private slots:
                           const QString &deviceid);
     void onConnectionCountChanged(int count);
     void toggleServer();
+    void toggleUsbObs();
     void openLogFile();
     void toggleBle(bool checked); // bluetooth
     void toggleForceFullscreen(bool checked);
@@ -74,6 +77,7 @@ private:
     void scheduleWakeRestart();
     void updateResolutionControls();
     void resetMediaInfo(const QString &status);
+    void ensureUsbObsController();
 
     QProcess *m_beacon = nullptr;
 
@@ -102,6 +106,7 @@ private:
     QAction *m_autostartAction = nullptr;
     QAction *m_statusAction = nullptr;
     QAction *m_toggleServerAction = nullptr;
+    QAction *m_usbObsAction = nullptr;
     QAction *m_openLogAction = nullptr;
     QAction *m_clientAction = nullptr;
     QAction *m_connectionsAction = nullptr;
@@ -118,11 +123,13 @@ private:
     QPushButton *m_listargsBtn = nullptr;
     QPushButton *m_licenseBtn = nullptr;
     QPushButton *m_openLogBtn = nullptr;
+    QPushButton *m_usbObsBtn = nullptr;
     QLabel *m_statusLabel = nullptr;
     QLabel *m_errorLabel = nullptr;
     QTimer *m_wakeRestartTimer = nullptr;
 
     AirPlayWorker *m_worker = nullptr;
+    UsbObsController *m_usbObs = nullptr;
 
     QString m_clientName;
     QString m_clientModel;

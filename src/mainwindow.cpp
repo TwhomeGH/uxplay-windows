@@ -1,6 +1,8 @@
 #include "mainwindow.h"
 #include "airplayworker.h"
 #include "logging.h"
+#include "usbobscontroller.h"
+#include "cleanoutputwindow.h"
 #include "mdns_responder.hpp"
 #include <windows.h>
 #include <winsvc.h>
@@ -93,6 +95,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 
 MainWindow::~MainWindow() {
     m_quitting = true;
+    if (m_usbObs) {
+        m_usbObs->stop();
+    }
     stopServer();
 }
 
@@ -101,7 +106,7 @@ MainWindow::~MainWindow() {
 void MainWindow::setupUI() {
     setWindowTitle("uxplay-windows");
     setWindowIcon(QApplication::windowIcon());
-    setFixedSize(420, 480);
+    setFixedSize(420, 520);
 
     auto *central = new QWidget(this);
     setCentralWidget(central);
@@ -218,6 +223,10 @@ void MainWindow::setupUI() {
     connect(m_listargsBtn, &QPushButton::clicked, this, &MainWindow::openListArgsFile);
     layout->addWidget(m_listargsBtn);
 
+    m_usbObsBtn = new QPushButton("USB Clean Output (OBS, experimental)", this);
+    connect(m_usbObsBtn, &QPushButton::clicked, this, &MainWindow::toggleUsbObs);
+    layout->addWidget(m_usbObsBtn);
+
     m_autostartBtn = new QPushButton(this);
     connect(m_autostartBtn, &QPushButton::clicked, this, &MainWindow::toggleAutostart);
     layout->addWidget(m_autostartBtn);
@@ -282,6 +291,8 @@ void MainWindow::setupTray() {
     }
     m_trayMenu->addSeparator();
     m_toggleServerAction = m_trayMenu->addAction("Stop AirPlay", this, &MainWindow::toggleServer);
+    m_usbObsAction = m_trayMenu->addAction("USB Clean Output (experimental)", this,
+                                           &MainWindow::toggleUsbObs);
     m_openLogAction = m_trayMenu->addAction("Open Log", this, &MainWindow::openLogFile);
     m_trayMenu->addSeparator();
     m_trayMenu->addAction("Restart", this, &MainWindow::restartApplication);
@@ -701,6 +712,76 @@ void MainWindow::toggleServer() {
     setServerEnabled(enable);
 }
 
+void MainWindow::ensureUsbObsController() {
+    if (m_usbObs) {
+        return;
+    }
+
+    m_usbObs = new UsbObsController(this);
+    connect(m_usbObs, &UsbObsController::started, this, [this]() {
+        if (m_usbObsAction) {
+            m_usbObsAction->setText("Stop USB Clean Output");
+        }
+        if (m_usbObsBtn) {
+            m_usbObsBtn->setText("Stop USB Clean Output");
+        }
+        if (m_tray) {
+            m_tray->showMessage(
+                "uxplay-windows",
+                "USB Clean Output started. Add it in OBS with Window Capture.",
+                QSystemTrayIcon::Information, 4000);
+        }
+        qInfo() << "USB Clean Output started";
+    });
+    connect(m_usbObs, &UsbObsController::stopped, this, [this]() {
+        if (m_usbObsAction) {
+            m_usbObsAction->setText("USB Clean Output (experimental)");
+        }
+        if (m_usbObsBtn) {
+            m_usbObsBtn->setText("USB Clean Output (OBS, experimental)");
+        }
+        qInfo() << "USB Clean Output stopped";
+    });
+    connect(m_usbObs, &UsbObsController::errorOccurred, this,
+            [this](const QString &message) {
+                qCritical() << "USB Clean Output error:" << message;
+                if (m_tray) {
+                    m_tray->showMessage("uxplay-windows", message,
+                                        QSystemTrayIcon::Warning, 6000);
+                }
+            });
+}
+
+void MainWindow::toggleUsbObs() {
+    ensureUsbObsController();
+    if (!m_usbObs) {
+        return;
+    }
+    if (m_usbObs->isRunning()) {
+        m_usbObs->stop();
+    } else {
+        m_usbObs->start();
+    }
+}
+
+void MainWindow::startUsbObs(bool minimize) {
+    ensureUsbObsController();
+    if (!m_usbObs) {
+        return;
+    }
+    if (m_usbObs->isRunning()) {
+        if (m_usbObs->outputWindow()) {
+            m_usbObs->outputWindow()->show();
+            m_usbObs->outputWindow()->raise();
+        }
+    } else {
+        m_usbObs->start();
+    }
+    if (minimize) {
+        hide();
+    }
+}
+
 void MainWindow::setServerEnabled(bool enabled) {
     if (m_serverEnabled == enabled) return;
 
@@ -847,6 +928,9 @@ void MainWindow::showLicense() {
 
 void MainWindow::quit() {
     m_quitting = true;
+    if (m_usbObs) {
+        m_usbObs->stop();
+    }
     stopServer();
     QApplication::quit();
 }

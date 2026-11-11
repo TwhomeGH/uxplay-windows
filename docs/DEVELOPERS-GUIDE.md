@@ -247,22 +247,27 @@ Windows 防火牆以**執行檔完整路徑**辨識程式；每個 build 目錄
   避免 `ftp2.osuosl.org` 慢速造成 nightly 失敗。
 - Assets 名稱固定；正式版本、Core／Exp 分類留到 Phase 3。
 
-## USB capture backend（規劃中）
+## USB Clean Output（實驗性）
 
-QuickTime USB 擷取**不是 AirPlay**，也不是 `libuxplay` 的一部分；實作
-放在 top-level `usbcapture/`，預設不編譯。
+USB 螢幕走 CoreDevice display stream，不走 QuickTime USB。`--usb-obs`
+會啟動 Python sidecar + GStreamer，並開一個無邊框視窗
+`uxplay-windows USB Clean Output`；OBS 用 Window Capture 選這個標題。
 
-```bash
-cmake -S . -B build/usb -G Ninja \
-  -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-  -DENABLE_USB_CAPTURE=ON
-cmake --build build/usb
+```powershell
+build\dev\run-dev.cmd --usb-obs
 ```
 
-需要 `libimobiledevice`、`libusbmuxd`、GStreamer，以及 Windows 的
-Apple Mobile Device Service（usbmuxd）。目前只有 skeleton，
-`isBackendAvailable()` 固定回 false；協定 spike 見
-`usbcapture/README.md`。
+需求：
+
+- iPad 以 USB 連線、解鎖、信任此電腦。
+- Developer Mode 開啟。
+- DDI 已掛載：`py -3.11 -m pymobiledevice3 mounter auto-mount`。
+- Python 3 + `pymobiledevice3`；`UXPLAY_USB_PYTHON` 可覆寫直譯器。
+
+目前 video-only；AAC-ELD 在 Windows 還沒解碼。QuickTime USB 在
+user mode 不可行，需 libusb0 upper filter 與簽章 driver，未實作。
+`ENABLE_USB_CAPTURE=ON` 仍只編譯 QuickTime skeleton，與這條路無關。
+協定與實測數字見 `usbcapture/spike/README.md`。
 
 ## 目前限制（Phase 2A 後）
 

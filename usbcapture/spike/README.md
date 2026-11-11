@@ -111,7 +111,7 @@ length-prefixed HEVC access units as Annex-B to a local TCP socket:
 py -3.11 tools\stream_to_tcp.py --http-port 8099 --tcp-port 5005
 gst-launch-1.0 tcpclientsrc host=127.0.0.1 port=5005 ! `
     h265parse ! avdec_h265 ! videoflip method=counterclockwise ! `
-    videocrop right=8 bottom=12 ! videoconvert ! d3d11videosink
+    videocrop right=8 bottom=24 ! videoconvert ! d3d11videosink
 ```
 
 The bridge prepends VPS/SPS/PPS from the `/codec` hvcC record on keyframes.
@@ -123,12 +123,35 @@ Verified on 2026-11-12:
   `rotation: -90`.
 - `videoflip method=counterclockwise` makes the UI upright; this is the
   same orientation the web viewer applies.
-- `videocrop right=8 bottom=12` removes the encoder padding and restores
+- `videocrop right=8 bottom=24` removes the encoder padding and restores
   the 1640x2360 display aspect ratio.
 
 The bridge itself does not rotate; the renderer owns rotation. The clean
 OBS output must not draw the debug viewer's device frame and must not use
 the viewer's stretch-to-fill canvas lock.
+
+### Clean Output in the app
+
+The app runs the same pipeline through `UsbObsController` and
+`CleanOutputWindow`:
+
+```powershell
+build\dev\run-dev.cmd --usb-obs
+```
+
+Or use the tray menu / main-window button `USB Clean Output`.
+It opens a frameless window titled `uxplay-windows USB Clean Output`
+with no device bezel, no browser chrome and no controls. In OBS choose
+**Window Capture** and select that title; the right-click menu can copy
+the source name.
+
+The controller starts the Python sidecar, the bridge and GStreamer, and
+applies `display.rotation` and the hvcC crop itself. One capture session
+feeds only the clean window.
+
+Prerequisites: Python 3 with `pymobiledevice3`, Developer Mode, a mounted
+DDI, and a trusted device. `UXPLAY_USB_PYTHON` overrides the interpreter
+(e.g. `py -3.11`). Video only; AAC-ELD audio is not decoded on Windows yet.
 
 Limitations:
 
@@ -136,8 +159,8 @@ Limitations:
   normal consumer flow.
 - The CLI documents video streaming as iOS 27+.
 - DRM-protected video may render black, as with any screen capture.
-- Product integration needs the CoreDevice display service and RTP
-  depacketizer ported to C++ (or a Python sidecar).
+- Product integration currently uses a Python sidecar; a native C++ port
+  is still future work.
 
 ## Tools in this directory
 
