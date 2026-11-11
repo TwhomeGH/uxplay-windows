@@ -170,7 +170,10 @@ here (iPad13,18, iOS 27.3): `AdapterDetails` reports 5000mV / 500mA /
 Stopping the clean output lowers the load but does not free the port: the
 iPad has one USB-C port, and while the data cable occupies it the device
 still sees only 3W. To charge, unplug and use a charger (AirPlay), or use
-a PD dock/injector that carries data and power together.
+a PD dock/injector that carries data and power together. With a USB-A
+PC port the data cable is USB-C-to-USB-A; a USB-C-to-USB-C cable cannot
+plug into it and does not add PD. See the developer guide section
+"USB 供電 / 採購與接線" for the purchase checklist.
 The preflight reads the battery and adapter details, shows them in the
 status line, and warns (amber) when the iPad is not charging.
 

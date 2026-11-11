@@ -317,7 +317,7 @@ preflight 會讀
 長期使用要外接供電，接法：
 
 ```text
-iPad USB-C ── USB-C hub/dock ── PC USB（資料）
+iPad USB-C ── USB-C hub/dock ── PC USB-A／USB-C（資料）
                     │
                     └── USB-C PD 充電器（30W 以上）
 ```
@@ -328,13 +328,54 @@ iPad USB-C ── USB-C hub/dock ── PC USB（資料）
 - **PD passthrough**：dock 把充電器的 USB PD 電力轉給下游裝置。
 - **CDP**（Charging Downstream Port）：可同時提供資料與充電的 USB 埠。
 
-選購與接線要確認：
+#### 採購與接線
 
-- dock/hub 的 downstream USB-C 必須同時支援資料與供電；只充電的埠、
-  或把 PD 只往 upstream 電腦送的 laptop dock 不會給 iPad 供電。
-- 充電器至少 30W USB-C PD（iPad 10 代原廠 20W，30W 有餘裕）。
-- 線材要支援資料；charge-only 線不會被列舉成 USB 裝置。
-- 不要用被動 Y 線分接電源，可能逆灌且不符合 USB-C 規範。
+**不是買一般的 USB 分線器。** 被動一分二 Y 線沒有 PD 協商，可能逆灌；
+需要的是「帶 PD 輸入、能對 downstream 供電」的主動式 hub／dock，或
+標示 data + charging 的 USB-C 供電分接器（power injector）。
+
+**也不是「線只有資料功能」。** USB 資料線通常也帶電；能列舉、能串流
+表示資料與基本 VBUS 正常。`3W` 是 USB-A 2.0 埠的 500mA 上限：
+換支援 3A 的 A-C 線仍是 500mA；換 USB 3 埠＋線最多 900mA（4.5W），
+仍遠低於 iPad 使用中的約 10W。只有 PD 供電源（dock／充電器）會改變。
+charge-only 線沒有資料對，會直接列舉不到；你現在能串流，所以不是
+這個問題。
+
+主板的 AI Charging／BC 1.2 是 **5V 增流**（1.5A／2.4A，7.5／12W），
+不是 PD；可以減緩掉電，但通常不足以在滿載時充電。USB-A 沒有 PD，
+這是硬體上限。若主板有 ON/OFF Charge 或指定充電埠，可以測試，
+adapter 瓦數應會上升，但仍不會到 20W。
+
+桌機只有 USB-A 時：
+
+- 資料線用 **USB-C（iPad）→ USB-A（PC）**；USB 2.0 即可，USB 3 更好。
+- USB-A 埠本身沒有 PD，最多 5V/0.5A（USB 2.0）或 0.9A（USB 3.x），
+  不可能靠這條線充電。
+- **USB-C→USB-C 線不能直接插進 USB-A 埠**；C-C 是用在充電器↔dock、
+  或 dock↔iPad。PC 端要 A-C（或 PC 有 USB-C 埠才用 C-C）。
+
+採購清單：
+
+| 角色 | 規格 | 注意 |
+| --- | --- | --- |
+| 供電 hub/dock | downstream USB-C 支援資料 + 充電，PD passthrough | 只往 upstream 筆電送 PD 的 laptop dock 不行 |
+| 充電器 | USB-C PD 30W 以上 | iPad 會自行協商，不會硬吃 |
+| PC 資料線 | USB-C→USB-A 或 C→C，依 PC 埠 | 必須是資料線，不是 charge-only |
+| 充電線 | USB-C→USB-C PD 60W 以上 | 充電器到 dock |
+| iPad 線 | USB-C→USB-C 資料 + PD | 若 dock 到 iPad 是 C 口 |
+
+不要買：
+
+- 被動 Y 型「一分二」分線器：可能逆灌、沒有 PD 協商。
+- 無電源 hub：下游通常只有 5V/0.9A。
+- 只標「充電」的 USB-C 埠：可能沒有資料。
+- 只把 PD 往 upstream 筆電送的 laptop dock：iPad 還是不會充。
+
+驗證：
+
+- app 狀態列應從 `3W adapter` 變成 `charging` 且瓦數大於 10W。
+- 若仍是 `3W`／`not charging`，dock 沒把 PD 送到 iPad。
+- iPad 80% 優化充電時可能暫停充電；以 adapter 瓦數與 app 狀態為準。
 
 替代方案：長期使用走 AirPlay，USB-C 埠留給充電器；USB 模式留給短
 時間、低延遲的場合。

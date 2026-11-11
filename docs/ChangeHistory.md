@@ -1,5 +1,26 @@
 # ChangeHistory
 
+## 2026.11.12 01:18 補充 USB 模式採購與接線建議
+
+**類型**: 文件 · **檔案**: `docs/DEVELOPERS-GUIDE.md、usbcapture/spike/README.md、TODO.md`
+
+### 問題 - USB 模式需要同時供電，但沒有採購與線材指引
+
+### 根因 - 一般 USB 分線器易被誤解；PC 只有 USB-A 時 C-C 線不能直接接
+
+### 修改 - 新增採購清單：downstream 供電 hub、30W PD、A-C／C-C 線
+
+驗證以 app 狀態列 charging 且瓦數大於 10W 為準。
+
+- 說明被動 Y 線、無電源 hub、只往 upstream 供電 dock 的風險
+- 補桌機只有 USB-A 的接法與驗證方式
+- 釐清供電不足是 USB-A 埠 500mA 上限，不是線材只有傳輸功能
+- 說明 AI Charging／BC 1.2 是 5V 增流，不是 PD
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.12 01:09 顯示 iPad 電池與 USB 供電狀態
 
 **類型**: 功能 · **檔案**: `src/usbdeviceconnector.cpp、src/usbdeviceconnector.h、src/mainwindow.cpp、docs/DEVELOPERS-GUIDE.md、usbcapture/spike/README.md、TODO.md`

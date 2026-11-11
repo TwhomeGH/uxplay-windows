@@ -77,6 +77,7 @@
 - [ ] AirPlay 影片視窗共用 CleanOutputWindow（engine window-handle hook）。
 - [ ] Virtual camera（Media Foundation）可行性 spike 與實作。
 - [ ] 多台 USB 裝置的 UDID 選擇（目前 preflight 取第一台）。
+- [x] 採購與接線建議（PD dock／USB-A 桌機）。
 - [ ] PD dock 實測：資料＋供電同時運作（需硬體）。
 - [ ] `settings.json` 增加 `mode=airplay/usb`。
 - [ ] Apple Mobile Device 依賴與安裝包策略。
