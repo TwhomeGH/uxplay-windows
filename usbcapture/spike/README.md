@@ -102,6 +102,31 @@ iPad), so the viewer needs its rotate control; a native integration must
 apply the same transform. Older browsers without HEVC WebCodecs support
 cannot decode this page.
 
+### Native renderer bridge
+
+`tools/stream_to_tcp.py` reads the sidecar's `/stream.bin` and rewrites the
+length-prefixed HEVC access units as Annex-B to a local TCP socket:
+
+```powershell
+py -3.11 tools\stream_to_tcp.py --http-port 8099 --tcp-port 5005
+gst-launch-1.0 tcpclientsrc host=127.0.0.1 port=5005 ! `
+    h265parse ! avdec_h265 ! d3d11videosink
+```
+
+The bridge prepends VPS/SPS/PPS from the `/codec` hvcC record on keyframes.
+To capture one decoded frame instead of opening a window:
+
+```powershell
+gst-launch-1.0 tcpclientsrc host=127.0.0.1 port=5005 ! `
+    h265parse ! avdec_h265 ! videoconvert ! pngenc ! `
+    identity eos-after=1 ! filesink location=out\frame.png
+```
+
+The sidecar prints `rotation: -90` when the display turns. A native
+renderer must apply that rotation once. The clean OBS output must not draw
+the debug viewer's device frame, and must not use the viewer's
+stretch-to-fill canvas lock.
+
 Limitations:
 
 - Developer Mode and a mounted DDI are hard requirements. This is not a
@@ -119,6 +144,7 @@ Limitations:
 - `tools/qt_winusb.py`: WinUSB access probe; documents the Apple filter
   rejection.
 - `tools/rtp_dump.py`: RTP/HEVC unwrap to Annex-B `.h265`.
+- `tools/stream_to_tcp.py`: `/stream.bin` to Annex-B bridge for GStreamer.
 - `patches/quicktime_video_hack-windows.patch`: GStreamer removal and
   CGO build fix for the upstream tool.
 

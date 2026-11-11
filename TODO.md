@@ -50,16 +50,21 @@
 ## Phase 5 - USB 擷取（探索）
 
 - [x] 建立 `usbcapture/` 骨架與 `ENABLE_USB_CAPTURE`（預設 OFF）。
+- [x] USB 定位：獨立選用模式，預設 AirPlay 不受影響。
 - [x] Windows spike：QuickTime USB 在 user mode 不可行，需 libusb0 upper
   filter；CoreDevice display stream 可用（iOS 27+，需 Developer Mode + DDI）。
 - [x] iOS 27 QuickTime subclass 由 `0x2A` 改為 `0xFD`，已記錄於 spike README。
-- [ ] 決定 USB backend：
-  - A) QuickTime + libusb0 filter（免 Developer Mode，需簽章 driver）
-  - B) CoreDevice display stream（免 driver，需 Developer Mode + DDI）
-- [ ] 若選 B：把 displayservice／RTP 接到 GStreamer（C++ 或 sidecar）。
-- [ ] 若選 A：libusb0 filter installer、0xFD 偵測、Qt worker。
+- [x] CoreDevice `/stream.bin` → Annex-B → GStreamer bridge 原型
+  （`usbcapture/spike/tools/stream_to_tcp.py`）。
+- [ ] bridge 實測（iPad 未連接；接回後用 `tcpclientsrc` 驗證）。
+- [ ] Clean Output 視窗：frameless、無邊框、固定標題、OBS Window Capture。
+- [ ] `--usb-obs`／`usb.obs_mode`／tray 入口（已有實例走 IPC）。
+- [ ] rotation 一律用 `/codec` 的 `display.rotation`，不依賴 browser type 4。
+- [ ] diagnostics web：同一個 session 的 telemetry，不另開 stream。
+- [ ] USB backend 最終選擇：B（CoreDevice）為目前驗證路線；A 需簽章
+  driver，暫不投入。
+- [ ] （A 備案）libusb0 filter installer、`0xFD` 偵測、QuickTime demux。
 - [ ] usbmuxd／libimobiledevice 配對與 trust 流程。
-- [ ] QuickTime H.264／音訊 demux 接到 GStreamer。
 - [ ] `src/usbworker` Qt 轉接層與 UI 模式切換。
 - [ ] `settings.json` 增加 `mode=airplay/usb`。
 - [ ] Apple Mobile Device 依賴與安裝包策略。

@@ -1,6 +1,7 @@
 out/
 tools/quicktime_video_hack/
 tools/*.exe
+__pycache__/
 *.h264
 *.h265
 *.rtp

@@ -1,5 +1,25 @@
 # ChangeHistory
 
+## 2026.11.12 00:02 加入 USB CoreDevice 串流到 GStreamer 的 bridge 原型
+
+**類型**: 研究 · **檔案**: `usbcapture/spike/tools/stream_to_tcp.py、usbcapture/spike/README.md、TODO.md`
+
+### 問題 - Clean Output 需要原生 video，而不是 browser viewer
+
+### 根因 - browser viewer 有 device frame、Windows 無音訊，rotation 又依賴事件時序
+
+### 修改 - 新增 /stream.bin → Annex-B TCP bridge
+
+bridge 尚未實測，iPad 目前未連接；GStreamer 外掛檢查通過。
+
+- 從 /codec hvcC 取 VPS/SPS/PPS
+- GStreamer tcpclientsrc → h265parse → avdec_h265 管道
+- rotation 以 display.rotation 為準，clean output 不畫外框
+
+**相關文件**: usbcapture/spike/README.md
+
+---
+
 ## 2026.11.11 23:46 完成 USB 擷取 spike：QuickTime 不可行、CoreDevice 可用
 
 **類型**: 研究 · **檔案**: `usbcapture/spike/README.md、usbcapture/spike/tools、TODO.md`

@@ -8,3 +8,4 @@ _site/
 /*.msi
 /*.wixpdb
 /.wix/
+.playwright-mcp/*
