@@ -1,5 +1,24 @@
 # ChangeHistory
 
+## 2026.11.11 21:42 修正 arm64 nightly 的 pacman 下載逾時
+
+**類型**: 修正 · **檔案**: `.github/workflows/build-uxplay-windows-arm64.yml、.github/workflows/build_uxplay-windows-v2.yml、docs/DEVELOPERS-GUIDE.md`
+
+### 問題 - arm64 nightly 在 install build dependencies 失敗，後續 release 步驟全被跳過
+
+### 根因 - pacman 從 ftp2.osuosl.org 下載 clang-aarch64 套件時低於 1 B/s，10 秒後逾時
+
+### 修改 - 固定 mirror.msys2.org，pacman 加 --disable-download-timeout 並重試 3 次
+
+run 43030360402 在 13:36:43 出現 `failed retrieving ... Operation too slow`；
+x64 run 43030360409 成功並已顯示台北時間。推送後重跑 nightly 驗證 arm64。
+
+- x64 套用同樣的 mirror／重試設定
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.11 21:34 Nightly release 改用台北時間與 AM/PM
 
 **類型**: 改進 · **檔案**: `.github/workflows/build_uxplay-windows-v2.yml、.github/workflows/build-uxplay-windows-arm64.yml、docs/DEVELOPERS-GUIDE.md`

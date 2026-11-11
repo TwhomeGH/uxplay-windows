@@ -108,7 +108,16 @@ jobs:
           export PIP_CACHE_DIR="${PWD}/pip-cache"
           mkdir -p "$PIP_CACHE_DIR"
 
-          pacman -S --needed --noconfirm - < clangarm64_dependencies.txt
+          # ftp2.osuosl.org has been slow for the clang-aarch64 repo.
+          sed -i 's|^Server = .*|Server = https://mirror.msys2.org/mingw/$repo|' /etc/pacman.d/mirrorlist.mingw
+
+          for attempt in 1 2 3; do
+            if pacman -S --needed --noconfirm --disable-download-timeout - < clangarm64_dependencies.txt; then
+              break
+            fi
+            echo "pacman attempt ${attempt} failed; retrying in 10s" >&2
+            sleep 10
+          done
 
           if ! python -c "import winrt.windows.foundation" 2>/dev/null; then
             pip install \

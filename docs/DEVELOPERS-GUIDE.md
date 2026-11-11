@@ -243,6 +243,8 @@ Windows 防火牆以**執行檔完整路徑**辨識程式；每個 build 目錄
   tag 指向當前 `main` commit。
 - 名稱：`Nightly Build <short-sha> - <台北時間 AM/PM> (UTC+8, Asia/Taipei)`。
 - 內文：commit 連結、workflow run、架構、最近 10 筆 commit。
+- arm64 的 `pacman` 依賴安裝固定走 `mirror.msys2.org`，失敗重試 3 次；
+  避免 `ftp2.osuosl.org` 慢速造成 nightly 失敗。
 - Assets 名稱固定；正式版本、Core／Exp 分類留到 Phase 3。
 
 ## 目前限制（Phase 2A 後）
