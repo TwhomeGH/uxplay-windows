@@ -1,8 +1,10 @@
 # 待辦清單 TODO
 
 > [!TIP]
-> AirPlay／UX 改進依「可觀測性 → 生命週期 → 功能 → 體驗」分期推進；
-> 完成後把 `[ ]` 改成 `[x]`，並用 `changelogkit add` 留下變更紀錄。
+> AirPlay 是預設與主線；USB 是 optional／experimental，預設 `off`。
+> AirPlay／UX 改進依「可觀測性 → 生命週期 → 穩定度 → 功能 → 體驗」
+> 分期推進；完成後把 `[ ]` 改成 `[x]`，並用 `changelogkit add`
+> 留下變更紀錄。
 
 ## Phase 1 — 可觀測性與基本操作
 
@@ -20,6 +22,15 @@
 - [ ] 設定變更改為重啟引擎 worker，UI 顯示 pending 變更與單一「套用」動作。
 - [x] 修正優雅停止路徑：`stop_uxplay()` 實際被呼叫；移除 `cleanup()` 內的 `exit(0)`。
 - [x] 引擎崩潰重啟加入 backoff，並顯示「引擎連續失敗」狀態。
+
+## Phase 2D — AirPlay 穩定度（主線）
+
+- [ ] 1h／4h soak：記錄 CPU、RSS、連線數與最後錯誤。
+- [ ] 20 次 reconnect（iPad 斷線／重連）無 freeze。
+- [ ] 網路切換（Wi-Fi／Ethernet）後自動重啟引擎並 re-register mDNS。
+- [ ] sleep／wake 後自動恢復 engine、Bonjour 與音訊。
+- [ ] 音訊裝置變更／取樣率切換的 fallback。
+- [ ] 健康狀態（RSS／CPU／last error）寫入 log 或 tray tooltip。
 
 ## Phase 3 — AirPlay 功能
 
@@ -48,6 +59,8 @@
 - [x] MSI 固定防火牆規則（WiX Firewall extension）與清理舊 build 規則腳本。
 
 ## Phase 5 - USB 擷取（探索）
+
+> 可選模式；不阻塞 AirPlay 主線，預設 `obs.mode=off`。
 
 - [x] 建立 `usbcapture/` 骨架與 `ENABLE_USB_CAPTURE`（預設 OFF）。
 - [x] USB 定位：獨立選用模式，預設 AirPlay 不受影響。

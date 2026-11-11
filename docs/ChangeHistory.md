@@ -1,5 +1,23 @@
 # ChangeHistory
 
+## 2026.11.12 01:44 定位 AirPlay 主線與 USB 可選
+
+**類型**: 文件 · **檔案**: `TODO.md`
+
+### 問題 - USB 探索容易發散，需要固定產品優先順序
+
+### 根因 - USB 供電與驅動限制多；AirPlay 才是主要使用路徑
+
+### 修改 - TODO 加註 AirPlay 預設／主線、USB optional／experimental
+
+USB 保持 obs.mode=off 預設，不阻塞 AirPlay。
+
+- 新增 Phase 2D AirPlay 穩定度：soak、reconnect、網路、sleep、音訊、健康狀態
+
+**相關文件**: TODO.md
+
+---
+
 ## 2026.11.12 01:18 補充 USB 模式採購與接線建議
 
 **類型**: 文件 · **檔案**: `docs/DEVELOPERS-GUIDE.md、usbcapture/spike/README.md、TODO.md`
