@@ -70,6 +70,9 @@ export BONJOUR_SDK_HOME
 
 if [[ "$CLEAN" -eq 1 ]]; then
     echo "==> Removing $BUILD_DIR"
+    if [[ -e "$BUILD_DIR/lib/gstreamer-1.0" ]]; then
+        cmd //c rmdir "$(cygpath -w "$BUILD_DIR/lib/gstreamer-1.0")" >/dev/null 2>&1 || true
+    fi
     if ! rm -rf "$BUILD_DIR"; then
         echo "ERROR: cannot remove $BUILD_DIR." >&2
         echo "       A running app or a terminal whose CWD is that folder may block it." >&2
@@ -100,6 +103,21 @@ cmake --build "$BUILD_DIR" --parallel
 mkdir -p "$BUILD_DIR/resources"
 if [[ -f "$REPO_ROOT/stuff/newicon.ico" ]]; then
     cp -f "$REPO_ROOT/stuff/newicon.ico" "$BUILD_DIR/resources/icon.ico"
+fi
+
+# Keep build/dev self-contained. VS Code's gdb does not always inherit the
+# UCRT64 PATH, and a bare exe then dies at load time with 0xc0000135.
+cp -f "$PREFIX/bin/"*.dll "$BUILD_DIR/"
+
+QT_PLUGINS_WIN="$(cygpath -w "$PREFIX/share/qt6/plugins")"
+cat > "$BUILD_DIR/qt.conf" <<EOF
+[Paths]
+Plugins=$QT_PLUGINS_WIN
+EOF
+
+if [[ ! -e "$BUILD_DIR/lib/gstreamer-1.0" ]]; then
+    mkdir -p "$BUILD_DIR/lib"
+    cp -r "$PREFIX/lib/gstreamer-1.0" "$BUILD_DIR/lib/"
 fi
 
 # A dev exe is dynamically linked to the MinGW runtime (libgcc_s_seh-1.dll,

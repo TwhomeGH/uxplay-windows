@@ -113,6 +113,11 @@ bash scripts/dev_run.sh --detach         # 背景啟動後返回
 `QT_PLUGIN_PATH`、`GST_PLUGIN_PATH` 與 `run-dev.cmd` 相同。
 中斷點可直接設在 `src/main.cpp`、`src/mainwindow.cpp`。
 
+`dev_build.sh` 會把 UCRT64 的 DLL、`qt.conf` 與 GStreamer plugins
+放進 `build/dev`，所以 F5 不需要先開 MSYS2 shell。`launch.json` 目前
+使用這台機器的固定 UCRT64 路徑；換機器時同時改 `.vscode/settings.json`
+與 `.vscode/launch.json`。
+
 注意：
 
 - F5 前先結束已在執行的 dev app；否則連結失敗，或新 instance

@@ -14,20 +14,20 @@
             "environment": [
                 {
                     "name": "PATH",
-                    "value": "${workspaceFolder}\\build\\dev;${config:msys2.prefix}\\bin;${env:PATH}"
+                    "value": "H:\\FIX_VIAP\\msys64\\ucrt64\\bin;${workspaceFolder}\\build\\dev;${env:PATH}"
                 },
                 {
                     "name": "QT_PLUGIN_PATH",
-                    "value": "${config:msys2.prefix}\\share\\qt6\\plugins"
+                    "value": "H:\\FIX_VIAP\\msys64\\ucrt64\\share\\qt6\\plugins"
                 },
                 {
                     "name": "GST_PLUGIN_PATH",
-                    "value": "${config:msys2.prefix}\\lib\\gstreamer-1.0"
+                    "value": "H:\\FIX_VIAP\\msys64\\ucrt64\\lib\\gstreamer-1.0"
                 }
             ],
             "externalConsole": false,
             "MIMode": "gdb",
-            "miDebuggerPath": "${config:msys2.prefix}\\bin\\gdb.exe",
+            "miDebuggerPath": "H:\\FIX_VIAP\\msys64\\ucrt64\\bin\\gdb.exe",
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing",
@@ -38,6 +38,21 @@
                     "description": "Use Intel disassembly",
                     "text": "-gdb-set disassembly-flavor intel",
                     "ignoreFailures": true
+                },
+                {
+                    "description": "Put UCRT64 runtime on the inferior PATH",
+                    "text": "-gdb-set environment PATH \"H:\\\\FIX_VIAP\\\\msys64\\\\ucrt64\\\\bin;${workspaceFolder}\\\\build\\\\dev;${env:PATH}\"",
+                    "ignoreFailures": false
+                },
+                {
+                    "description": "Point Qt at the UCRT64 plugins",
+                    "text": "-gdb-set environment QT_PLUGIN_PATH H:\\\\FIX_VIAP\\\\msys64\\\\ucrt64\\\\share\\\\qt6\\\\plugins",
+                    "ignoreFailures": false
+                },
+                {
+                    "description": "Point GStreamer at the UCRT64 plugins",
+                    "text": "-gdb-set environment GST_PLUGIN_PATH H:\\\\FIX_VIAP\\\\msys64\\\\ucrt64\\\\lib\\\\gstreamer-1.0",
+                    "ignoreFailures": false
                 }
             ],
             "preLaunchTask": "build-dev"

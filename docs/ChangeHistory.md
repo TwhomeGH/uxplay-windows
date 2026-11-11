@@ -1,5 +1,27 @@
 # ChangeHistory
 
+## 2026.11.11 18:45 修正 VS Code F5 的 0xc0000135
+
+**類型**: 修正 · **檔案**: `.vscode/launch.json、scripts/dev_build.sh、docs/DEVELOPERS-GUIDE.md`
+
+### 問題 - VS Code F5 以 gdb 啟動 dev exe 時，程式以 0xc0000135 退出
+
+### 根因 - launch 的 PATH 未帶進 inferior；dev build 未自帶 DLL 與 plugins
+
+### 修改 - dev_build.sh 把 UCRT64 DLL、qt.conf、GStreamer plugins 放進 build/dev
+
+先前 F5 的 debug console 顯示 gdb 啟動後 app 以 0xc0000135
+退出；修正後 `build/dev` 有 349 個 DLL、`qt.conf` 與
+`lib/gstreamer-1.0`。F5 已能啟動 app，log 於 18:43:26 出現
+`Starting UxPlay engine`；gdb 也已在 `src/main.cpp:34` 成功停下。
+VS Code 的停止/重啟會讓最後的 process 檢查為 0。
+
+- launch.json 改用固定 UCRT64 路徑，並用 setupCommands 設定 inferior 環境
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.11 18:31 新增 VS Code F5 偵錯設定
 
 **類型**: 維護 · **檔案**: `.vscode/launch.json、.vscode/tasks.json、.vscode/settings.json、.vscode/c_cpp_properties.json、docs/DEVELOPERS-GUIDE.md、scripts/dev_build.sh`
