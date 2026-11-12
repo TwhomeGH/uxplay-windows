@@ -268,15 +268,16 @@ grep -E "register_dnssd|Initialized server socket|using system MAC" \
 
 ### Media Info HUD
 
-主視窗 `Media Info HUD` 勾選後，會在 AirPlay 影片視窗上顯示一個
-半透明、點擊穿透的資訊疊層：
+主視窗 `Media Info HUD` 勾選後，資訊會直接畫進 AirPlay 影片畫面：
 
 - 內容：Client、Status、Video Codec／Stream Size、Decoder、
   Renderer、Audio Codec、Audio Format。
-- 開關：主視窗 checkbox、tray `Media Info HUD`。
-- 位置：tray `HUD position` 可選 `Top left`／`Top right`；預設
-  `top-left`。
-- 只會在已連線且有影片視窗時顯示；不影響滑鼠操作。
+- 實作：GStreamer `textoverlay name=hud_overlay`，文字是 video
+  frame 的一部分，因此只有一個視窗，不會有獨立 HUD 閃爍／飄移。
+- 開關：主視窗 checkbox、tray `Media Info HUD`；關閉時送空字串。
+- 位置：tray `HUD position` 可選 `Top left`／`Top right`，對應
+  `halignment`。
+- 文字會出現在 OBS 視窗擷取中，這是預期行為。
 - 設定存在 `settings.json` 的 `hud.enabled`／`hud.corner`；預設關閉。
 
 ### 凍結與重建

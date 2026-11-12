@@ -1,5 +1,25 @@
 # ChangeHistory
 
+## 2026.11.12 22:38 HUD 改用 GStreamer textoverlay
+
+**類型**: 修正 · **檔案**: `libuxplay/renderers/video_renderer.c、libuxplay/renderers/video_renderer.h、libuxplay/uxplay_api.h、libuxplay/uxplay.cpp、src/mainwindow.cpp、src/mainwindow.h、CMakeLists.txt、docs/DEVELOPERS-GUIDE.md`
+
+### 問題 - 獨立 HUD 閃爍、位置亂飄；SetParent 成 child 後 Qt geometry 與 Windows 衝突
+
+### 根因 - Qt top-level widget 當成 foreign Win32 child，D3D 疊層不穩
+
+### 修改 - mirror pipeline 加入 textoverlay name=hud_overlay
+
+建置通過；待 iPad 連線確認文字出現在影片左上／右上。
+
+- engine API set_uxplay_hud_text；GUI 直接更新 overlay 文字
+- 移除獨立 MediaInfoHud 視窗與 child 定位
+- tray 左上／右上改對應 halignment
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.12 22:23 HUD 改為影片視窗子視窗
 
 **類型**: 修正 · **檔案**: `src/mediainfohud.h、src/mediainfohud.cpp、src/mainwindow.cpp`

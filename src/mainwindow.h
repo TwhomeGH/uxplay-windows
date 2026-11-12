@@ -24,7 +24,6 @@ class AirPlayWorker;
 class UsbObsController;
 class UsbDeviceConnector;
 class DiagnosticsRecorder;
-class MediaInfoHud;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -169,7 +168,6 @@ private:
     UsbObsController *m_usbObs = nullptr;
     UsbDeviceConnector *m_usbConnector = nullptr;
     DiagnosticsRecorder *m_diagnostics = nullptr;
-    MediaInfoHud *m_hud = nullptr;
     bool m_usbDeviceReady = false;
 
     QString m_clientName;

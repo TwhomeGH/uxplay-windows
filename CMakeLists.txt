@@ -31,7 +31,6 @@ add_executable(uxplay-windows WIN32
     src/usbpython.cpp
     src/usbdeviceconnector.cpp
     src/diagnostics.cpp
-    src/mediainfohud.cpp
     src/resources.rc
 )
 

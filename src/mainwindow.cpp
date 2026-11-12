@@ -5,8 +5,8 @@
 #include "usbdeviceconnector.h"
 #include "cleanoutputwindow.h"
 #include "diagnostics.h"
-#include "mediainfohud.h"
 #include "mdns_responder.hpp"
+#include "uxplay_api.h"
 #include <windows.h>
 #include <winsvc.h>
 
@@ -127,8 +127,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
                      QJsonArray::fromStringList(
                          QCoreApplication::arguments())}});
 
-    m_hud = new MediaInfoHud(nullptr);
-
     setupTray();
     setupUI();
 
@@ -167,8 +165,6 @@ MainWindow::~MainWindow() {
         m_usbObs->stop();
     }
     stopServer();
-    delete m_hud;
-    m_hud = nullptr;
 }
 
 
@@ -395,7 +391,7 @@ void MainWindow::setupUI() {
     m_hudCheckbox = new QCheckBox("Media Info HUD", this);
     m_hudCheckbox->setChecked(m_settings.hudEnabled);
     m_hudCheckbox->setToolTip(
-        "Show a click-through information overlay on the AirPlay video window.");
+        "Draw the media information in the AirPlay video frame.");
     connect(m_hudCheckbox, &QCheckBox::toggled, this,
             &MainWindow::toggleHud);
     layout->addWidget(m_hudCheckbox);
@@ -812,7 +808,6 @@ void MainWindow::onClientConnected(const QString &name, const QString &model,
 }
 
 void MainWindow::onClientDisconnected() {
-    if (m_hud) m_hud->detach();
     if (m_diagnostics) {
         m_diagnostics->event(
             QStringLiteral("client"), QStringLiteral("disconnected"),
@@ -958,7 +953,6 @@ void MainWindow::startServer() {
 void MainWindow::stopServer() {
     qInfo() << "Stopping UxPlay engine";
     saveVideoWindowGeometry();
-    if (m_hud) m_hud->detach();
     if (m_diagnostics) {
         m_diagnostics->event(QStringLiteral("engine"),
                              QStringLiteral("stopping"));
@@ -1022,7 +1016,6 @@ void MainWindow::syncVideoWindow() {
     EnumWindows(EnumWindowsProcVideo, reinterpret_cast<LPARAM>(&data));
 
     if (!data.found) {
-        if (m_hud) m_hud->detach();
         if (m_videoWindowHandle
             && !IsWindow(reinterpret_cast<HWND>(m_videoWindowHandle))) {
             m_videoWindowHandle = 0;
@@ -1152,7 +1145,6 @@ void MainWindow::saveVideoWindowGeometry() {
 void MainWindow::onAirplayStopped() {
     m_running = false;
     if (m_videoTitleTimer) m_videoTitleTimer->stop();
-    if (m_hud) m_hud->detach();
     m_videoWindowHandle = 0;
     m_videoWindowApplied = false;
     m_lastVideoWindowRect = QRect();
@@ -1577,10 +1569,7 @@ void MainWindow::setHudCorner(const QString &corner) {    if (corner != QStringL
     updateHud();
 }
 
-void MainWindow::updateHud() {    if (!m_hud) {
-        return;
-    }
-
+void MainWindow::updateHud() {
     if (m_hudCheckbox
         && m_hudCheckbox->isChecked() != m_settings.hudEnabled) {
         QSignalBlocker blocker(m_hudCheckbox);
@@ -1600,9 +1589,8 @@ void MainWindow::updateHud() {    if (!m_hud) {
             m_settings.hudCorner == QStringLiteral("top-right"));
     }
 
-    if (!m_settings.hudEnabled || !m_running || m_clientName.isEmpty()
-        || !m_videoWindowHandle) {
-        m_hud->detach();
+    if (!m_settings.hudEnabled || !m_running || m_clientName.isEmpty()) {
+        set_uxplay_hud_text("", 0);
         return;
     }
 
@@ -1649,9 +1637,9 @@ void MainWindow::updateHud() {    if (!m_hud) {
         lines << actionText(m_audioFormatAction);
     }
 
-    m_hud->setCorner(m_settings.hudCorner);
-    m_hud->setLines(lines);
-    m_hud->updateForWindow(m_videoWindowHandle);
+    const QByteArray text = lines.join(QLatin1Char('\n')).toUtf8();
+    set_uxplay_hud_text(text.constData(),
+                        m_settings.hudCorner == QStringLiteral("top-right"));
 }
 
 void MainWindow::updateOutputLabel() {
