@@ -96,6 +96,7 @@ private:
     void fitVideoWindowToStream(int width, int height);
     void saveVideoWindowGeometry();
     void updateHud();
+    void updateFrameStats();
     void updateOutputLabel();
     void setHudCorner(const QString &corner);
     void rebuildAirplayStream();
@@ -184,6 +185,13 @@ private:
     int m_restartAttempt = 0;
     QString m_lastEngineError;
     QTimer *m_videoTitleTimer = nullptr;
+    QTimer *m_statsTimer = nullptr;
+    quint64 m_lastFrameCount = 0;
+    qint64 m_lastStatsMs = 0;
+    qint64 m_lastFrameRecoveryMs = 0;
+    double m_fps = 0.0;
+    double m_frameIntervalMs = 0.0;
+    double m_frameAgeMs = -1.0;
     quintptr m_videoWindowHandle = 0;
     QRect m_lastVideoWindowRect;
     bool m_videoWindowApplied = false;

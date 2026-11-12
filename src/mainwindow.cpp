@@ -23,6 +23,7 @@
 #include <QScreen>
 
 #include <QDebug>
+#include <QDateTime>
 #include <QDesktopServices>
 #include <QDir>
 #include <QFile>
@@ -140,6 +141,11 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     m_wakeRestartTimer->setSingleShot(true);
     connect(m_wakeRestartTimer, &QTimer::timeout,
             this, &MainWindow::restartApplicationAfterWake);
+
+    m_statsTimer = new QTimer(this);
+    m_statsTimer->setInterval(1000);
+    connect(m_statsTimer, &QTimer::timeout, this,
+            &MainWindow::updateFrameStats);
 
     if (!m_serverEnabled) {
         qInfo() << "AirPlay disabled by server_enabled=false; engine not started";
@@ -969,6 +975,12 @@ void MainWindow::stopServer() {
     }
     stopBluetoothBeacon();
     if (m_videoTitleTimer) m_videoTitleTimer->stop();
+    if (m_statsTimer) m_statsTimer->stop();
+    m_lastFrameCount = 0;
+    m_lastStatsMs = 0;
+    m_fps = 0.0;
+    m_frameIntervalMs = 0.0;
+    m_frameAgeMs = -1.0;
     if (m_worker) {
         AirPlayWorker *worker = m_worker;
         m_worker = nullptr;
@@ -1013,6 +1025,11 @@ void MainWindow::onAirplayStarted() {
                 &MainWindow::syncVideoWindow);
     }
     m_videoTitleTimer->start(250);
+    if (m_statsTimer) {
+        m_lastFrameCount = 0;
+        m_lastStatsMs = 0;
+        m_statsTimer->start(1000);
+    }
 }
 
 void MainWindow::syncVideoWindow() {
@@ -1155,6 +1172,12 @@ void MainWindow::saveVideoWindowGeometry() {
 void MainWindow::onAirplayStopped() {
     m_running = false;
     if (m_videoTitleTimer) m_videoTitleTimer->stop();
+    if (m_statsTimer) m_statsTimer->stop();
+    m_lastFrameCount = 0;
+    m_lastStatsMs = 0;
+    m_fps = 0.0;
+    m_frameIntervalMs = 0.0;
+    m_frameAgeMs = -1.0;
     m_videoWindowHandle = 0;
     m_videoWindowApplied = false;
     m_lastVideoWindowRect = QRect();
@@ -1582,6 +1605,30 @@ void MainWindow::setHudCorner(const QString &corner) {
     updateHud();
 }
 
+void MainWindow::updateFrameStats() {
+    if (!m_running) {
+        return;
+    }
+
+    uint64_t frames = 0;
+    double ageMs = -1.0;
+    get_uxplay_frame_stats(&frames, &ageMs);
+
+    const qint64 now = QDateTime::currentMSecsSinceEpoch();
+    if (m_lastStatsMs > 0 && now > m_lastStatsMs
+        && frames >= m_lastFrameCount) {
+        const double seconds = (now - m_lastStatsMs) / 1000.0;
+        const double delta = static_cast<double>(frames - m_lastFrameCount);
+        m_fps = seconds > 0.0 ? delta / seconds : 0.0;
+        m_frameIntervalMs = m_fps > 0.0 ? 1000.0 / m_fps : 0.0;
+    }
+    m_frameAgeMs = ageMs;
+    m_lastFrameCount = frames;
+    m_lastStatsMs = now;
+
+    updateHud();
+}
+
 void MainWindow::updateHud() {
     if (m_hudCheckbox
         && m_hudCheckbox->isChecked() != m_settings.hudEnabled) {
@@ -1664,6 +1711,16 @@ void MainWindow::updateHud() {
                      + withoutPrefix(actionText(m_videoRendererAction),
                                      QStringLiteral("Video Renderer: "));
     }
+    if (m_lastStatsMs > 0 && m_frameAgeMs >= 0.0) {
+        const QString interval =
+            m_fps > 0.0
+                ? QStringLiteral("%1 ms").arg(m_frameIntervalMs, 0, 'f', 1)
+                : QStringLiteral("--");
+        lines << QStringLiteral("FPS: %1 (%2, age %3 ms)")
+                     .arg(m_fps, 0, 'f', 1)
+                     .arg(interval)
+                     .arg(m_frameAgeMs, 0, 'f', 0);
+    }
     if (m_audioCodecAction) {
         QString audio = withoutPrefix(actionText(m_audioCodecAction),
                                       QStringLiteral("Audio Codec: "));
@@ -1686,8 +1743,7 @@ void MainWindow::updateHud() {
     set_uxplay_hud_text(text.constData(), right, bottom);
 }
 
-void MainWindow::updateOutputLabel() {
-    if (!m_outputLabel) {
+void MainWindow::updateOutputLabel() {    if (!m_outputLabel) {
         return;
     }
 

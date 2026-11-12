@@ -1,5 +1,24 @@
 # ChangeHistory
 
+## 2026.11.13 00:14 加入 FPS 與 frame 交付統計
+
+**類型**: 功能 · **檔案**: `libuxplay/renderers/video_renderer.c、libuxplay/renderers/video_renderer.h、libuxplay/uxplay.cpp、libuxplay/uxplay_api.h、src/mainwindow.h、src/mainwindow.cpp、docs/DEVELOPERS-GUIDE.md`
+
+### 問題 - HUD 沒有目前 FPS、frame interval、last frame age，無法判斷交付是否正常
+
+### 根因 - 只有 media info，沒有 sink 實際 frame 統計
+
+### 修改 - video sink pad probe 計算 presented frame
+
+建置通過；待 iPad 連線確認數值。
+
+- get_uxplay_frame_stats 回傳 count 與 last frame age
+- GUI 每秒計算 FPS／interval，HUD 顯示 FPS 與 age
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.13 00:12 dev build 先停止舊 instance
 
 **類型**: 修正 · **檔案**: `scripts/dev_build.sh、docs/DEVELOPERS-GUIDE.md`

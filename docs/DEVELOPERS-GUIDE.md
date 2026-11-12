@@ -275,7 +275,10 @@ grep -E "register_dnssd|Initialized server socket|using system MAC" \
 主視窗 `Media Info HUD` 勾選後，資訊會直接畫進 AirPlay 影片畫面：
 
 - 內容：Client、Status、Video Codec／Stream Size、Decoder、
-  Renderer、Audio Codec、Audio Format。
+  Renderer、Audio Codec、Audio Format，以及 presented FPS／
+  frame interval／last frame age。
+- FPS 來自 video sink pad probe 的實際 presented frame，不是 RTP
+  packet 數；age 是距離最後一個 presented frame 的時間。
 - 實作：GStreamer `textoverlay name=hud_overlay`，文字是 video
   frame 的一部分，因此只有一個視窗，不會有獨立 HUD 閃爍／飄移。
 - 開關：主視窗 checkbox、tray `Media Info HUD`；關閉時送空字串。
