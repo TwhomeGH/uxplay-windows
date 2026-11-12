@@ -1,5 +1,21 @@
 # ChangeHistory
 
+## 2026.11.13 01:01 HUD 再下移避開狀態列
+
+**類型**: 改善 · **檔案**: `libuxplay/renderers/video_renderer.c`
+
+### 問題 - HUD 第一行仍與 iPad 狀態列重疊
+
+### 根因 - ypad 32 仍不足
+
+### 修改 - HUD ypad 改為 72
+
+待連線確認第一行在狀態列下方。
+
+**相關文件**: libuxplay/renderers/video_renderer.c
+
+---
+
 ## 2026.11.13 00:58 HUD 下移與影片視窗置頂
 
 **類型**: 改善 · **檔案**: `libuxplay/renderers/video_renderer.c、src/mainwindow.cpp`
