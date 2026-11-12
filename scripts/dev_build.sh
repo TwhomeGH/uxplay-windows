@@ -132,6 +132,8 @@ setlocal
 set "PATH=$PREFIX_WIN\\bin;%PATH%"
 set "QT_PLUGIN_PATH=$PREFIX_WIN\\share\\qt6\\plugins"
 if not exist "$BUILD_WIN\\lib\\gstreamer-1.0" set "GST_PLUGIN_PATH=$PREFIX_WIN\\lib\\gstreamer-1.0"
+set "DEV_EXE=$BUILD_WIN\\uxplay-windows.exe"
+powershell -NoProfile -Command "Get-Process -Name uxplay-windows -ErrorAction SilentlyContinue | Where-Object { \$_.Path -eq \$env:DEV_EXE } | Stop-Process -Force; Start-Sleep -Milliseconds 300" >nul 2>&1
 start "" "$BUILD_WIN\\uxplay-windows.exe" %*
 endlocal
 EOF

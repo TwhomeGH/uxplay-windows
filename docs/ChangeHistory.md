@@ -1,5 +1,24 @@
 # ChangeHistory
 
+## 2026.11.12 23:37 dev run 自動停止舊 instance
+
+**類型**: 改善 · **檔案**: `scripts/dev_run.sh、scripts/dev_build.sh、docs/DEVELOPERS-GUIDE.md`
+
+### 問題 - 每次重跑 dev build 都要手動停舊 uxplay-windows，否則檔案被鎖或連到舊版本
+
+### 根因 - run-dev 與 dev_run 直接啟動，沒有先清理同路徑 process
+
+### 修改 - dev_run.sh 啟動前停止同 dev exe 路徑的舊 instance
+
+實測 PID 47540 → 55484，新 build 正常 ready。
+
+- run-dev.cmd 產生器加入同樣的 path-aware stop
+- 不影響 Program Files 的正式安裝版
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.12 23:34 修正 HUD 多行文字靠左排列
 
 **類型**: 修正 · **檔案**: `libuxplay/renderers/video_renderer.c`

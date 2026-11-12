@@ -42,6 +42,10 @@ App 是托盤程式：關閉視窗只會隱藏，要退出請用托盤選單的 
 > 這台機器實際的 MSYS2 prefix 可能是 `H:\FIX_VIAP\msys64\ucrt64`；
 > 腳本用 `$MSYSTEM_PREFIX`，不要手動硬寫 `/ucrt64` 或 `C:\msys64`。
 
+`scripts/dev_run.sh` 與 `build/dev/run-dev.cmd` 會先停止**同一個 dev
+exe 路徑**的舊 instance，再啟動新 build，避免舊 process 鎖住檔案或連到
+舊版本。這只比對 dev build 路徑，不會誤殺已安裝的正式版。
+
 ## 建置
 
 ```bash
