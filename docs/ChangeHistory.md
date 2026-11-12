@@ -1,5 +1,24 @@
 # ChangeHistory
 
+## 2026.11.13 00:19 HUD 加深色背景與顏色區分
+
+**類型**: 改善 · **檔案**: `libuxplay/renderers/video_renderer.c、src/mainwindow.cpp`
+
+### 問題 - HUD 在亮色畫面上不易閱讀，文字顏色單一
+
+### 根因 - 只使用單一白色文字，背景 shading 太淡
+
+### 修改 - shading-value 200、draw-outline，深色半透明文字底
+
+建置通過；待連線確認背景與顏色。
+
+- Pango markup：標籤灰色、值白色、Status 綠色、警告橘／紅
+- HUD 內容保持精簡
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.13 00:14 加入 FPS 與 frame 交付統計
 
 **類型**: 功能 · **檔案**: `libuxplay/renderers/video_renderer.c、libuxplay/renderers/video_renderer.h、libuxplay/uxplay.cpp、libuxplay/uxplay_api.h、src/mainwindow.h、src/mainwindow.cpp、docs/DEVELOPERS-GUIDE.md`

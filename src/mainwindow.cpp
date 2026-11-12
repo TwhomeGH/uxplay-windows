@@ -1673,17 +1673,40 @@ void MainWindow::updateHud() {
         }
         return value;
     };
+    auto escapeMarkup = [](QString value) {
+        value.replace(QLatin1Char('&'), QStringLiteral("&amp;"));
+        value.replace(QLatin1Char('<'), QStringLiteral("&lt;"));
+        value.replace(QLatin1Char('>'), QStringLiteral("&gt;"));
+        return value;
+    };
+    auto line = [&escapeMarkup](const QString &label, const QString &value,
+                                const QString &color) {
+        return QStringLiteral("<span foreground=\"#9FB3C8\">%1:</span> "
+                              "<span foreground=\"%2\">%3</span>")
+            .arg(label, color, escapeMarkup(value));
+    };
 
     if (m_clientAction) {
-        lines << actionText(m_clientAction);
+        lines << line(QStringLiteral("Client"),
+                      withoutPrefix(actionText(m_clientAction),
+                                    QStringLiteral("Client: ")),
+                      QStringLiteral("#FFFFFF"));
     }
     if (m_mediaStatusAction) {
-        lines << actionText(m_mediaStatusAction);
+        const QString status = withoutPrefix(
+            actionText(m_mediaStatusAction), QStringLiteral("Status: "));
+        const QString color = status.contains(QStringLiteral("Streaming"))
+                                  ? QStringLiteral("#7EE787")
+                                  : status.contains(QStringLiteral("Connected"))
+                                        ? QStringLiteral("#FFD166")
+                                        : QStringLiteral("#FFFFFF");
+        lines << line(QStringLiteral("Status"), status, color);
     }
     if (m_videoCodecAction) {
-        lines << QStringLiteral("Video: ")
-                     + withoutPrefix(actionText(m_videoCodecAction),
-                                     QStringLiteral("Video Codec: "));
+        lines << line(QStringLiteral("Video"),
+                      withoutPrefix(actionText(m_videoCodecAction),
+                                    QStringLiteral("Video Codec: ")),
+                      QStringLiteral("#FFFFFF"));
     }
 
     const QString requested =
@@ -1698,28 +1721,37 @@ void MainWindow::updateHud() {
         (m_streamWidth > 0 && m_streamHeight > 0)
             ? QStringLiteral("%1x%2").arg(m_streamWidth).arg(m_streamHeight)
             : QStringLiteral("waiting");
-    lines << QStringLiteral("Output: %1 (requested %2)")
-                 .arg(actual, requested);
+    lines << line(QStringLiteral("Output"),
+                  QStringLiteral("%1  (requested %2)").arg(actual, requested),
+                  QStringLiteral("#FFFFFF"));
 
     if (m_videoDecoderAction) {
-        lines << QStringLiteral("Decoder: ")
-                     + withoutPrefix(actionText(m_videoDecoderAction),
-                                     QStringLiteral("Video Decoder: "));
+        lines << line(QStringLiteral("Decoder"),
+                      withoutPrefix(actionText(m_videoDecoderAction),
+                                    QStringLiteral("Video Decoder: ")),
+                      QStringLiteral("#FFFFFF"));
     }
     if (m_videoRendererAction) {
-        lines << QStringLiteral("Renderer: ")
-                     + withoutPrefix(actionText(m_videoRendererAction),
-                                     QStringLiteral("Video Renderer: "));
+        lines << line(QStringLiteral("Renderer"),
+                      withoutPrefix(actionText(m_videoRendererAction),
+                                    QStringLiteral("Video Renderer: ")),
+                      QStringLiteral("#FFFFFF"));
     }
     if (m_lastStatsMs > 0 && m_frameAgeMs >= 0.0) {
         const QString interval =
             m_fps > 0.0
                 ? QStringLiteral("%1 ms").arg(m_frameIntervalMs, 0, 'f', 1)
                 : QStringLiteral("--");
-        lines << QStringLiteral("FPS: %1 (%2, age %3 ms)")
-                     .arg(m_fps, 0, 'f', 1)
-                     .arg(interval)
-                     .arg(m_frameAgeMs, 0, 'f', 0);
+        const QString fpsText = QStringLiteral("%1 (%2, age %3 ms)")
+                                    .arg(m_fps, 0, 'f', 1)
+                                    .arg(interval)
+                                    .arg(m_frameAgeMs, 0, 'f', 0);
+        const QString color = m_frameAgeMs > 1500.0
+                                  ? QStringLiteral("#FF7B72")
+                                  : m_fps < 30.0
+                                        ? QStringLiteral("#FFB86B")
+                                        : QStringLiteral("#7EE787");
+        lines << line(QStringLiteral("FPS"), fpsText, color);
     }
     if (m_audioCodecAction) {
         QString audio = withoutPrefix(actionText(m_audioCodecAction),
@@ -1734,7 +1766,8 @@ void MainWindow::updateHud() {
                              .arg(match.captured(1), match.captured(2));
             }
         }
-        lines << QStringLiteral("Audio: ") + audio;
+        lines << line(QStringLiteral("Audio"), audio,
+                      QStringLiteral("#FFFFFF"));
     }
 
     const QByteArray text = lines.join(QLatin1Char('\n')).toUtf8();
