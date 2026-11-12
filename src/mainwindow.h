@@ -99,6 +99,7 @@ private:
     void updateHud();
     void updateOutputLabel();
     void setHudCorner(const QString &corner);
+    void rebuildAirplayStream();
     void populateLogMenu(QMenu *menu);
 
     QProcess *m_beacon = nullptr;

@@ -484,6 +484,8 @@ void MainWindow::setupTray() {
         setHudCorner(QStringLiteral("top-right"));
     });
     m_trayMenu->addSeparator();
+    m_trayMenu->addAction("Rebuild AirPlay stream", this,
+                         &MainWindow::rebuildAirplayStream);
     m_trayMenu->addAction("Restart", this, &MainWindow::restartApplication);
     m_trayMenu->addAction("Quit", this, &MainWindow::quit);
 
@@ -1442,6 +1444,30 @@ void MainWindow::startUsbObs(bool minimize) {
     if (minimize) {
         hide();
     }
+}
+
+void MainWindow::rebuildAirplayStream() {
+    if (!m_serverEnabled || m_quitting) {
+        return;
+    }
+
+    qInfo() << "Rebuilding AirPlay stream (manual)";
+    if (m_diagnostics) {
+        m_diagnostics->event(QStringLiteral("engine"),
+                             QStringLiteral("rebuild requested"));
+    }
+    if (m_tray && !m_quitting) {
+        m_tray->showMessage("uxplay-windows",
+                            "Rebuilding AirPlay stream...",
+                            QSystemTrayIcon::Information, 2000);
+    }
+
+    stopServer();
+    QTimer::singleShot(300, this, [this]() {
+        if (m_serverEnabled && !m_quitting) {
+            startServer();
+        }
+    });
 }
 
 void MainWindow::setServerEnabled(bool enabled) {

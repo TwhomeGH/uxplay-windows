@@ -1,5 +1,25 @@
 # ChangeHistory
 
+## 2026.11.12 20:22 加入 AirPlay 凍結 watchdog 與重建
+
+**類型**: 修正 · **檔案**: `libuxplay/lib/raop_rtp_mirror.c、src/mainwindow.cpp、src/mainwindow.h、docs/DEVELOPERS-GUIDE.md、TODO.md`
+
+### 問題 - 投屏畫面定格但聲音仍在，沒有自動重建機制
+
+### 根因 - mirror thread 持續執行，但 client 停止送 video packet；沒有 timeout
+
+### 修改 - engine 在 codec 已設定後 8 秒無 video packet 時重建 mirror 連線
+
+建置通過；待實機重現定格驗證 8 秒重建 log。
+
+- video_stream_suspended 期間不觸發，避免誤判暫停
+- tray 新增 Rebuild AirPlay stream，手動重啟 engine
+- 文件記錄 watchdog 與手動重建
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.12 20:13 顯示實際與請求解析度
 
 **類型**: 功能 · **檔案**: `src/settings.h、src/settings.cpp、src/mainwindow.h、src/mainwindow.cpp、docs/DEVELOPERS-GUIDE.md`

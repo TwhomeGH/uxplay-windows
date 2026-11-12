@@ -37,7 +37,10 @@
 - [x] Media Info HUD：點擊穿透疊層、主視窗／tray 開關、左上／右上。
 - [ ] 即時診斷面板：fps／bitrate／latency／A-V offset／事件時間軸。
 - [ ] `-s` 測試矩陣：720p／1080p／1440p／Native／4K 的實際尺寸、codec、CPU／GPU。
-- [ ] reconnect 後 audio 有聲但 video 未進 pipeline 的根因。
+- [x] 凍結 watchdog：8 秒無 video packet 自動重建 mirror 連線。
+- [x] tray `Rebuild AirPlay stream` 手動重建。
+- [ ] 自動重建次數上限與成功／失敗計數（diagnostics）。
+- [ ] 管線層 frame heartbeat（區分 packet 有到但 pipeline 卡住）。
 - [ ] 讀取設定後套用解析度不需重啟 App（目前仍需重啟）。
 - [ ] Native 依裝置 profile 自動填入（目前使用已設定的寬高）。
 - [ ] 即時診斷面板（codec／resolution／fps／audio／latency）。

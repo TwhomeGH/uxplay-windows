@@ -279,6 +279,17 @@ grep -E "register_dnssd|Initialized server socket|using system MAC" \
 - 只會在已連線且有影片視窗時顯示；不影響滑鼠操作。
 - 設定存在 `settings.json` 的 `hud.enabled`／`hud.corner`；預設關閉。
 
+### 凍結與重建
+
+AirPlay 影片可能出現「聲音仍在、畫面定格」而不斷線的狀態。
+
+- Engine watchdog：mirror 連線已收到 video codec，但連續 8 秒沒有
+  video packet 時，記錄 log 並重建 mirror 連線（`conn_reset`）。
+- `video_stream_suspended`（client 暫停或鎖屏）期間不觸發。
+- 手動：tray `Rebuild AirPlay stream` 會停止並重新啟動 engine，
+  不需要重啟整個 App。
+- 自動重建失敗時，仍可用 `Restart` 或重新連線。
+
 ## 狀態位置與重置
 
 | 狀態 | 位置 | 重置方式 |
