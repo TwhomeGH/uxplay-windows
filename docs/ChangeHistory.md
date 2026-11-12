@@ -1,5 +1,24 @@
 # ChangeHistory
 
+## 2026.11.12 23:29 修正 textoverlay enum 屬性設定
+
+**類型**: 修正 · **檔案**: `libuxplay/renderers/video_renderer.c`
+
+### 問題 - GLib 警告 halignment/valignment 值為負，HUD 位置無效
+
+### 根因 - g_object_set varargs 把字串當成 enum 整數傳入
+
+### 修改 - 改用 gst_util_set_object_arg 設定 halignment/valignment
+
+建置通過；待連線確認四角位置且 console 無 GObject-CRITICAL。
+
+- 快取 HUD 文字與位置，避免每 250ms 重設相同屬性
+- 重建 pipeline 時清除快取，確保新 overlay 重新套用
+
+**相關文件**: libuxplay/renderers/video_renderer.c
+
+---
+
 ## 2026.11.12 22:56 HUD 四角位置與無 codec 重建
 
 **類型**: 修正 · **檔案**: `libuxplay/lib/raop_rtp_mirror.c、libuxplay/renderers/video_renderer.c、libuxplay/renderers/video_renderer.h、libuxplay/uxplay.cpp、libuxplay/uxplay_api.h、src/mainwindow.h、src/mainwindow.cpp、src/settings.cpp、docs/DEVELOPERS-GUIDE.md`
