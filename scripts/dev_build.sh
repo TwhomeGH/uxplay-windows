@@ -68,6 +68,11 @@ if [[ -z "${BONJOUR_SDK_HOME:-}" ]]; then
 fi
 export BONJOUR_SDK_HOME
 
+# Stop a previous build-tree instance before linking the new executable.
+# Match the exact path so an installed release is left alone.
+DEV_EXE_WIN="$(cygpath -w "$BUILD_DIR/uxplay-windows.exe" 2>/dev/null || printf '%s' "$BUILD_DIR/uxplay-windows.exe")"
+powershell.exe -NoProfile -Command "Get-Process -Name uxplay-windows -ErrorAction SilentlyContinue | Where-Object { \$_.Path -eq '$DEV_EXE_WIN' } | Stop-Process -Force; Start-Sleep -Milliseconds 300" >/dev/null 2>&1 || true
+
 if [[ "$CLEAN" -eq 1 ]]; then
     echo "==> Removing $BUILD_DIR"
     if [[ -e "$BUILD_DIR/lib/gstreamer-1.0" ]]; then

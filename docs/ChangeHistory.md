@@ -1,5 +1,23 @@
 # ChangeHistory
 
+## 2026.11.13 00:12 dev build 先停止舊 instance
+
+**類型**: 修正 · **檔案**: `scripts/dev_build.sh、docs/DEVELOPERS-GUIDE.md`
+
+### 問題 - dev_build 先連結 exe，舊 process 仍鎖檔，造成 Permission denied
+
+### 根因 - 自動停止只加在 dev_run，build 階段沒有停舊 process
+
+### 修改 - dev_build 在 configure/build 前停止同路徑 dev instance
+
+實測 build + run 成功，PID 更新。
+
+- 仍只比對 build-tree exe，不影響安裝版
+
+**相關文件**: scripts/dev_build.sh
+
+---
+
 ## 2026.11.12 23:58 修正 release 缺少 textoverlay plugin
 
 **類型**: 修正 · **檔案**: `stuff/dll.txt、make_release_CI.sh、make_release_CI_arm64.sh`
