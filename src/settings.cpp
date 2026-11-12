@@ -139,6 +139,10 @@ AppSettings AppSettings::fromJson(const QString &path, bool *ok) {
         hud.value(QStringLiteral("enabled")).toBool(settings.hudEnabled);
     settings.hudCorner =
         hud.value(QStringLiteral("corner")).toString(settings.hudCorner);
+    settings.hudMarginX =
+        hud.value(QStringLiteral("margin_x")).toInt(settings.hudMarginX);
+    settings.hudMarginY =
+        hud.value(QStringLiteral("margin_y")).toInt(settings.hudMarginY);
 
     const QJsonObject obs = object.value(QStringLiteral("obs")).toObject();
     settings.obsMode =
@@ -233,6 +237,8 @@ bool AppSettings::save() const {
     QJsonObject hudObject;
     hudObject[QStringLiteral("enabled")] = hudEnabled;
     hudObject[QStringLiteral("corner")] = hudCorner;
+    hudObject[QStringLiteral("margin_x")] = hudMarginX;
+    hudObject[QStringLiteral("margin_y")] = hudMarginY;
 
     QJsonArray extra;
     for (const QString &arg : extraArgs) {
@@ -532,6 +538,8 @@ void AppSettings::sanitize() {
         && hudCorner != QStringLiteral("bottom-right")) {
         hudCorner = QStringLiteral("top-left");
     }
+    hudMarginX = qBound(0, hudMarginX, 1000);
+    hudMarginY = qBound(0, hudMarginY, 1000);
 }
 
 void AppSettings::archiveLegacy() {

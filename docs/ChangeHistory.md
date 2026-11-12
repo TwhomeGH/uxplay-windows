@@ -1,5 +1,24 @@
 # ChangeHistory
 
+## 2026.11.13 01:05 HUD 支援可設定 X／Y 邊距
+
+**類型**: 功能 · **檔案**: `libuxplay/renderers/video_renderer.c、libuxplay/renderers/video_renderer.h、libuxplay/uxplay.cpp、libuxplay/uxplay_api.h、src/settings.h、src/settings.cpp、src/mainwindow.h、src/mainwindow.cpp`
+
+### 問題 - HUD 的 x/y 只能固定常數，無法依狀態列或畫面調整
+
+### 根因 - textoverlay xpad/ypad 寫死在 engine
+
+### 修改 - settings.json hud.margin_x／margin_y，預設 8／72
+
+建置通過；待連線確認設定值生效。
+
+- 主視窗新增 HUD margin X／Y spinbox，即時儲存
+- engine API 接受 xpad/ypad 並更新 textoverlay
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.13 01:01 HUD 再下移避開狀態列
 
 **類型**: 改善 · **檔案**: `libuxplay/renderers/video_renderer.c`

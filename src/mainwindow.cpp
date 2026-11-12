@@ -178,7 +178,7 @@ MainWindow::~MainWindow() {
 void MainWindow::setupUI() {
     setWindowTitle("uxplay-windows");
     setWindowIcon(QApplication::windowIcon());
-    setFixedSize(420, 715);
+    setFixedSize(420, 745);
 
     auto *central = new QWidget(this);
     setCentralWidget(central);
@@ -401,6 +401,32 @@ void MainWindow::setupUI() {
     connect(m_hudCheckbox, &QCheckBox::toggled, this,
             &MainWindow::toggleHud);
     layout->addWidget(m_hudCheckbox);
+
+    auto *hudMarginLayout = new QHBoxLayout();
+    hudMarginLayout->addWidget(new QLabel("HUD margin", this));
+    m_hudXSpin = new QSpinBox(this);
+    m_hudXSpin->setRange(0, 1000);
+    m_hudXSpin->setSuffix(" x");
+    m_hudXSpin->setValue(m_settings.hudMarginX);
+    m_hudYSpin = new QSpinBox(this);
+    m_hudYSpin->setRange(0, 1000);
+    m_hudYSpin->setSuffix(" y");
+    m_hudYSpin->setValue(m_settings.hudMarginY);
+    connect(m_hudXSpin, QOverload<int>::of(&QSpinBox::valueChanged),
+            this, [this](int value) {
+                m_settings.hudMarginX = value;
+                m_settings.save();
+                updateHud();
+            });
+    connect(m_hudYSpin, QOverload<int>::of(&QSpinBox::valueChanged),
+            this, [this](int value) {
+                m_settings.hudMarginY = value;
+                m_settings.save();
+                updateHud();
+            });
+    hudMarginLayout->addWidget(m_hudXSpin);
+    hudMarginLayout->addWidget(m_hudYSpin);
+    layout->addLayout(hudMarginLayout);
 
     m_rebuildButton = new QPushButton("Rebuild AirPlay stream", this);
     m_rebuildButton->setToolTip(
@@ -1711,7 +1737,7 @@ void MainWindow::updateHud() {
     }
 
     if (!m_settings.hudEnabled || !m_running || m_clientName.isEmpty()) {
-        set_uxplay_hud_text("", 0, 0);
+        set_uxplay_hud_text("", 0, 0, 0, 0);
         return;
     }
 
@@ -1826,7 +1852,8 @@ void MainWindow::updateHud() {
     const QByteArray text = lines.join(QLatin1Char('\n')).toUtf8();
     const bool right = m_settings.hudCorner.endsWith(QStringLiteral("right"));
     const bool bottom = m_settings.hudCorner.startsWith(QStringLiteral("bottom"));
-    set_uxplay_hud_text(text.constData(), right, bottom);
+    set_uxplay_hud_text(text.constData(), right, bottom,
+                        m_settings.hudMarginX, m_settings.hudMarginY);
 }
 
 void MainWindow::updateOutputLabel() {    if (!m_outputLabel) {

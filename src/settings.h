@@ -42,6 +42,8 @@ public:
     bool diagnosticsEnabled = true;
     bool hudEnabled = false;
     QString hudCorner = "top-left";
+    int hudMarginX = 8;
+    int hudMarginY = 72;
     QString obsMode = "off";
     QStringList extraArgs;
 

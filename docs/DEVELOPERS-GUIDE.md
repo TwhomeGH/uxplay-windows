@@ -283,9 +283,13 @@ grep -E "register_dnssd|Initialized server socket|using system MAC" \
   frame 的一部分，因此只有一個視窗，不會有獨立 HUD 閃爍／飄移。
 - 開關：主視窗 checkbox、tray `Media Info HUD`；關閉時送空字串。
 - 位置：tray `HUD position` 可選 `Top left`／`Top right`／
-  `Bottom left`／`Bottom right`，對應 `halignment`／`valignment`。
+  `Bottom left`／`Bottom right`；另可用主視窗 `HUD margin` 的 X／Y
+  像素微調，預設 `8`／`72`。
+- 設定存在 `settings.json` 的 `hud.corner`、`hud.margin_x`、
+  `hud.margin_y`。
 - 文字會出現在 OBS 視窗擷取中，這是預期行為。
-- 設定存在 `settings.json` 的 `hud.enabled`／`hud.corner`；預設關閉。
+- 設定存在 `settings.json` 的 `hud.enabled`（預設關閉）、
+  `hud.corner`、`hud.margin_x`、`hud.margin_y`。
 
 ### 凍結與重建
 

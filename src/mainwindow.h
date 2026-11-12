@@ -164,6 +164,8 @@ private:
 
     QPushButton *m_rebuildButton = nullptr;
     QCheckBox *m_hudCheckbox = nullptr;
+    QSpinBox *m_hudXSpin = nullptr;
+    QSpinBox *m_hudYSpin = nullptr;
     QLabel *m_outputLabel = nullptr;
     QLabel *m_statusLabel = nullptr;
     QLabel *m_errorLabel = nullptr;
