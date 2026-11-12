@@ -1,5 +1,25 @@
 # ChangeHistory
 
+## 2026.11.13 00:53 新增可見重建按鈕與視窗置前
+
+**類型**: 改善 · **檔案**: `src/mainwindow.h、src/mainwindow.cpp、src/main.cpp`
+
+### 問題 - 畫面凍結只能從 tray 找重建；影片／設定視窗可能在背景被誤認為沒開
+
+### 根因 - 重建只有 tray action；視窗顯示沒有強制置前
+
+### 修改 - 主視窗新增 Rebuild AirPlay stream 按鈕
+
+建置通過；待使用者實測影片與設定視窗置前。
+
+- 新影片視窗顯示時 restore／raise／foreground
+- tray 新增 Show Settings；tray 點擊在背景時改為置前
+- showAndRaise 使用 HWND_TOPMOST→NOTOPMOST 與 SetForegroundWindow
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.13 00:19 HUD 加深色背景與顏色區分
 
 **類型**: 改善 · **檔案**: `libuxplay/renderers/video_renderer.c、src/mainwindow.cpp`

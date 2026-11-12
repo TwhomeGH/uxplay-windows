@@ -200,9 +200,7 @@ int main(int argc, char *argv[]) {
         } else if (command == "save-diagnostics") {
             window.saveDiagnostics(false);
         } else {
-            window.showNormal();
-            window.raise();
-            window.activateWindow();
+            window.showAndRaise();
         }
         socket->deleteLater();
     };

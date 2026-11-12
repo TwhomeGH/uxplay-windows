@@ -34,6 +34,7 @@ public:
 
 public slots:
     void setServerEnabled(bool enabled);
+    void showAndRaise();
     void startUsbObs(bool minimize = false);
     void saveDiagnostics(bool showDialog = true);
 
@@ -161,6 +162,7 @@ private:
     QPushButton *m_diagnosticsBtn = nullptr;
     QCheckBox *m_diagnosticsCheckbox = nullptr;
 
+    QPushButton *m_rebuildButton = nullptr;
     QCheckBox *m_hudCheckbox = nullptr;
     QLabel *m_outputLabel = nullptr;
     QLabel *m_statusLabel = nullptr;

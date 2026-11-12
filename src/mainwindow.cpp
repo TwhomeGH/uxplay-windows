@@ -178,7 +178,7 @@ MainWindow::~MainWindow() {
 void MainWindow::setupUI() {
     setWindowTitle("uxplay-windows");
     setWindowIcon(QApplication::windowIcon());
-    setFixedSize(420, 680);
+    setFixedSize(420, 715);
 
     auto *central = new QWidget(this);
     setCentralWidget(central);
@@ -402,6 +402,13 @@ void MainWindow::setupUI() {
             &MainWindow::toggleHud);
     layout->addWidget(m_hudCheckbox);
 
+    m_rebuildButton = new QPushButton("Rebuild AirPlay stream", this);
+    m_rebuildButton->setToolTip(
+        "Stop and restart the engine if the video window is frozen or missing.");
+    connect(m_rebuildButton, &QPushButton::clicked, this,
+            &MainWindow::rebuildAirplayStream);
+    layout->addWidget(m_rebuildButton);
+
     auto *bottomLayout = new QHBoxLayout();
     bottomLayout->addWidget(m_licenseBtn);
     bottomLayout->addWidget(m_openLogBtn);
@@ -439,6 +446,8 @@ void MainWindow::setupTray() {
     m_tray->setToolTip("uxplay-windows");
 
     m_trayMenu = new QMenu(this);
+    m_trayMenu->addAction("Show Settings", this, &MainWindow::showAndRaise);
+    m_trayMenu->addSeparator();
     m_mediaInfoMenu = m_trayMenu->addMenu("Media Info");
     m_clientAction = m_mediaInfoMenu->addAction("Client: -");
     m_connectionsAction = m_mediaInfoMenu->addAction("Connections: 0");
@@ -509,8 +518,29 @@ void MainWindow::setupTray() {
 
 void MainWindow::onTrayActivated(QSystemTrayIcon::ActivationReason reason) {
     if (reason == QSystemTrayIcon::Trigger) {
-        isVisible() ? hide() : showNormal();
+        if (isVisible() && isActiveWindow() && !isMinimized()) {
+            hide();
+        } else {
+            showAndRaise();
+        }
     }
+}
+
+void MainWindow::showAndRaise() {
+    showNormal();
+    raise();
+    activateWindow();
+#ifdef Q_OS_WIN
+    HWND hwnd = reinterpret_cast<HWND>(winId());
+    if (IsWindow(hwnd)) {
+        ShowWindow(hwnd, SW_RESTORE);
+        SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0,
+                     SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+        SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0,
+                     SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+        SetForegroundWindow(hwnd);
+    }
+#endif
 }
 
 void MainWindow::toggleBle(bool checked) {
@@ -1054,10 +1084,17 @@ void MainWindow::syncVideoWindow() {
     }
 
     const quintptr handle = reinterpret_cast<quintptr>(data.found);
-    if (handle != m_videoWindowHandle) {
+    const bool newWindow = handle != m_videoWindowHandle;
+    if (newWindow) {
         m_videoWindowHandle = handle;
         m_videoWindowApplied = false;
         m_lastVideoWindowRect = QRect();
+
+        HWND window = reinterpret_cast<HWND>(handle);
+        ShowWindow(window, SW_RESTORE);
+        SetWindowPos(window, HWND_TOP, 0, 0, 0, 0,
+                     SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+        SetForegroundWindow(window);
     }
 
     if (!m_videoWindowApplied) {
