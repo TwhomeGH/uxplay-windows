@@ -1,5 +1,25 @@
 # ChangeHistory
 
+## 2026.11.12 22:23 HUD 改為影片視窗子視窗
+
+**類型**: 修正 · **檔案**: `src/mediainfohud.h、src/mediainfohud.cpp、src/mainwindow.cpp`
+
+### 問題 - HUD 與影片視窗是兩個獨立 top-level window，拖動時靠輪詢追
+
+### 根因 - HUD 建立為 Qt::Tool 獨立視窗，只用 SetWindowPos 定位
+
+### 修改 - 以 SetParent 將 HUD 掛成影片視窗的 Win32 child
+
+待 iPad 連線實測 d3d11/d3d12 sink 是否會蓋掉 child；若蓋掉改用 textoverlay。
+
+- 拖動時由 Windows 自動跟隨；縮放仍由定位更新
+- 停止／斷線／停用 HUD 時 detach，避免隨父視窗銷毀
+- SetParent 失敗時回退獨立視窗定位
+
+**相關文件**: src/mediainfohud.cpp
+
+---
+
 ## 2026.11.12 20:22 加入 AirPlay 凍結 watchdog 與重建
 
 **類型**: 修正 · **檔案**: `libuxplay/lib/raop_rtp_mirror.c、src/mainwindow.cpp、src/mainwindow.h、docs/DEVELOPERS-GUIDE.md、TODO.md`

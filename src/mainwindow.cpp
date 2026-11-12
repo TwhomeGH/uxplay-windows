@@ -812,6 +812,7 @@ void MainWindow::onClientConnected(const QString &name, const QString &model,
 }
 
 void MainWindow::onClientDisconnected() {
+    if (m_hud) m_hud->detach();
     if (m_diagnostics) {
         m_diagnostics->event(
             QStringLiteral("client"), QStringLiteral("disconnected"),
@@ -957,6 +958,7 @@ void MainWindow::startServer() {
 void MainWindow::stopServer() {
     qInfo() << "Stopping UxPlay engine";
     saveVideoWindowGeometry();
+    if (m_hud) m_hud->detach();
     if (m_diagnostics) {
         m_diagnostics->event(QStringLiteral("engine"),
                              QStringLiteral("stopping"));
@@ -1020,6 +1022,7 @@ void MainWindow::syncVideoWindow() {
     EnumWindows(EnumWindowsProcVideo, reinterpret_cast<LPARAM>(&data));
 
     if (!data.found) {
+        if (m_hud) m_hud->detach();
         if (m_videoWindowHandle
             && !IsWindow(reinterpret_cast<HWND>(m_videoWindowHandle))) {
             m_videoWindowHandle = 0;
@@ -1149,6 +1152,7 @@ void MainWindow::saveVideoWindowGeometry() {
 void MainWindow::onAirplayStopped() {
     m_running = false;
     if (m_videoTitleTimer) m_videoTitleTimer->stop();
+    if (m_hud) m_hud->detach();
     m_videoWindowHandle = 0;
     m_videoWindowApplied = false;
     m_lastVideoWindowRect = QRect();
@@ -1598,7 +1602,7 @@ void MainWindow::updateHud() {    if (!m_hud) {
 
     if (!m_settings.hudEnabled || !m_running || m_clientName.isEmpty()
         || !m_videoWindowHandle) {
-        m_hud->hide();
+        m_hud->detach();
         return;
     }
 

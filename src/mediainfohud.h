@@ -15,6 +15,7 @@ public:
     void setCorner(const QString &corner);
     QString corner() const { return m_corner; }
     void updateForWindow(quintptr hwnd);
+    void detach();
 
 protected:
     void paintEvent(QPaintEvent *event) override;
@@ -27,4 +28,5 @@ private:
     QStringList m_lines;
     QString m_corner = QStringLiteral("top-left");
     quintptr m_hwnd = 0;
+    bool m_child = false;
 };

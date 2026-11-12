@@ -56,16 +56,21 @@ void MediaInfoHud::resizeToContent() {
 }
 
 void MediaInfoHud::updateForWindow(quintptr hwnd) {
-    m_hwnd = hwnd;
     if (!hwnd) {
-        hide();
+        detach();
         return;
+    }
+
+    if (m_hwnd != hwnd) {
+        detach();
+        m_hwnd = hwnd;
     }
 
 #ifdef Q_OS_WIN
     HWND window = reinterpret_cast<HWND>(hwnd);
-    if (!IsWindow(window) || !IsWindowVisible(window)
-        || IsIconic(window)) {
+    HWND hud = reinterpret_cast<HWND>(winId());
+    if (!IsWindow(window) || !IsWindow(hud)
+        || !IsWindowVisible(window) || IsIconic(window)) {
         hide();
         return;
     }
@@ -76,31 +81,72 @@ void MediaInfoHud::updateForWindow(quintptr hwnd) {
         return;
     }
 
+    /* Make the overlay a native child so Windows moves it with the video
+     * window instead of relying on the polling tracker. */
+    if (!m_child || GetParent(hud) != window) {
+        SetParent(hud, window);
+        if (GetParent(hud) == window) {
+            LONG_PTR style = GetWindowLongPtrW(hud, GWL_STYLE);
+            style &= ~(WS_POPUP | WS_CAPTION | WS_THICKFRAME);
+            style |= WS_CHILD | WS_VISIBLE;
+            SetWindowLongPtrW(hud, GWL_STYLE, style);
+            m_child = true;
+        } else {
+            m_child = false;
+        }
+    }
+
+    const int clientWidth = client.right - client.left;
+    const int x = m_corner == QStringLiteral("top-right")
+                      ? clientWidth - width() - 8
+                      : 8;
+    const int y = 8;
+
+    if (m_child) {
+        SetWindowPos(hud, HWND_TOP, x, y, width(), height(),
+                     SWP_NOACTIVATE | SWP_SHOWWINDOW | SWP_FRAMECHANGED);
+        show();
+        applyClickThrough();
+        return;
+    }
+
+    /* Fallback to a top-level window if the native child attach failed. */
     POINT origin = {0, 0};
     if (!ClientToScreen(window, &origin)) {
         hide();
         return;
     }
-
-    const int clientWidth = client.right - client.left;
-    const int x = m_corner == QStringLiteral("top-right")
-                      ? origin.x + clientWidth - width() - 8
-                      : origin.x + 8;
-    const int y = origin.y + 8;
-    move(x, y);
-    show();
-
-    /* Keep the overlay above the engine window and move it with a native
-     * call; Qt move() alone can lag behind while the video window is
-     * being dragged. */
-    SetWindowPos(reinterpret_cast<HWND>(winId()), HWND_TOPMOST, x, y,
-                 width(), height(),
+    const int screenX = m_corner == QStringLiteral("top-right")
+                            ? origin.x + clientWidth - width() - 8
+                            : origin.x + 8;
+    const int screenY = origin.y + 8;
+    SetWindowPos(hud, HWND_TOPMOST, screenX, screenY, width(), height(),
                  SWP_NOACTIVATE | SWP_SHOWWINDOW);
-    raise();
+    show();
+    applyClickThrough();
 #else
     Q_UNUSED(hwnd);
     hide();
 #endif
+}
+
+void MediaInfoHud::detach() {
+#ifdef Q_OS_WIN
+    HWND hud = reinterpret_cast<HWND>(winId());
+    if (IsWindow(hud) && m_child) {
+        SetParent(hud, nullptr);
+        LONG_PTR style = GetWindowLongPtrW(hud, GWL_STYLE);
+        style &= ~WS_CHILD;
+        style |= WS_POPUP;
+        SetWindowLongPtrW(hud, GWL_STYLE, style);
+        SetWindowPos(hud, nullptr, 0, 0, 0, 0,
+                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER
+                         | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+    }
+#endif
+    m_child = false;
+    m_hwnd = 0;
+    hide();
 }
 
 void MediaInfoHud::applyClickThrough() {
