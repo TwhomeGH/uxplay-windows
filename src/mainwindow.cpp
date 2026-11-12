@@ -1619,6 +1619,13 @@ void MainWindow::updateHud() {
     auto actionText = [](QAction *action) {
         return action ? action->text() : QString();
     };
+    auto withoutPrefix = [](const QString &text, const QString &prefix) {
+        QString value = text;
+        if (value.startsWith(prefix)) {
+            value.remove(0, prefix.size());
+        }
+        return value;
+    };
 
     if (m_clientAction) {
         lines << actionText(m_clientAction);
@@ -1627,7 +1634,9 @@ void MainWindow::updateHud() {
         lines << actionText(m_mediaStatusAction);
     }
     if (m_videoCodecAction) {
-        lines << actionText(m_videoCodecAction);
+        lines << QStringLiteral("Video: ")
+                     + withoutPrefix(actionText(m_videoCodecAction),
+                                     QStringLiteral("Video Codec: "));
     }
 
     const QString requested =
@@ -1642,20 +1651,33 @@ void MainWindow::updateHud() {
         (m_streamWidth > 0 && m_streamHeight > 0)
             ? QStringLiteral("%1x%2").arg(m_streamWidth).arg(m_streamHeight)
             : QStringLiteral("waiting");
-    lines << QStringLiteral("Output: ") + actual;
-    lines << QStringLiteral("Requested: ") + requested;
+    lines << QStringLiteral("Output: %1 (requested %2)")
+                 .arg(actual, requested);
 
     if (m_videoDecoderAction) {
-        lines << actionText(m_videoDecoderAction);
+        lines << QStringLiteral("Decoder: ")
+                     + withoutPrefix(actionText(m_videoDecoderAction),
+                                     QStringLiteral("Video Decoder: "));
     }
     if (m_videoRendererAction) {
-        lines << actionText(m_videoRendererAction);
+        lines << QStringLiteral("Renderer: ")
+                     + withoutPrefix(actionText(m_videoRendererAction),
+                                     QStringLiteral("Video Renderer: "));
     }
     if (m_audioCodecAction) {
-        lines << actionText(m_audioCodecAction);
-    }
-    if (m_audioFormatAction) {
-        lines << actionText(m_audioFormatAction);
+        QString audio = withoutPrefix(actionText(m_audioCodecAction),
+                                      QStringLiteral("Audio Codec: "));
+        if (m_audioFormatAction) {
+            static const QRegularExpression formatPattern(
+                QStringLiteral("ct=(\\d+)\\s+spf=(\\d+)"));
+            const QRegularExpressionMatch match =
+                formatPattern.match(actionText(m_audioFormatAction));
+            if (match.hasMatch()) {
+                audio += QStringLiteral(" · ct=%1 spf=%2")
+                             .arg(match.captured(1), match.captured(2));
+            }
+        }
+        lines << QStringLiteral("Audio: ") + audio;
     }
 
     const QByteArray text = lines.join(QLatin1Char('\n')).toUtf8();

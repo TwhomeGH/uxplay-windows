@@ -1,5 +1,24 @@
 # ChangeHistory
 
+## 2026.11.12 23:37 精簡 HUD 文字
+
+**類型**: 改善 · **檔案**: `src/mainwindow.cpp`
+
+### 問題 - Audio Format 等欄位太長，HUD 佔滿畫面
+
+### 根因 - HUD 直接使用完整 Media Info 字串
+
+### 修改 - HUD 改為 Video／Output／Decoder／Renderer／Audio 精簡欄位
+
+建置通過；待連線確認畫面寬度。
+
+- Audio 只顯示 codec、ct、spf；完整格式留在托盤／diagnostics
+- Output 與 requested 合併成一行
+
+**相關文件**: src/mainwindow.cpp
+
+---
+
 ## 2026.11.12 23:37 dev run 自動停止舊 instance
 
 **類型**: 改善 · **檔案**: `scripts/dev_run.sh、scripts/dev_build.sh、docs/DEVELOPERS-GUIDE.md`
