@@ -7,6 +7,8 @@ struct ResolutionSettings {
     QString mode = "native";
     int width = 2360;
     int height = 1640;
+    int nativeWidth = 2360;
+    int nativeHeight = 1640;
     int refresh = 60;
 };
 

@@ -178,9 +178,15 @@ CSV 可畫 RSS 趨勢；report 有首尾 RSS、CPU 平均／峰值、初始連�
 
 #### 解析度：Native 預設
 
-- `Native (device)` 是預設，送出目前設定的 `width x height`；這台
+- `Native (device)` 是預設，使用 `native_width`／`native_height`；這台
   iPad13,18 預設為 `2360x1640`，`-h265` 仍會生效。
+- 解析度 preset（720p／1080p／1440p／4K）不會覆寫 Native 尺寸；
+  要改 Native，先選 `Custom` 填入寬高，再切回 `Native`。
+- `Output:` 顯示實際串流寬高，`Requested:` 顯示送出的 `-s`；
+  主視窗外掛與 Media Info HUD 都有這兩行。
 - `720p`（1280x720）可降低負載；height <=1080，client 通常送 H.264。
+- `Output:` 是實際串流寬高；`Requested:` 是 server 送出的 `-s`，
+  兩者可能不同，因為 client 可自行調整。
 - `-s` 是請求上限與效能提示，不是硬命令；client 可送更低解析度，
   寬度也會依畫面比例調整。
 - Native **不是自動查詢**：AirPlay 沒有回報原生解析度的欄位；這些值是

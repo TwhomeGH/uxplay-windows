@@ -1,5 +1,24 @@
 # ChangeHistory
 
+## 2026.11.12 20:13 顯示實際與請求解析度
+
+**類型**: 功能 · **檔案**: `src/settings.h、src/settings.cpp、src/mainwindow.h、src/mainwindow.cpp、docs/DEVELOPERS-GUIDE.md`
+
+### 問題 - 無法確定目前實際套用的串流寬高，Native 也被 preset 覆寫成 1280x720
+
+### 根因 - 只有設定值，沒有 requested/actual 對照；Native 與 preset 共用 width/height
+
+### 修改 - Media Info HUD 與主視窗顯示 Output／Requested 寬高
+
+主視窗實測 Native 2360x1640，Output waiting (requested 2360x1640)。
+
+- Native 使用獨立 native_width／native_height，preset 不再覆寫
+- Custom 編輯後切回 Native 可更新 Native 尺寸
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.12 20:05 修正 HUD 跟隨影片視窗
 
 **類型**: 修正 · **檔案**: `src/mainwindow.cpp、src/mediainfohud.cpp`

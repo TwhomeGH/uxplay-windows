@@ -151,6 +151,12 @@ AppSettings AppSettings::fromJson(const QString &path, bool *ok) {
         resolution.value(QStringLiteral("width")).toInt(settings.resolution.width);
     settings.resolution.height =
         resolution.value(QStringLiteral("height")).toInt(settings.resolution.height);
+    settings.resolution.nativeWidth =
+        resolution.value(QStringLiteral("native_width"))
+            .toInt(settings.resolution.nativeWidth);
+    settings.resolution.nativeHeight =
+        resolution.value(QStringLiteral("native_height"))
+            .toInt(settings.resolution.nativeHeight);
     settings.resolution.refresh =
         resolution.value(QStringLiteral("refresh")).toInt(settings.resolution.refresh);
 
@@ -203,6 +209,8 @@ bool AppSettings::save() const {
     resolutionObject[QStringLiteral("mode")] = resolution.mode;
     resolutionObject[QStringLiteral("width")] = resolution.width;
     resolutionObject[QStringLiteral("height")] = resolution.height;
+    resolutionObject[QStringLiteral("native_width")] = resolution.nativeWidth;
+    resolutionObject[QStringLiteral("native_height")] = resolution.nativeHeight;
     resolutionObject[QStringLiteral("refresh")] = resolution.refresh;
 
     QJsonObject obsObject;
@@ -292,7 +300,10 @@ QStringList AppSettings::engineArguments(const QString &bleFilePath, bool engine
     if (resolution.mode != QStringLiteral("auto")) {
         int width = resolution.width;
         int height = resolution.height;
-        if (resolution.mode == QStringLiteral("720p")) {
+        if (resolution.mode == QStringLiteral("native")) {
+            width = resolution.nativeWidth;
+            height = resolution.nativeHeight;
+        } else if (resolution.mode == QStringLiteral("720p")) {
             width = 1280;
             height = 720;
         } else if (resolution.mode == QStringLiteral("1080p")) {
@@ -503,6 +514,8 @@ void AppSettings::sanitize() {
     }
     resolution.width = qBound(1, resolution.width, 9999);
     resolution.height = qBound(1, resolution.height, 9999);
+    resolution.nativeWidth = qBound(1, resolution.nativeWidth, 9999);
+    resolution.nativeHeight = qBound(1, resolution.nativeHeight, 9999);
     resolution.refresh = qBound(1, resolution.refresh, 255);
 
     extraArgs = stripManagedArgs(extraArgs);

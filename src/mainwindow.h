@@ -97,6 +97,7 @@ private:
     void fitVideoWindowToStream(int width, int height);
     void saveVideoWindowGeometry();
     void updateHud();
+    void updateOutputLabel();
     void setHudCorner(const QString &corner);
     void populateLogMenu(QMenu *menu);
 
@@ -158,6 +159,7 @@ private:
     QCheckBox *m_diagnosticsCheckbox = nullptr;
 
     QCheckBox *m_hudCheckbox = nullptr;
+    QLabel *m_outputLabel = nullptr;
     QLabel *m_statusLabel = nullptr;
     QLabel *m_errorLabel = nullptr;
     QTimer *m_wakeRestartTimer = nullptr;

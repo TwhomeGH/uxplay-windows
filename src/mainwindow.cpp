@@ -311,6 +311,11 @@ void MainWindow::setupUI() {
     sizeLayout->addWidget(m_heightSpin);
     sizeLayout->addWidget(m_refreshSpin);
     layout->addLayout(sizeLayout);
+
+    m_outputLabel = new QLabel(this);
+    m_outputLabel->setStyleSheet("color:#666;");
+    layout->addWidget(m_outputLabel);
+    updateOutputLabel();
     updateResolutionControls();
 
     auto *obsGroup = new QGroupBox("OBS output (USB capture)", this);
@@ -590,8 +595,16 @@ void MainWindow::updateVideoCodecHint() {
 void MainWindow::onResolutionChanged() {
     if (!m_resolutionCombo || !m_widthSpin || !m_heightSpin || !m_refreshSpin) return;
 
+    const QString previousMode = m_settings.resolution.mode;
+    const int editedWidth = m_widthSpin->value();
+    const int editedHeight = m_heightSpin->value();
     QString mode = m_resolutionCombo->currentData().toString();
-    if (mode == "720p") {
+    if (mode == "native") {
+        QSignalBlocker widthBlocker(m_widthSpin);
+        QSignalBlocker heightBlocker(m_heightSpin);
+        m_widthSpin->setValue(m_settings.resolution.nativeWidth);
+        m_heightSpin->setValue(m_settings.resolution.nativeHeight);
+    } else if (mode == "720p") {
         QSignalBlocker widthBlocker(m_widthSpin);
         QSignalBlocker heightBlocker(m_heightSpin);
         m_widthSpin->setValue(1280);
@@ -617,8 +630,17 @@ void MainWindow::onResolutionChanged() {
 
     ResolutionSettings next = m_settings.resolution;
     next.mode = mode;
-    next.width = m_widthSpin->value();
-    next.height = m_heightSpin->value();
+    if (mode == "native") {
+        if (previousMode == "custom") {
+            next.nativeWidth = editedWidth;
+            next.nativeHeight = editedHeight;
+        }
+        next.width = next.nativeWidth;
+        next.height = next.nativeHeight;
+    } else {
+        next.width = m_widthSpin->value();
+        next.height = m_heightSpin->value();
+    }
     next.refresh = m_refreshSpin->value();
     if (next.mode == m_settings.resolution.mode
         && next.width == m_settings.resolution.width
@@ -630,6 +652,7 @@ void MainWindow::onResolutionChanged() {
     m_settings.resolution = next;
     m_settings.save();
     updateVideoCodecHint();
+    updateOutputLabel();
     m_tray->showMessage("uxplay-windows",
                         "Please restart the uxplay-windows to apply changes.\n(Right-click the Tray Icon)",
                         QSystemTrayIcon::Information, 3000);
@@ -659,6 +682,11 @@ void MainWindow::updateResolutionControls() {
         QSignalBlocker heightBlocker(m_heightSpin);
         m_widthSpin->setValue(width);
         m_heightSpin->setValue(height);
+    } else if (mode == "native") {
+        QSignalBlocker widthBlocker(m_widthSpin);
+        QSignalBlocker heightBlocker(m_heightSpin);
+        m_widthSpin->setValue(m_settings.resolution.nativeWidth);
+        m_heightSpin->setValue(m_settings.resolution.nativeHeight);
     }
 
     bool isAuto = mode == "auto";
@@ -675,6 +703,9 @@ void MainWindow::updateResolutionControls() {
 
 void MainWindow::resetMediaInfo(const QString &status) {
     m_streaming = false;
+    m_streamWidth = 0;
+    m_streamHeight = 0;
+    updateOutputLabel();
     if (m_mediaStatusAction) m_mediaStatusAction->setText("Status: " + status);
     if (m_videoCodecAction) m_videoCodecAction->setText("Video Codec: -");
     if (m_videoDecoderAction) m_videoDecoderAction->setText("Video Decoder: -");
@@ -708,6 +739,7 @@ void MainWindow::updateMediaInfo(const QString &key, const QString &value) {
         if (match.hasMatch()) {
             m_streamWidth = match.captured(1).toInt();
             m_streamHeight = match.captured(2).toInt();
+            updateOutputLabel();
             if (m_videoWindowHandle && !m_videoWindowApplied) {
                 syncVideoWindow();
             }
@@ -1506,8 +1538,7 @@ void MainWindow::toggleHud(bool enabled) {
     updateHud();
 }
 
-void MainWindow::setHudCorner(const QString &corner) {
-    if (corner != QStringLiteral("top-left")
+void MainWindow::setHudCorner(const QString &corner) {    if (corner != QStringLiteral("top-left")
         && corner != QStringLiteral("top-right")) {
         return;
     }
@@ -1516,8 +1547,7 @@ void MainWindow::setHudCorner(const QString &corner) {
     updateHud();
 }
 
-void MainWindow::updateHud() {
-    if (!m_hud) {
+void MainWindow::updateHud() {    if (!m_hud) {
         return;
     }
 
@@ -1558,13 +1588,24 @@ void MainWindow::updateHud() {
         lines << actionText(m_mediaStatusAction);
     }
     if (m_videoCodecAction) {
-        QString video = actionText(m_videoCodecAction);
-        if (m_streamSizeAction) {
-            video += QStringLiteral("  ")
-                     + actionText(m_streamSizeAction);
-        }
-        lines << video;
+        lines << actionText(m_videoCodecAction);
     }
+
+    const QString requested =
+        m_settings.resolution.mode == QStringLiteral("native")
+            ? QStringLiteral("%1x%2")
+                  .arg(m_settings.resolution.nativeWidth)
+                  .arg(m_settings.resolution.nativeHeight)
+            : QStringLiteral("%1x%2")
+                  .arg(m_settings.resolution.width)
+                  .arg(m_settings.resolution.height);
+    const QString actual =
+        (m_streamWidth > 0 && m_streamHeight > 0)
+            ? QStringLiteral("%1x%2").arg(m_streamWidth).arg(m_streamHeight)
+            : QStringLiteral("waiting");
+    lines << QStringLiteral("Output: ") + actual;
+    lines << QStringLiteral("Requested: ") + requested;
+
     if (m_videoDecoderAction) {
         lines << actionText(m_videoDecoderAction);
     }
@@ -1581,6 +1622,27 @@ void MainWindow::updateHud() {
     m_hud->setCorner(m_settings.hudCorner);
     m_hud->setLines(lines);
     m_hud->updateForWindow(m_videoWindowHandle);
+}
+
+void MainWindow::updateOutputLabel() {
+    if (!m_outputLabel) {
+        return;
+    }
+
+    const QString requested =
+        m_settings.resolution.mode == QStringLiteral("native")
+            ? QStringLiteral("%1x%2")
+                  .arg(m_settings.resolution.nativeWidth)
+                  .arg(m_settings.resolution.nativeHeight)
+            : QStringLiteral("%1x%2")
+                  .arg(m_settings.resolution.width)
+                  .arg(m_settings.resolution.height);
+    const QString actual =
+        (m_streamWidth > 0 && m_streamHeight > 0)
+            ? QStringLiteral("%1x%2").arg(m_streamWidth).arg(m_streamHeight)
+            : QStringLiteral("waiting");
+    m_outputLabel->setText(
+        QStringLiteral("Output: %1   (requested %2)").arg(actual, requested));
 }
 
 void MainWindow::saveDiagnostics(bool showDialog) {
