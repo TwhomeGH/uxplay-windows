@@ -1,5 +1,23 @@
 # ChangeHistory
 
+## 2026.11.12 23:58 修正 release 缺少 textoverlay plugin
+
+**類型**: 修正 · **檔案**: `stuff/dll.txt、make_release_CI.sh、make_release_CI_arm64.sh`
+
+### 問題 - nightly zip 有 pango DLL，但沒有 libgstpango.dll，安裝版 textoverlay 無法使用
+
+### 根因 - stuff/dll.txt 沒有列 libgstpango.dll
+
+### 修改 - dll.txt 加入 /ucrt64/lib/gstreamer-1.0/libgstpango.dll
+
+現有 nightly 已下載驗證缺 plugin；重新 push 讓 CI 重建。
+
+- x64／arm64 release smoke test 加入 textoverlay
+
+**相關文件**: stuff/dll.txt
+
+---
+
 ## 2026.11.12 23:37 精簡 HUD 文字
 
 **類型**: 改善 · **檔案**: `src/mainwindow.cpp`

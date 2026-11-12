@@ -230,7 +230,7 @@ if command -v gst-inspect-1.0 >/dev/null 2>&1; then
   export PATH="$DIST_DIR:$PATH"
 
   gst-inspect-1.0 -b || true
-  for feature in appsrc avdec_h264 playbin autovideosink h264parse; do
+  for feature in appsrc avdec_h264 playbin autovideosink h264parse textoverlay; do
     if ! gst-inspect-1.0 --exists "$feature" >/dev/null 2>&1; then
       echo "ERROR: required GStreamer feature '$feature' is missing from the bundle" >&2
       echo "       see the blacklist above; a runtime DLL is probably missing" >&2

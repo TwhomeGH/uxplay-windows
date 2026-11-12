@@ -118,6 +118,7 @@
 /ucrt64/bin/libcairo-gobject-2.dll
 /ucrt64/bin/libgdk_pixbuf-2.0-0.dll
 /ucrt64/bin/libpango-1.0-0.dll
+/ucrt64/lib/gstreamer-1.0/libgstpango.dll
 /ucrt64/bin/libpangocairo-1.0-0.dll
 /ucrt64/bin/libgio-2.0-0.dll
 /ucrt64/bin/libogg-0.dll
