@@ -1,5 +1,21 @@
 # ChangeHistory
 
+## 2026.11.12 23:34 修正 HUD 多行文字靠左排列
+
+**類型**: 修正 · **檔案**: `libuxplay/renderers/video_renderer.c`
+
+### 問題 - HUD 多行文字每一行仍置中，沒有靠左
+
+### 根因 - textoverlay 的 line-alignment 預設 center，只設 halignment=left 不夠
+
+### 修改 - 設定 line-alignment=left；右上／右下時設 right
+
+建置通過；待連線確認多行文字左緣對齊。
+
+**相關文件**: libuxplay/renderers/video_renderer.c
+
+---
+
 ## 2026.11.12 23:29 修正 textoverlay enum 屬性設定
 
 **類型**: 修正 · **檔案**: `libuxplay/renderers/video_renderer.c`
