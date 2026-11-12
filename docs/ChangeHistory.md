@@ -1,5 +1,24 @@
 # ChangeHistory
 
+## 2026.11.13 00:58 HUD 下移與影片視窗置頂
+
+**類型**: 改善 · **檔案**: `libuxplay/renderers/video_renderer.c、src/mainwindow.cpp`
+
+### 問題 - HUD 與 iPad 頂端狀態列重疊；影片視窗可能留在其他視窗下面
+
+### 根因 - ypad 只有 8；背景程序 SetForegroundWindow 常被 Windows 拒絕
+
+### 修改 - HUD ypad 改為 32
+
+建置通過；待連線確認 HUD 不重疊且影片在上層。
+
+- 新影片視窗設為 HWND_TOPMOST
+- AttachThreadInput 輔助 SetForegroundWindow／BringWindowToTop
+
+**相關文件**: src/mainwindow.cpp
+
+---
+
 ## 2026.11.13 00:53 新增可見重建按鈕與視窗置前
 
 **類型**: 改善 · **檔案**: `src/mainwindow.h、src/mainwindow.cpp、src/main.cpp`

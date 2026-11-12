@@ -1092,9 +1092,25 @@ void MainWindow::syncVideoWindow() {
 
         HWND window = reinterpret_cast<HWND>(handle);
         ShowWindow(window, SW_RESTORE);
-        SetWindowPos(window, HWND_TOP, 0, 0, 0, 0,
+        SetWindowPos(window, HWND_TOPMOST, 0, 0, 0, 0,
                      SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+
+        /* SetForegroundWindow is often rejected for a background process.
+         * Attach to the foreground thread for the call, and keep the
+         * mirror window topmost so it is not hidden behind other windows. */
+        HWND foreground = GetForegroundWindow();
+        DWORD foregroundThread =
+            foreground ? GetWindowThreadProcessId(foreground, nullptr) : 0;
+        DWORD targetThread = GetWindowThreadProcessId(window, nullptr);
+        const bool attached = foregroundThread && targetThread
+                              && foregroundThread != targetThread
+                              && AttachThreadInput(foregroundThread,
+                                                   targetThread, TRUE);
         SetForegroundWindow(window);
+        BringWindowToTop(window);
+        if (attached) {
+            AttachThreadInput(foregroundThread, targetThread, FALSE);
+        }
     }
 
     if (!m_videoWindowApplied) {
