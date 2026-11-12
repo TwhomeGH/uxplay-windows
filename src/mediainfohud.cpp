@@ -89,6 +89,13 @@ void MediaInfoHud::updateForWindow(quintptr hwnd) {
     const int y = origin.y + 8;
     move(x, y);
     show();
+
+    /* Keep the overlay above the engine window and move it with a native
+     * call; Qt move() alone can lag behind while the video window is
+     * being dragged. */
+    SetWindowPos(reinterpret_cast<HWND>(winId()), HWND_TOPMOST, x, y,
+                 width(), height(),
+                 SWP_NOACTIVATE | SWP_SHOWWINDOW);
     raise();
 #else
     Q_UNUSED(hwnd);

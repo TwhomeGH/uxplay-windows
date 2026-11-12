@@ -1,5 +1,23 @@
 # ChangeHistory
 
+## 2026.11.12 20:05 修正 HUD 跟隨影片視窗
+
+**類型**: 修正 · **檔案**: `src/mainwindow.cpp、src/mediainfohud.cpp`
+
+### 問題 - HUD 位置不會即時跟隨影片視窗，拖動後才突然移動
+
+### 根因 - 列舉到隱藏的 GStreamer renderer 視窗；1 秒輪詢＋Qt move 對透明 tool window 有延遲
+
+### 修改 - 只選可見且尺寸合理的 renderer 視窗，優先 AirPlay Video Stream
+
+待 iPad 重連驗證：HUD 是否持續跟著拖動與縮放。
+
+- HUD 改用原生 SetWindowPos 跟隨，輪詢降到 250ms
+
+**相關文件**: src/mainwindow.cpp
+
+---
+
 ## 2026.11.12 05:02 新增 Media Info HUD 疊層
 
 **類型**: 功能 · **檔案**: `src/mediainfohud.h、src/mediainfohud.cpp、src/mainwindow.h、src/mainwindow.cpp、src/settings.h、src/settings.cpp、CMakeLists.txt、docs/DEVELOPERS-GUIDE.md、TODO.md`

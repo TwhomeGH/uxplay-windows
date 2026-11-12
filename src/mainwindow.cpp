@@ -66,6 +66,10 @@ BOOL CALLBACK EnumWindowsProcVideo(HWND hwnd, LPARAM lParam) {
     GetWindowThreadProcessId(hwnd, &windowPid);
 
     if (windowPid == data->pid) {
+        if (!IsWindowVisible(hwnd)) {
+            return TRUE;
+        }
+
         char windowTitle[512];
         if (GetWindowTextA(hwnd, windowTitle, sizeof(windowTitle))) {
             const QString title = QString::fromLocal8Bit(windowTitle);
@@ -73,7 +77,13 @@ BOOL CALLBACK EnumWindowsProcVideo(HWND hwnd, LPARAM lParam) {
                 title.contains("Direct") && title.contains("enderer");
             const bool ours = title.startsWith("AirPlay Video Stream");
 
-            if (renderer || ours) {
+            RECT windowRect = {};
+            GetWindowRect(hwnd, &windowRect);
+            const bool usable =
+                windowRect.right - windowRect.left >= 100
+                && windowRect.bottom - windowRect.top >= 100;
+
+            if (ours && usable) {
                 data->found = hwnd;
                 if (data->applyGeometry) {
                     SetWindowPos(hwnd, nullptr, data->geometry.left,
@@ -85,6 +95,19 @@ BOOL CALLBACK EnumWindowsProcVideo(HWND hwnd, LPARAM lParam) {
                 SetWindowTextW(
                     hwnd, reinterpret_cast<const wchar_t*>(data->newTitle.utf16()));
                 return FALSE;
+            }
+
+            if (renderer && usable && !data->found) {
+                data->found = hwnd;
+                if (data->applyGeometry) {
+                    SetWindowPos(hwnd, nullptr, data->geometry.left,
+                                 data->geometry.top,
+                                 data->geometry.right - data->geometry.left,
+                                 data->geometry.bottom - data->geometry.top,
+                                 SWP_NOZORDER | SWP_NOACTIVATE);
+                }
+                SetWindowTextW(
+                    hwnd, reinterpret_cast<const wchar_t*>(data->newTitle.utf16()));
             }
         }
     }
@@ -945,11 +968,11 @@ void MainWindow::onAirplayStarted() {
 
     if (!m_videoTitleTimer) {
         m_videoTitleTimer = new QTimer(this);
-        m_videoTitleTimer->setInterval(1000);
+        m_videoTitleTimer->setInterval(250);
         connect(m_videoTitleTimer, &QTimer::timeout, this,
                 &MainWindow::syncVideoWindow);
     }
-    m_videoTitleTimer->start(1000);
+    m_videoTitleTimer->start(250);
 }
 
 void MainWindow::syncVideoWindow() {
