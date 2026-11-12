@@ -473,11 +473,21 @@ void MainWindow::setupTray() {
     m_hudTopLeftAction->setCheckable(true);
     m_hudTopRightAction = hudPosition->addAction("Top right");
     m_hudTopRightAction->setCheckable(true);
+    m_hudBottomLeftAction = hudPosition->addAction("Bottom left");
+    m_hudBottomLeftAction->setCheckable(true);
+    m_hudBottomRightAction = hudPosition->addAction("Bottom right");
+    m_hudBottomRightAction->setCheckable(true);
     connect(m_hudTopLeftAction, &QAction::triggered, this, [this]() {
         setHudCorner(QStringLiteral("top-left"));
     });
     connect(m_hudTopRightAction, &QAction::triggered, this, [this]() {
         setHudCorner(QStringLiteral("top-right"));
+    });
+    connect(m_hudBottomLeftAction, &QAction::triggered, this, [this]() {
+        setHudCorner(QStringLiteral("bottom-left"));
+    });
+    connect(m_hudBottomRightAction, &QAction::triggered, this, [this]() {
+        setHudCorner(QStringLiteral("bottom-right"));
     });
     m_trayMenu->addSeparator();
     m_trayMenu->addAction("Rebuild AirPlay stream", this,
@@ -1560,8 +1570,11 @@ void MainWindow::toggleHud(bool enabled) {
     updateHud();
 }
 
-void MainWindow::setHudCorner(const QString &corner) {    if (corner != QStringLiteral("top-left")
-        && corner != QStringLiteral("top-right")) {
+void MainWindow::setHudCorner(const QString &corner) {
+    if (corner != QStringLiteral("top-left")
+        && corner != QStringLiteral("top-right")
+        && corner != QStringLiteral("bottom-left")
+        && corner != QStringLiteral("bottom-right")) {
         return;
     }
     m_settings.hudCorner = corner;
@@ -1588,9 +1601,17 @@ void MainWindow::updateHud() {
         m_hudTopRightAction->setChecked(
             m_settings.hudCorner == QStringLiteral("top-right"));
     }
+    if (m_hudBottomLeftAction) {
+        m_hudBottomLeftAction->setChecked(
+            m_settings.hudCorner == QStringLiteral("bottom-left"));
+    }
+    if (m_hudBottomRightAction) {
+        m_hudBottomRightAction->setChecked(
+            m_settings.hudCorner == QStringLiteral("bottom-right"));
+    }
 
     if (!m_settings.hudEnabled || !m_running || m_clientName.isEmpty()) {
-        set_uxplay_hud_text("", 0);
+        set_uxplay_hud_text("", 0, 0);
         return;
     }
 
@@ -1638,8 +1659,9 @@ void MainWindow::updateHud() {
     }
 
     const QByteArray text = lines.join(QLatin1Char('\n')).toUtf8();
-    set_uxplay_hud_text(text.constData(),
-                        m_settings.hudCorner == QStringLiteral("top-right"));
+    const bool right = m_settings.hudCorner.endsWith(QStringLiteral("right"));
+    const bool bottom = m_settings.hudCorner.startsWith(QStringLiteral("bottom"));
+    set_uxplay_hud_text(text.constData(), right, bottom);
 }
 
 void MainWindow::updateOutputLabel() {

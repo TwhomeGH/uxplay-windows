@@ -527,7 +527,9 @@ void AppSettings::sanitize() {
     }
 
     if (hudCorner != QStringLiteral("top-left")
-        && hudCorner != QStringLiteral("top-right")) {
+        && hudCorner != QStringLiteral("top-right")
+        && hudCorner != QStringLiteral("bottom-left")
+        && hudCorner != QStringLiteral("bottom-right")) {
         hudCorner = QStringLiteral("top-left");
     }
 }

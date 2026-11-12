@@ -275,8 +275,8 @@ grep -E "register_dnssd|Initialized server socket|using system MAC" \
 - 實作：GStreamer `textoverlay name=hud_overlay`，文字是 video
   frame 的一部分，因此只有一個視窗，不會有獨立 HUD 閃爍／飄移。
 - 開關：主視窗 checkbox、tray `Media Info HUD`；關閉時送空字串。
-- 位置：tray `HUD position` 可選 `Top left`／`Top right`，對應
-  `halignment`。
+- 位置：tray `HUD position` 可選 `Top left`／`Top right`／
+  `Bottom left`／`Bottom right`，對應 `halignment`／`valignment`。
 - 文字會出現在 OBS 視窗擷取中，這是預期行為。
 - 設定存在 `settings.json` 的 `hud.enabled`／`hud.corner`；預設關閉。
 
@@ -286,6 +286,8 @@ AirPlay 影片可能出現「聲音仍在、畫面定格」而不斷線的狀態
 
 - Engine watchdog：mirror 連線已收到 video codec，但連續 8 秒沒有
   video packet 時，記錄 log 並重建 mirror 連線（`conn_reset`）。
+- 若 6 秒內完全沒有收到 video codec，也會重建；這對應「只出聲音、
+  沒有 video format」的 reconnect 卡住。
 - `video_stream_suspended`（client 暫停或鎖屏）期間不觸發。
 - 手動：tray `Rebuild AirPlay stream` 會停止並重新啟動 engine，
   不需要重啟整個 App。

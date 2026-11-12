@@ -1,5 +1,24 @@
 # ChangeHistory
 
+## 2026.11.12 22:56 HUD 四角位置與無 codec 重建
+
+**類型**: 修正 · **檔案**: `libuxplay/lib/raop_rtp_mirror.c、libuxplay/renderers/video_renderer.c、libuxplay/renderers/video_renderer.h、libuxplay/uxplay.cpp、libuxplay/uxplay_api.h、src/mainwindow.h、src/mainwindow.cpp、src/settings.cpp、docs/DEVELOPERS-GUIDE.md`
+
+### 問題 - HUD 文字位置只能左上／右上；reconnect 常常只出聲、沒有 video format
+
+### 根因 - textoverlay 只設定左右；mirror thread 沒有 codec 起始 timeout
+
+### 修改 - HUD 支援四角：top-left／top-right／bottom-left／bottom-right
+
+建置通過；待 iPad 驗證四角位置與 audio-only reconnect 是否自動恢復。
+
+- set_uxplay_hud_text 增加 vertical 參數，對應 valignment
+- 6 秒內沒有 video codec 時重建 mirror 連線
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.12 22:38 HUD 改用 GStreamer textoverlay
 
 **類型**: 修正 · **檔案**: `libuxplay/renderers/video_renderer.c、libuxplay/renderers/video_renderer.h、libuxplay/uxplay_api.h、libuxplay/uxplay.cpp、src/mainwindow.cpp、src/mainwindow.h、CMakeLists.txt、docs/DEVELOPERS-GUIDE.md`

@@ -140,6 +140,8 @@ private:
     QAction *m_hudAction = nullptr;
     QAction *m_hudTopLeftAction = nullptr;
     QAction *m_hudTopRightAction = nullptr;
+    QAction *m_hudBottomLeftAction = nullptr;
+    QAction *m_hudBottomRightAction = nullptr;
     QAction *m_clientAction = nullptr;
     QAction *m_connectionsAction = nullptr;
     QAction *m_mediaStatusAction = nullptr;
