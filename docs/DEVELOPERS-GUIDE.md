@@ -288,6 +288,13 @@ grep -E "register_dnssd|Initialized server socket|using system MAC" \
   像素微調，預設 `8`／`72`。
 - 設定存在 `settings.json` 的 `hud.corner`、`hud.margin_x`、
   `hud.margin_y`。
+
+### 影片視窗置前
+
+- 新影片視窗第一次出現時只做一次 `HWND_TOPMOST → HWND_NOTOPMOST`，
+  將它拉到其他一般視窗之上，預設不持續置頂。
+- 需要一直保持在最上層時，tray 勾選 `Video always on top`；
+  設定存在 `video_window.always_on_top`，預設關閉。
 - 文字會出現在 OBS 視窗擷取中，這是預期行為。
 - 設定存在 `settings.json` 的 `hud.enabled`（預設關閉）、
   `hud.corner`、`hud.margin_x`、`hud.margin_y`。

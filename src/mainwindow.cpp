@@ -509,6 +509,11 @@ void MainWindow::setupTray() {
     m_hudAction->setCheckable(true);
     m_hudAction->setChecked(m_settings.hudEnabled);
     connect(m_hudAction, &QAction::toggled, this, &MainWindow::toggleHud);
+    m_videoOnTopAction = m_trayMenu->addAction("Video always on top");
+    m_videoOnTopAction->setCheckable(true);
+    m_videoOnTopAction->setChecked(m_settings.videoWindow.alwaysOnTop);
+    connect(m_videoOnTopAction, &QAction::toggled, this,
+            &MainWindow::toggleVideoAlwaysOnTop);
     QMenu *hudPosition = m_trayMenu->addMenu("HUD position");
     m_hudTopLeftAction = hudPosition->addAction("Top left");
     m_hudTopLeftAction->setCheckable(true);
@@ -1118,8 +1123,16 @@ void MainWindow::syncVideoWindow() {
 
         HWND window = reinterpret_cast<HWND>(handle);
         ShowWindow(window, SW_RESTORE);
+        /* Raise once above normal windows; do not stay topmost by default. */
         SetWindowPos(window, HWND_TOPMOST, 0, 0, 0, 0,
                      SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+        if (m_settings.videoWindow.alwaysOnTop) {
+            SetWindowPos(window, HWND_TOPMOST, 0, 0, 0, 0,
+                         SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+        } else {
+            SetWindowPos(window, HWND_NOTOPMOST, 0, 0, 0, 0,
+                         SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+        }
 
         /* SetForegroundWindow is often rejected for a background process.
          * Attach to the foreground thread for the call, and keep the
@@ -1670,6 +1683,19 @@ void MainWindow::toggleHud(bool enabled) {
     m_settings.hudEnabled = enabled;
     m_settings.save();
     updateHud();
+}
+
+void MainWindow::toggleVideoAlwaysOnTop(bool enabled) {
+    m_settings.videoWindow.alwaysOnTop = enabled;
+    m_settings.save();
+    if (m_videoWindowHandle) {
+        HWND window = reinterpret_cast<HWND>(m_videoWindowHandle);
+        if (IsWindow(window)) {
+            SetWindowPos(window, enabled ? HWND_TOPMOST : HWND_NOTOPMOST,
+                         0, 0, 0, 0,
+                         SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+        }
+    }
 }
 
 void MainWindow::setHudCorner(const QString &corner) {

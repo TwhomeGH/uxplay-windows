@@ -1,5 +1,24 @@
 # ChangeHistory
 
+## 2026.11.16 00:22 影片視窗改為一次性置前，always-on-top 可選
+
+**類型**: 改善 · **檔案**: `src/settings.h、src/settings.cpp、src/mainwindow.h、src/mainwindow.cpp、docs/DEVELOPERS-GUIDE.md`
+
+### 問題 - 影片視窗固定 topmost 會一直壓在其他視窗上
+
+### 根因 - 新視窗直接設為 HWND_TOPMOST 且不還原
+
+### 修改 - 新影片視窗只做一次 TOPMOST→NOTOPMOST 拉到上層
+
+建置通過；待連線確認預設不固定置頂。
+
+- tray 新增 Video always on top 開關，預設關閉
+- settings.json video_window.always_on_top 持久化
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.16 00:16 dev build 直接啟動支援 Qt platform plugin
 
 **類型**: 修正 · **檔案**: `scripts/dev_build.sh、docs/DEVELOPERS-GUIDE.md`

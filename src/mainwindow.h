@@ -65,6 +65,7 @@ private slots:
     void openLogFile();
     void toggleDiagnostics(bool enabled);
     void toggleHud(bool enabled);
+    void toggleVideoAlwaysOnTop(bool enabled);
     void toggleBle(bool checked); // bluetooth
     void toggleForceFullscreen(bool checked);
     void onRendererChanged(int index);
@@ -140,6 +141,7 @@ private:
     QAction *m_diagnosticsRecordAction = nullptr;
     QAction *m_saveDiagnosticsAction = nullptr;
     QAction *m_hudAction = nullptr;
+    QAction *m_videoOnTopAction = nullptr;
     QAction *m_hudTopLeftAction = nullptr;
     QAction *m_hudTopRightAction = nullptr;
     QAction *m_hudBottomLeftAction = nullptr;

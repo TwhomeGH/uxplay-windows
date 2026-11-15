@@ -169,6 +169,9 @@ AppSettings AppSettings::fromJson(const QString &path, bool *ok) {
     settings.videoWindow.remember =
         videoWindow.value(QStringLiteral("remember"))
             .toBool(settings.videoWindow.remember);
+    settings.videoWindow.alwaysOnTop =
+        videoWindow.value(QStringLiteral("always_on_top"))
+            .toBool(settings.videoWindow.alwaysOnTop);
     settings.videoWindow.x =
         videoWindow.value(QStringLiteral("x")).toInt(settings.videoWindow.x);
     settings.videoWindow.y =
@@ -225,6 +228,8 @@ bool AppSettings::save() const {
 
     QJsonObject videoWindowObject;
     videoWindowObject[QStringLiteral("remember")] = videoWindow.remember;
+    videoWindowObject[QStringLiteral("always_on_top")] =
+        videoWindow.alwaysOnTop;
     videoWindowObject[QStringLiteral("has_geometry")] = videoWindow.hasGeometry;
     videoWindowObject[QStringLiteral("x")] = videoWindow.x;
     videoWindowObject[QStringLiteral("y")] = videoWindow.y;

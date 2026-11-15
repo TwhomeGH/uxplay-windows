@@ -14,6 +14,7 @@ struct ResolutionSettings {
 
 struct VideoWindowSettings {
     bool remember = true;
+    bool alwaysOnTop = false;
     bool hasGeometry = false;
     int x = 0;
     int y = 0;
