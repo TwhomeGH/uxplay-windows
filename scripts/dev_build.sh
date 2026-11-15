@@ -114,10 +114,11 @@ fi
 # UCRT64 PATH, and a bare exe then dies at load time with 0xc0000135.
 cp -f "$PREFIX/bin/"*.dll "$BUILD_DIR/"
 
-QT_PLUGINS_WIN="$(cygpath -w "$PREFIX/share/qt6/plugins")"
+mkdir -p "$BUILD_DIR/platforms"
+cp -f "$PREFIX/share/qt6/plugins/platforms/qwindows.dll" "$BUILD_DIR/platforms/"
 cat > "$BUILD_DIR/qt.conf" <<EOF
 [Paths]
-Plugins=$QT_PLUGINS_WIN
+Plugins=.
 EOF
 
 if [[ ! -e "$BUILD_DIR/lib/gstreamer-1.0" ]]; then

@@ -18,9 +18,10 @@ bash scripts/dev_run.sh --engine-debug
 
 App 是托盤程式：關閉視窗只會隱藏，要退出請用托盤選單的 **Quit**。
 
-> 直接雙擊 `build/dev/uxplay-windows.exe` 會找不到
-> `libgcc_s_seh-1.dll`（Qt／GStreamer 也依賴它）。請用上面的
-> `dev_run.sh`，或建置後產生的 `build/dev/run-dev.cmd`。
+> 直接雙擊 `build/dev/uxplay-windows.exe` 也可用：`dev_build.sh` 會把
+> UCRT64 DLL、`qwindows.dll`（`platforms/`）與 `qt.conf` 放進 build
+> 目錄。若仍出現 Qt platform plugin 錯誤，改用 `dev_run.sh` 或
+> `build/dev/run-dev.cmd`。
 
 ## 前置需求
 
@@ -352,7 +353,7 @@ Windows 防火牆以**執行檔完整路徑**辨識程式；每個 build 目錄
 | `register_dnssd` 失敗 | 名稱或 MAC 衝突、port 被佔用 | 關閉其他實例；必要時在 `arguments.txt` 加 `-m`／`-p` |
 | 引擎一啟動就退出 | 參數錯誤、GStreamer／Bonjour 初始化失敗 | 看 log 的 `[engine]` 與 `*** ERROR` 行；先用 `--engine-debug` |
 | GStreamer plugin 找不到 | `GST_PLUGIN_PATH` 沒指到 UCRT64 plugin | 用 `dev_run.sh`；確認 `$MSYSTEM_PREFIX/lib/gstreamer-1.0` 存在 |
-| 找不到 `libgcc_s_seh-1.dll`／`Qt6Core.dll` | 直接跑了 exe，PATH 沒設 | 用 `dev_run.sh` 或 `build/dev/run-dev.cmd`；debugger 請在 launch config 設 `PATH` |
+| 找不到 `libgcc_s_seh-1.dll`／`Qt6Core.dll` 或 Qt platform plugin | 直接跑了非 self-contained 的 exe | 用 `dev_run.sh`／`run-dev.cmd`；`dev_build.sh` 會複製 Qt platform plugin 到 `build/dev/platforms` |
 | 沒有聲音 | Windows 輸出裝置不對 | 在 `arguments.txt` 用 `-as` 指定 sink；或改系統預設裝置 |
 | 第二次啟動沒叫回視窗／卡在 already running | 舊 lock 的 PID 已失效或被重用 | 新版會自動清除 stale lock；仍卡住時刪 `%TEMP%\uxplay-windows.lock` |
 | BLE 找不到裝置 | `uxplay-bluetooth-beacon.exe` 不存在 | 本地 debug 可忽略；要 BLE 請 build beacon |

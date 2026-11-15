@@ -1,5 +1,23 @@
 # ChangeHistory
 
+## 2026.11.16 00:16 dev build 直接啟動支援 Qt platform plugin
+
+**類型**: 修正 · **檔案**: `scripts/dev_build.sh、docs/DEVELOPERS-GUIDE.md`
+
+### 問題 - 直接雙擊 build/dev/uxplay-windows.exe 出現 no Qt platform plugin could be initialized
+
+### 根因 - qwindows.dll 只在 MSYS2 prefix，直接啟動沒有 QT_PLUGIN_PATH
+
+### 修改 - dev_build 複製 qwindows.dll 到 build/dev/platforms
+
+已直接啟動驗證程序存活。
+
+- qt.conf 改用相對 Plugins=.
+
+**相關文件**: scripts/dev_build.sh
+
+---
+
 ## 2026.11.16 00:11 修正 HUD 邊距變更時的 segfault
 
 **類型**: 修正 · **檔案**: `libuxplay/renderers/video_renderer.c`
