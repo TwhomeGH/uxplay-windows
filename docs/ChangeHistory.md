@@ -1,5 +1,23 @@
 # ChangeHistory
 
+## 2026.11.16 00:11 修正 HUD 邊距變更時的 segfault
+
+**類型**: 修正 · **檔案**: `libuxplay/renderers/video_renderer.c`
+
+### 問題 - 調整 HUD margin 時發生 segmentation fault
+
+### 根因 - renderer destroy 後 renderer_type 與 hud_overlay 指標未清空，HUD 更新仍存取已釋放物件
+
+### 修改 - destroy 時 unref hud_overlay 並設為 NULL
+
+建置通過；待實測調整 margin 與 stop/start。
+
+- destroy 後清空 renderer_type、n_renderers 與 HUD cache
+
+**相關文件**: libuxplay/renderers/video_renderer.c
+
+---
+
 ## 2026.11.13 01:05 HUD 支援可設定 X／Y 邊距
 
 **類型**: 功能 · **檔案**: `libuxplay/renderers/video_renderer.c、libuxplay/renderers/video_renderer.h、libuxplay/uxplay.cpp、libuxplay/uxplay_api.h、src/settings.h、src/settings.cpp、src/mainwindow.h、src/mainwindow.cpp`
