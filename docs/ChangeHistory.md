@@ -1,5 +1,36 @@
 # ChangeHistory
 
+## 2026.11.17 01:28 設定變更改為 pending 並只重啟引擎 worker
+
+**類型**: 功能 · **檔案**: `src/mainwindow.h、src/mainwindow.cpp、translations/uxplay-windows_zh_TW.ts、build/fillts.py、docs/DEVELOPERS-GUIDE.md、TODO.md`
+
+### 問題 - 設定變更只提示重啟整個 App
+
+變更 AirPlay 名稱、解析度、renderer、codec、BLE 或全螢幕時，UI 只提示
+重新啟動整個 App，沒有 pending 狀態與單一套用入口。
+
+### 根因
+
+各設定 handler 直接存檔並顯示 restart 訊息；引擎啟動參數與目前執行中
+的 worker 沒有可比較的基線。
+
+### 修改
+
+新增 applied 引擎參數基線與 pending 狀態；受影響設定變更後顯示黃色提示
+列與「套用並重新啟動引擎」。
+
+建置通過；實測全螢幕設定顯示 pending，套用後 args 加入 -fs，engine
+重新啟動且 pending 列消失。
+
+- 套用只 stopServer/startServer，重建 engine worker，不重啟 App
+- AirPlay 名稱變更不再 restartApplication；HUD、診斷、OBS 等執行期設定
+  維持立即套用
+- zh_TW 翻譯更新為 228/228，新增 pending 與 apply 文案
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.17 00:57 nightly 改為唯一 tag 並保留最近 10 個
 
 **類型**: CI · **檔案**: `.github/workflows/build_uxplay-windows-v2.yml、.github/workflows/build-uxplay-windows-arm64.yml、README.md、docs/DEVELOPERS-GUIDE.md、TODO.md`

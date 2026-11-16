@@ -482,6 +482,18 @@ AirPlay 影片可能出現「聲音仍在、畫面定格」而不斷線的狀態
 `extra_args` 放未納入 UI 的引擎參數（例如 `-fps 60`）；`-h265`
 由 `video.codec` 管理，不會留在 `extra_args`。
 
+### 引擎設定何時套用
+
+- 影響引擎參數的設定（AirPlay 名稱、解析度、renderer、codec、BLE、全螢幕）
+  會先寫入 `settings.json`，主視窗顯示黄色的
+  「引擎設定已變更」列與「套用並重新啟動引擎」按鈕。
+- 按下套用只會停止並重建 AirPlay engine worker，不會重啟整個 App。
+- HUD、診斷、OBS 模式、影片視窗置頂等執行期選項會立即套用，不進入
+  pending 狀態。
+- AirPlay 已停止時，設定仍會儲存；下次啟動 engine 時直接使用新參數。
+- 直接編輯 `settings.json` 的 `extra_args` 不會被 UI 自動偵測，仍需重新
+  啟動 App 或重新啟動 engine。
+
 第一次啟動 Phase 2B 會把舊 QSettings 與 `arguments.txt` 匯入
 `settings.json`；`arguments.txt` 會改名為 `arguments.txt.migrated`，
 舊 QSettings 的引擎 key 會移除。

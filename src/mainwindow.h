@@ -107,6 +107,10 @@ private:
     void rebuildAirplayStream();
     void openDiagnosticsViewer();
     void saveSettingsSoon();
+    void markEngineSettingsChanged(const QString &reason);
+    void refreshPendingChanges();
+    void applyPendingEngineChanges();
+    QString currentEngineArguments() const;
     void buildHudFieldsMenu(QMenu *menu);
     void populateLogMenu(QMenu *menu);
 
@@ -183,6 +187,9 @@ private:
     QLabel *m_outputLabel = nullptr;
     QLabel *m_statusLabel = nullptr;
     QLabel *m_errorLabel = nullptr;
+    QWidget *m_pendingChangesRow = nullptr;
+    QLabel *m_pendingChangesLabel = nullptr;
+    QPushButton *m_applyChangesButton = nullptr;
     QTimer *m_wakeRestartTimer = nullptr;
 
     AirPlayWorker *m_worker = nullptr;
@@ -200,6 +207,8 @@ private:
     bool m_quitting = false;
     bool m_serverEnabled = true;
     bool m_streaming = false;
+    bool m_engineChangesPending = false;
+    QString m_appliedEngineArguments;
     int m_restartAttempt = 0;
     QString m_lastEngineError;
     QTimer *m_videoTitleTimer = nullptr;

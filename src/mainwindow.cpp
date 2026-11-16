@@ -201,6 +201,23 @@ void MainWindow::setupUI() {
     m_errorLabel->setStyleSheet("color: #b00020;");
     m_errorLabel->setVisible(false);
     layout->addWidget(m_errorLabel);
+
+    m_pendingChangesRow = new QWidget(this);
+    auto *pendingLayout = new QHBoxLayout(m_pendingChangesRow);
+    pendingLayout->setContentsMargins(0, 0, 0, 0);
+    m_pendingChangesLabel = new QLabel(
+        tr("Engine settings changed. Apply to restart the engine."),
+        m_pendingChangesRow);
+    m_pendingChangesLabel->setWordWrap(true);
+    m_pendingChangesLabel->setStyleSheet("color:#8a6d00;");
+    m_applyChangesButton = new QPushButton(
+        tr("Apply & restart engine"), m_pendingChangesRow);
+    connect(m_applyChangesButton, &QPushButton::clicked, this,
+            &MainWindow::applyPendingEngineChanges);
+    pendingLayout->addWidget(m_pendingChangesLabel, 1);
+    pendingLayout->addWidget(m_applyChangesButton);
+    layout->addWidget(m_pendingChangesRow);
+    m_pendingChangesRow->setVisible(false);
     
 
     // Display Name
@@ -609,11 +626,7 @@ void MainWindow::toggleBle(bool checked) {
     }
 
     m_settings.bleEnabled = checked;
-    m_settings.save();
-
-    m_tray->showMessage(tr("uxplay-windows"),
-                        tr("Please restart the uxplay-windows to apply changes.\n(Right-click the Tray Icon)"),
-                        QSystemTrayIcon::Information, 3000);
+    markEngineSettingsChanged(QStringLiteral("bluetooth discovery changed"));
 }
 
 void MainWindow::toggleForceFullscreen(bool checked) {
@@ -622,10 +635,7 @@ void MainWindow::toggleForceFullscreen(bool checked) {
     }
 
     m_settings.forceFullscreen = checked;
-    m_settings.save();
-    m_tray->showMessage(tr("uxplay-windows"),
-                        tr("Please restart the uxplay-windows to apply changes.\n(Right-click the Tray Icon)"),
-                        QSystemTrayIcon::Information, 3000);
+    markEngineSettingsChanged(QStringLiteral("fullscreen changed"));
 }
 
 void MainWindow::onRendererChanged(int /*index*/) {
@@ -635,10 +645,7 @@ void MainWindow::onRendererChanged(int /*index*/) {
     if (m_settings.renderer == mode) return;
 
     m_settings.renderer = mode;
-    m_settings.save();
-    m_tray->showMessage(tr("uxplay-windows"),
-                        tr("Please restart the uxplay-windows to apply changes.\n(Right-click the Tray Icon)"),
-                        QSystemTrayIcon::Information, 3000);
+    markEngineSettingsChanged(QStringLiteral("renderer changed"));
 }
 
 void MainWindow::onVideoCodecChanged(int /*index*/) {
@@ -648,13 +655,7 @@ void MainWindow::onVideoCodecChanged(int /*index*/) {
     if (m_settings.videoCodec == codec) return;
 
     m_settings.videoCodec = codec;
-    m_settings.save();
-    if (m_diagnostics) {
-        m_diagnostics->setSettings(m_settings);
-        m_diagnostics->event(
-            QStringLiteral("settings"), QStringLiteral("video codec changed"),
-            QJsonObject{{QStringLiteral("codec"), codec}});
-    }
+    markEngineSettingsChanged(QStringLiteral("video codec changed"));
     updateVideoCodecHint();
 
     const bool resAllowsHevc =
@@ -666,10 +667,6 @@ void MainWindow::onVideoCodecChanged(int /*index*/) {
                         QSystemTrayIcon::Information, 5000);
         return;
     }
-
-    m_tray->showMessage(tr("uxplay-windows"),
-                        tr("Video codec preference saved. Restart to apply."),
-                        QSystemTrayIcon::Information, 3000);
 }
 
 void MainWindow::updateVideoCodecHint() {
@@ -753,12 +750,9 @@ void MainWindow::onResolutionChanged() {
     }
 
     m_settings.resolution = next;
-    m_settings.save();
+    markEngineSettingsChanged(QStringLiteral("resolution changed"));
     updateVideoCodecHint();
     updateOutputLabel();
-    m_tray->showMessage(tr("uxplay-windows"),
-                        tr("Please restart the uxplay-windows to apply changes.\n(Right-click the Tray Icon)"),
-                        QSystemTrayIcon::Information, 3000);
 }
 
 void MainWindow::updateResolutionControls() {
@@ -983,19 +977,77 @@ void MainWindow::applyDisplayName() {
     }
 
     m_settings.displayName = displayName;
-    m_settings.save();
     m_displayNameEdit->setText(displayName);
-    if (m_diagnostics) {
-        m_diagnostics->event(QStringLiteral("settings"),
-                             QStringLiteral("display name changed"),
-                             QJsonObject{{QStringLiteral("name"), displayName}});
-    }
+    markEngineSettingsChanged(QStringLiteral("display name changed"));
 
     m_tray->showMessage(tr("uxplay-windows"),
-                        tr("Restarting uxplay-windows with the new AirPlay name."),
+                        tr("AirPlay name saved. Apply engine changes to use it."),
                         QSystemTrayIcon::Information, 3000);
+}
 
-    restartApplication();
+QString MainWindow::currentEngineArguments() const {
+    const QString appData =
+        QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    const QString bleFilePath =
+        QDir::toNativeSeparators(appData + "/uxplay_status.ble");
+    const bool engineDebug =
+        QCoreApplication::arguments().contains(QStringLiteral("--engine-debug"));
+    return m_settings.engineArguments(bleFilePath, engineDebug).join(QChar(' '));
+}
+
+void MainWindow::refreshPendingChanges() {
+    const bool pending =
+        m_serverEnabled
+        && !m_appliedEngineArguments.isEmpty()
+        && currentEngineArguments() != m_appliedEngineArguments;
+    m_engineChangesPending = pending;
+    if (m_pendingChangesRow) {
+        m_pendingChangesRow->setVisible(pending);
+    }
+    if (m_applyChangesButton) {
+        m_applyChangesButton->setEnabled(pending);
+    }
+}
+
+void MainWindow::markEngineSettingsChanged(const QString &reason) {
+    m_settings.save();
+    if (m_diagnostics) {
+        m_diagnostics->setSettings(m_settings);
+        m_diagnostics->event(
+            QStringLiteral("settings"), reason,
+            QJsonObject{{QStringLiteral("pending_engine_restart"), true}});
+    }
+    qInfo() << "Engine settings changed:" << reason;
+    refreshPendingChanges();
+}
+
+void MainWindow::applyPendingEngineChanges() {
+    if (!m_engineChangesPending) {
+        return;
+    }
+
+    qInfo() << "Applying pending engine settings";
+    if (m_diagnostics) {
+        m_diagnostics->event(QStringLiteral("engine"),
+                             QStringLiteral("apply pending settings"));
+    }
+
+    // Keep the row hidden while the requested restart is in progress.
+    m_engineChangesPending = false;
+    if (m_pendingChangesRow) {
+        m_pendingChangesRow->setVisible(false);
+    }
+
+    if (!m_serverEnabled) {
+        m_appliedEngineArguments = currentEngineArguments();
+        return;
+    }
+
+    if (m_worker) {
+        rebuildAirplayStream();
+    } else {
+        startServer();
+    }
 }
 
 
@@ -1010,6 +1062,8 @@ void MainWindow::startServer() {
     const bool engineDebug =
         QCoreApplication::arguments().contains(QStringLiteral("--engine-debug"));
     QStringList args = m_settings.engineArguments(bleFilePath, engineDebug);
+    m_appliedEngineArguments = args.join(QChar(' '));
+    refreshPendingChanges();
 
     if (m_settings.bleEnabled) {
         startBluetoothBeacon(bleFilePath);
@@ -1108,6 +1162,7 @@ void MainWindow::onAirplayStarted() {
         m_diagnostics->event(QStringLiteral("engine"),
                              QStringLiteral("ready"));
     }
+    refreshPendingChanges();
     updateStatus();
 
     if (!m_videoTitleTimer) {
@@ -1659,6 +1714,7 @@ void MainWindow::setServerEnabled(bool enabled) {
         qInfo() << "Stopping AirPlay (hot)";
         stopServer();
     }
+    refreshPendingChanges();
     updateStatus();
 }
 

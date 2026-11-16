@@ -14,12 +14,14 @@
 - [x] tray 新增 Start/Stop AirPlay；圖示與 tooltip 區分 idle／streaming／error
   （Phase 2A 已改為引擎熱啟停）。
 - [x] 單一實例保護（QLockFile 或 named mutex），第二次啟動叫回既有視窗。
+- [ ] 修正 dev 重建後仍可能出現第二個 process 的單一實例問題
+  （改用 named mutex，並在 log 記錄 lock 判定）。
 - [x] Bonjour 服務改檢查執行狀態並嘗試自動啟動；修正 `ACCESS_DENIED` 被誤判為存在。
 
 ## Phase 2 — 生命週期與設定模型
 
 - [x] 設定收斂為單一結構化來源（JSON/INI），命令列參數由設定產生，只留「額外參數」欄位。
-- [ ] 設定變更改為重啟引擎 worker，UI 顯示 pending 變更與單一「套用」動作。
+- [x] 設定變更改為重啟引擎 worker，UI 顯示 pending 變更與單一「套用」動作。
 - [x] 修正優雅停止路徑：`stop_uxplay()` 實際被呼叫；移除 `cleanup()` 內的 `exit(0)`。
 - [x] 引擎崩潰重啟加入 backoff，並顯示「引擎連續失敗」狀態。
 
