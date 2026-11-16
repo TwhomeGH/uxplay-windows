@@ -93,8 +93,8 @@ folder intact: Qt and GStreamer DLLs are next to the executable.
    the whole app.
 
 Some renderer, codec and capture settings are applied at the next engine
-start. Settings that change the listening identity can require an app restart;
-the UI reports when that is the case.
+start. Engine-affecting changes show a pending row; `Apply & restart engine`
+restarts only the AirPlay worker, not the whole app.
 
 ## Diagnostics
 

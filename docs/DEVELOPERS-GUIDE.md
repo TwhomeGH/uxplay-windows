@@ -710,10 +710,10 @@ user mode 不可行，需 libusb0 upper filter 與簽章 driver，未實作。
 `ENABLE_USB_CAPTURE=ON` 仍只編譯 QuickTime skeleton，與這條路無關。
 協定與實測數字見 `usbcapture/spike/README.md`。
 
-## 目前限制（Phase 2A 後）
+## 目前限制
 
-- 設定變更（顯示名稱、解析度、renderer）仍會重啟 App；
-  Phase 2B／2C 會改為套用設定並重啟引擎 worker。
+- 設定變更（顯示名稱、解析度、renderer、codec、BLE、全螢幕）需要按
+  「套用並重新啟動引擎」；只重啟 worker，不重啟 App。
 - Core／Exp release channel、SemVer tag 尚未定義；nightly 使用唯一 tag，
   每個架構保留最近 10 個 release。
 - 客戶端連線事件已接到 UI；實機驗證請看 `[engine]`／
