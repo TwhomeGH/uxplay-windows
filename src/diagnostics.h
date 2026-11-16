@@ -5,6 +5,7 @@
 #include <QJsonObject>
 #include <QObject>
 #include <QString>
+#include <QStringList>
 #include <QVector>
 
 #include "settings.h"
@@ -42,6 +43,7 @@ public:
     QDateTime lastClientConnection() const;
     QDateTime sessionStartedAt() const { return m_startedAt; }
     QString lastBundlePath() const { return m_lastBundlePath; }
+    QStringList recentEventLines(int limit = 80) const;
 
 private slots:
     void sample();

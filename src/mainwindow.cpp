@@ -6,6 +6,7 @@
 #include "cleanoutputwindow.h"
 #include "diagnostics.h"
 #include "diagnosticsexportdialog.h"
+#include "diagnosticwindow.h"
 #include "mdns_responder.hpp"
 #include "uxplay_api.h"
 #include <windows.h>
@@ -118,6 +119,7 @@ BOOL CALLBACK EnumWindowsProcVideo(HWND hwnd, LPARAM lParam) {
 }
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
+    m_sessionStartedAt = QDateTime::currentDateTime();
     m_settings = AppSettings::load();
     m_serverEnabled = m_settings.serverEnabled;
 
@@ -269,11 +271,12 @@ void MainWindow::setupUI() {
     auto *codecLayout = new QHBoxLayout();
     auto *codecLabel = new QLabel(tr("Video Codec"), this);
     m_videoCodecCombo = new QComboBox(this);
-    m_videoCodecCombo->addItem(tr("HEVC / H.265 (needs >1080p)"), "hevc");
+    m_videoCodecCombo->addItem(tr("HEVC / H.265 (experimental; may freeze)"), "hevc");
     m_videoCodecCombo->addItem(tr("H.264 / AVC"), "h264");
     m_videoCodecCombo->setToolTip(
         tr("HEVC requires a requested height above 1080p (for example 4K). "
-           "At 1080p the client uses H.264 even when HEVC is enabled."));
+           "At 1080p the client uses H.264 even when HEVC is enabled. "
+           "HEVC is experimental in this build; use H.264 if the video freezes."));
     {
         const int saved = m_videoCodecCombo->findData(m_settings.videoCodec);
         m_videoCodecCombo->setCurrentIndex(saved >= 0 ? saved : 0);
@@ -415,8 +418,12 @@ void MainWindow::setupUI() {
     m_diagnosticsBtn = new QPushButton(tr("Save Diagnostics"), this);
     connect(m_diagnosticsBtn, &QPushButton::clicked, this,
             [this]() { saveDiagnostics(true); });
+    auto *diagnosticsWindowBtn = new QPushButton(tr("Diagnostics Window"), this);
+    connect(diagnosticsWindowBtn, &QPushButton::clicked, this,
+            &MainWindow::showDiagnosticsWindow);
     diagnosticsLayout->addWidget(m_diagnosticsCheckbox, 1);
     diagnosticsLayout->addWidget(m_diagnosticsBtn);
+    diagnosticsLayout->addWidget(diagnosticsWindowBtn);
     layout->addLayout(diagnosticsLayout);
 
     m_hudCheckbox = new QCheckBox(tr("Media Info HUD"), this);
@@ -536,6 +543,8 @@ void MainWindow::setupTray() {
     m_saveDiagnosticsAction = m_trayMenu->addAction(tr("Save Diagnostics"));
     connect(m_saveDiagnosticsAction, &QAction::triggered, this,
             [this]() { saveDiagnostics(true); });
+    m_trayMenu->addAction(tr("Diagnostics Window"), this,
+                          &MainWindow::showDiagnosticsWindow);
     m_hudAction = m_trayMenu->addAction(tr("Media Info HUD"));
     m_hudAction->setCheckable(true);
     m_hudAction->setChecked(m_settings.hudEnabled);
@@ -620,6 +629,89 @@ void MainWindow::showAndRaise() {
 #endif
 }
 
+void MainWindow::showDiagnosticsWindow() {
+    qInfo() << "Opening diagnostics window";
+    if (!m_diagnosticsWindow) {
+        m_diagnosticsWindow = new DiagnosticsWindow(nullptr);
+        connect(m_diagnosticsWindow, &DiagnosticsWindow::saveDiagnosticsRequested,
+                this, [this]() { saveDiagnostics(true); });
+    }
+    updateDiagnosticsWindow();
+    m_diagnosticsWindow->showAndRaise();
+}
+
+void MainWindow::updateDiagnosticsWindow() {
+    if (!m_diagnosticsWindow || !m_diagnosticsWindow->isVisible()) {
+        return;
+    }
+
+    auto actionValue = [](QAction *action, const QString &prefix) {
+        if (!action) return QStringLiteral("-");
+        const QString text = action->text();
+        return text.startsWith(prefix) ? text.mid(prefix.size())
+                                       : text;
+    };
+
+    DiagnosticsSnapshot snapshot;
+    snapshot.timestamp =
+        QDateTime::currentDateTime().toString(QStringLiteral("yyyy-MM-dd HH:mm:ss"));
+    snapshot.status = m_statusLabel ? m_statusLabel->text() : QString();
+    snapshot.clientName = m_clientName;
+    snapshot.clientModel = m_clientModel;
+    snapshot.clientDeviceId = m_clientDeviceId;
+    snapshot.connectionCount = m_connectionCount;
+    snapshot.videoCodec = actionValue(m_videoCodecAction, tr("Video Codec: "));
+    snapshot.outputSize =
+        (m_streamWidth > 0 && m_streamHeight > 0)
+            ? QStringLiteral("%1x%2").arg(m_streamWidth).arg(m_streamHeight)
+            : tr("waiting");
+    snapshot.requestedSize =
+        QStringLiteral("%1x%2").arg(m_settings.requestedWidth())
+            .arg(m_settings.requestedHeight());
+    snapshot.decoder = actionValue(m_videoDecoderAction, tr("Video Decoder: "));
+    snapshot.renderer = actionValue(m_videoRendererAction, tr("Video Renderer: "));
+    snapshot.fps = m_fps;
+    snapshot.frameIntervalMs = m_frameIntervalMs;
+    snapshot.frameAgeMs = m_frameAgeMs;
+    snapshot.frames = m_lastFrameCount;
+    snapshot.inputFrames = m_lastInputFrameCount;
+    snapshot.inputAgeMs = m_inputFrameAgeMs;
+    snapshot.audioCodec = actionValue(m_audioCodecAction, tr("Audio Codec: "));
+    snapshot.audioFormat = actionValue(m_audioFormatAction, tr("Audio Format: "));
+    snapshot.audioPacketsReceived = m_audioPacketsReceived;
+    snapshot.audioPacketsDecoded = m_audioPacketsDecoded;
+    snapshot.audioResendRequests = m_audioResendRequests;
+    snapshot.audioEmptyResends = m_audioEmptyResends;
+    snapshot.audioBytes = m_audioBytes;
+    snapshot.engineArgs = m_engineArgsText;
+    snapshot.appVersion = QCoreApplication::applicationVersion();
+    const qint64 elapsed = m_sessionStartedAt.secsTo(QDateTime::currentDateTime());
+    snapshot.sessionUptime =
+        QStringLiteral("%1:%2:%3")
+            .arg(elapsed / 3600, 2, 10, QLatin1Char('0'))
+            .arg((elapsed / 60) % 60, 2, 10, QLatin1Char('0'))
+            .arg(elapsed % 60, 2, 10, QLatin1Char('0'));
+    snapshot.settingsPath = AppSettings::filePath();
+    snapshot.logPath = applog::filePath();
+    QString diagnosticsPath = QStandardPaths::writableLocation(
+        QStandardPaths::AppLocalDataLocation);
+    if (!diagnosticsPath.isEmpty()) {
+        diagnosticsPath += QStringLiteral("/diagnostics");
+    }
+    snapshot.diagnosticsPath = diagnosticsPath;
+    snapshot.lastError = m_lastEngineError;
+    snapshot.obsMode = m_settings.obsMode;
+    snapshot.usbStatus = m_usbStatusLabel ? m_usbStatusLabel->text() : QString();
+    const QString usbPrefix = tr("USB: ");
+    if (snapshot.usbStatus.startsWith(usbPrefix)) {
+        snapshot.usbStatus.remove(0, usbPrefix.size());
+    }
+    if (m_diagnostics) {
+        snapshot.recentEvents = m_diagnostics->recentEventLines(80);
+    }
+    m_diagnosticsWindow->setSnapshot(snapshot);
+}
+
 void MainWindow::toggleBle(bool checked) {
     if (m_settings.bleEnabled == checked) {
         return;
@@ -660,7 +752,7 @@ void MainWindow::onVideoCodecChanged(int /*index*/) {
 
     const bool resAllowsHevc =
         m_settings.resolution.mode == QStringLiteral("auto")
-        || m_settings.resolution.height > 1080;
+        || m_settings.requestedHeight() > 1080;
     if (codec == QStringLiteral("hevc") && !resAllowsHevc) {
         m_tray->showMessage(tr("uxplay-windows"),
                         tr("HEVC needs height above 1080p; this resolution will use H.264."),
@@ -677,7 +769,7 @@ void MainWindow::updateVideoCodecHint() {
     const bool hevc = m_settings.videoCodec == QStringLiteral("hevc");
     const bool resAllowsHevc =
         m_settings.resolution.mode == QStringLiteral("auto")
-        || m_settings.resolution.height > 1080;
+        || m_settings.requestedHeight() > 1080;
 
     if (!hevc) {
         m_videoCodecHint->setText(
@@ -688,7 +780,8 @@ void MainWindow::updateVideoCodecHint() {
                "H.264."));
     } else {
         m_videoCodecHint->setText(
-            tr("HEVC advertised; the client may still choose H.264."));
+            tr("HEVC is experimental in this build; if the video freezes, "
+               "switch to H.264."));
     }
 }
 
@@ -1067,6 +1160,7 @@ void MainWindow::startServer() {
     const bool engineDebug =
         QCoreApplication::arguments().contains(QStringLiteral("--engine-debug"));
     QStringList args = m_settings.engineArguments(bleFilePath, engineDebug);
+    m_engineArgsText = args.join(QLatin1Char(' '));
     m_appliedEngineArguments = args.join(QChar(' '));
     refreshPendingChanges();
 
@@ -1175,6 +1269,7 @@ void MainWindow::onAirplayStarted() {
     }
     refreshPendingChanges();
     updateStatus();
+    updateHud();
 
     if (!m_videoTitleTimer) {
         m_videoTitleTimer = new QTimer(this);
@@ -1965,6 +2060,9 @@ void MainWindow::updateFrameStats() {
     double inputAgeMs = -1.0;
     get_uxplay_frame_stats(&frames, &ageMs);
     get_uxplay_video_input_stats(&inputFrames, &inputAgeMs);
+    get_uxplay_audio_stats(&m_audioPacketsReceived, &m_audioPacketsDecoded,
+                           &m_audioResendRequests, &m_audioEmptyResends,
+                           &m_audioBytes);
 
     const qint64 now = QDateTime::currentMSecsSinceEpoch();
     const bool inputAdvanced =
@@ -2058,9 +2156,30 @@ void MainWindow::updateFrameStats() {
     }
 
     updateHud();
+    updateDiagnosticsWindow();
 }
 
 void MainWindow::updateHud() {
+    // textoverlay currently stalls the H.265/HEVC pipeline after the first
+    // frame. Keep H.264 + HUD working, and fail closed for HEVC instead of
+    // letting the user enable a known freeze. The Diagnostics Window remains
+    // available for HEVC users.
+    if (m_settings.hudEnabled && m_settings.videoCodec == QStringLiteral("hevc")
+        && m_settings.requestedHeight() > 1080) {
+        m_settings.hudEnabled = false;
+        m_settings.save();
+        qInfo() << "HUD disabled for HEVC at requested height"
+                << m_settings.requestedHeight();
+        if (m_tray) {
+            m_tray->showMessage(
+                tr("uxplay-windows"),
+                tr("HUD is disabled while HEVC is selected because it can "
+                   "freeze the video. Use H.264 for HUD, or open the "
+                   "Diagnostics Window."),
+                QSystemTrayIcon::Warning, 7000);
+        }
+    }
+
     if (m_hudCheckbox
         && m_hudCheckbox->isChecked() != m_settings.hudEnabled) {
         QSignalBlocker blocker(m_hudCheckbox);
@@ -2153,13 +2272,8 @@ void MainWindow::updateHud() {
     }
 
     const QString requested =
-        m_settings.resolution.mode == QStringLiteral("native")
-            ? QStringLiteral("%1x%2")
-                  .arg(m_settings.resolution.nativeWidth)
-                  .arg(m_settings.resolution.nativeHeight)
-            : QStringLiteral("%1x%2")
-                  .arg(m_settings.resolution.width)
-                  .arg(m_settings.resolution.height);
+        QStringLiteral("%1x%2").arg(m_settings.requestedWidth())
+            .arg(m_settings.requestedHeight());
     const QString actual =
         (m_streamWidth > 0 && m_streamHeight > 0)
             ? QStringLiteral("%1x%2").arg(m_streamWidth).arg(m_streamHeight)
@@ -2227,13 +2341,8 @@ void MainWindow::updateOutputLabel() {    if (!m_outputLabel) {
     }
 
     const QString requested =
-        m_settings.resolution.mode == QStringLiteral("native")
-            ? QStringLiteral("%1x%2")
-                  .arg(m_settings.resolution.nativeWidth)
-                  .arg(m_settings.resolution.nativeHeight)
-            : QStringLiteral("%1x%2")
-                  .arg(m_settings.resolution.width)
-                  .arg(m_settings.resolution.height);
+        QStringLiteral("%1x%2").arg(m_settings.requestedWidth())
+            .arg(m_settings.requestedHeight());
     const QString actual =
         (m_streamWidth > 0 && m_streamHeight > 0)
             ? QStringLiteral("%1x%2").arg(m_streamWidth).arg(m_streamHeight)

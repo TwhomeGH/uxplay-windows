@@ -1,5 +1,19 @@
 # ChangeHistory
 
+## 2026.11.17 06:52 新增即時診斷視窗與音訊封包統計
+
+**類型**: 功能
+
+### 問題 - 排查 AirPlay 時只有 HUD 與匯出檔，缺少可即時查看的完整狀態；H.265 搭配 HUD 又會在第一個 frame 後凍結
+
+### 根因 - HUD textoverlay 與 H.265 pipeline 不相容；音訊重送與封包交付沒有可觀測計數
+
+### 修改 - 新增 Diagnostics Window（Overview／Video／Audio／Network／Events、Copy／Save）、音訊 RTP 封包與重送統計，並在 HEVC + height >1080 時自動停用 HUD
+
+主視窗、tray 與 --diagnostics 都能開啟；Audio 頁顯示 received／delivered／resend requests／empty resend responses／bytes；HEVC 選項保留但標示 experimental
+
+---
+
 ## 2026.11.17 03:35 加入 pipeline stall 重建與 debug log 降噪
 
 **類型**: 修正 · **檔案**: `libuxplay/renderers/video_renderer.c、libuxplay/renderers/video_renderer.h、libuxplay/uxplay.cpp、libuxplay/uxplay_api.h、src/mainwindow.cpp、src/mainwindow.h、src/airplayworker.cpp、src/airplayworker.h、scripts/dev_run.sh、docs/DEVELOPERS-GUIDE.md、TODO.md`

@@ -175,6 +175,8 @@ int main(int argc, char *argv[]) {
         remoteCommand = "start";
     } else if (startupArgs.contains(QStringLiteral("--save-diagnostics"))) {
         remoteCommand = "save-diagnostics";
+    } else if (startupArgs.contains(QStringLiteral("--diagnostics"))) {
+        remoteCommand = "diagnostics";
     } else if (launchUsbObs) {
         remoteCommand = "usb-obs";
     }
@@ -295,6 +297,8 @@ int main(int argc, char *argv[]) {
             window.startUsbObs(false);
         } else if (command == "save-diagnostics") {
             window.saveDiagnostics(false);
+        } else if (command == "diagnostics") {
+            window.showDiagnosticsWindow();
         } else {
             window.showAndRaise();
         }
@@ -304,11 +308,17 @@ int main(int argc, char *argv[]) {
         &instanceServer, &QLocalServer::newConnection, &app,
         [&instanceServer, dispatchCommand]() {
             while (QLocalSocket *socket = instanceServer.nextPendingConnection()) {
-                QObject::connect(socket, &QLocalSocket::readyRead, socket,
-                                 [dispatchCommand, socket]() {
-                                     dispatchCommand(socket);
-                                 });
-                dispatchCommand(socket);
+                auto handle = [dispatchCommand, socket]() {
+                    if (socket->bytesAvailable() <= 0) {
+                        return;
+                    }
+                    dispatchCommand(socket);
+                };
+                QObject::connect(socket, &QLocalSocket::readyRead, socket, handle);
+                // Data may already be buffered before the readyRead connection
+                // is made on Windows; handle it now instead of waiting for a
+                // signal that will never arrive.
+                handle();
             }
         });
 

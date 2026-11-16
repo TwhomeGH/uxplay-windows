@@ -548,6 +548,24 @@ QDateTime DiagnosticsRecorder::lastClientConnection() const {
     return {};
 }
 
+QStringList DiagnosticsRecorder::recentEventLines(int limit) const {
+    const int start = qMax(0, m_events.size() - qMax(0, limit));
+    QStringList lines;
+    lines.reserve(m_events.size() - start);
+    for (int i = start; i < m_events.size(); ++i) {
+        const EventRecord &record = m_events.at(i);
+        QString line = QStringLiteral("%1 [%2] %3")
+                           .arg(record.time.toString(QStringLiteral("HH:mm:ss.zzz")),
+                                record.category, record.message);
+        for (auto it = record.data.constBegin(); it != record.data.constEnd(); ++it) {
+            line += QStringLiteral(" %1=%2")
+                        .arg(it.key(), it.value().toVariant().toString());
+        }
+        lines.append(line);
+    }
+    return lines;
+}
+
 QString DiagnosticsRecorder::exportBundle(const DiagnosticsExportRange &range,
                                           bool createZip, QString *error) {
     if (error) {

@@ -13,6 +13,10 @@ Qt 的 `tr()` 以「英文原文 + context」作為 message key；英文原文�
 | `translations/i18n.json` | 語言清單、fallback、技術字串 allowlist |
 | `scripts/check_i18n.py` | CI／本機驗證 |
 
+> VS Code 會依副檔名把 `.ts` 當成 TypeScript。本專案的 `.ts` 是 Qt Linguist
+> XML，已由 `.vscode/settings.json` 將 `translations/*.ts` 關聯為 XML；若編輯器
+> 仍顯示 `ts(1005)`、`ts(1161)` 等錯誤，請執行 **Developer: Reload Window**。
+
 ## 硬性規則
 
 1. 所有使用者可見字串必須使用 `tr()`（非 QObject 類別使用

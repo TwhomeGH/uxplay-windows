@@ -1,4 +1,8 @@
 {
     "msys2.root": "H:\\FIX_VIAP\\msys64",
-    "msys2.prefix": "H:\\FIX_VIAP\\msys64\\ucrt64"
+    "msys2.prefix": "H:\\FIX_VIAP\\msys64\\ucrt64",
+    "files.associations": {
+        "translations/*.ts": "xml",
+        "**/translations/*.ts": "xml"
+    }
 }

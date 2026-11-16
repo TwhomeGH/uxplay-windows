@@ -246,6 +246,30 @@ CSV 可畫 RSS 趨勢；report 有首尾 RSS、CPU 平均／峰值、初始連�
 - **Open Log Folder**：開啟日誌資料夾。
 - **Open Diagnostics Folder**：開啟診斷包資料夾（不存在時會建立）。
 
+### Diagnostics Window（即時）
+
+除了匯出 bundle，主視窗的 **Diagnostics Window**、tray 的
+**Diagnostics Window**，或 `uxplay-windows.exe --diagnostics` 可開啟
+獨立、可縮放的即時視窗；關閉它不會停止 AirPlay。內容：
+
+- **Overview**：連線狀態、client／device ID、連線數、session uptime、
+  app 版本、OBS／USB 狀態、last error、settings／log／diagnostics 路徑、
+  engine 參數。
+- **Video**：codec、Output／Requested、decoder、renderer、FPS、frame
+  interval、last frame age、presented／input frames。
+- **Audio**：codec、format、reported latency，以及 audio RTP 封包
+  統計：received／delivered、resend requests、empty resend responses、
+  bytes。`empty resend` 持續增加代表 client 已被要求重送它不再保留的
+  音訊，可能聽見短暫斷音。
+- **Network**：client、device ID、連線數；RTP 細節仍以 bundle 為準。
+- **Events**：最近 80 筆 diagnostics 事件。
+- 底部 **Copy summary**／**Copy all** 可複製文字；**Save diagnostics**
+  沿用目前的時間區間匯出流程。
+
+音訊計數是 engine 的 audio RTP 執行緒看到的封包，不代表 audio sink
+真的播放成功；要判斷是否真的掉音，需同時看 `empty resend` 是否持續
+增加與 client／網路狀況。
+
 內容包括 `summary.txt`（先看這個）、`timeline.txt`、`manifest.json`、
 `events.jsonl`、`metrics.jsonl`、logs、`settings.redacted.json`、
 `system.txt` 與 `README.txt`。`summary.txt` 會列出 build、client、
@@ -288,11 +312,11 @@ python scripts/diagnostic_viewer.py "$env:LOCALAPPDATA\leapbtw\uxplay-windows\lo
 
 ### 視訊編碼偏好（HEVC / H.264）
 
-主視窗 `Video Codec` 預設 `HEVC / H.265 (needs >1080p)`，可切回
-`H.264 / AVC`。設定存在 `settings.json`：
+主視窗 `Video Codec` 預設 `H.264 / AVC`，可切換 `HEVC / H.265
+(experimental; may freeze)`。設定存在 `settings.json`：
 
 ```json
-"video": { "codec": "hevc" }
+"video": { "codec": "h264" }
 ```
 
 - `hevc`：引擎帶 `-h265`，宣告 HEVC 能力；client 仍可能選 H.264。
@@ -310,7 +334,11 @@ python scripts/diagnostic_viewer.py "$env:LOCALAPPDATA\leapbtw\uxplay-windows\lo
   或 diagnostics 的 `Video Codec`。
 - 變更目前需要重啟 app；Phase 2C 會改為只重啟 engine worker。
 - 既有設定若沒有 `video.codec`：`extra_args` 有 `-h265` 視為
-  `hevc`，沒有則保留 `h264`。新安裝預設 `hevc`。
+  `hevc`，沒有則保留 `h264`。新安裝預設 `h264`。
+- **H.265 與 Media Info HUD 目前不相容**：H.265 + HUD 會只呈現第一
+  個 frame（`frames=1`），關閉 HUD 後可回到 60fps。UI 會在 HEVC +
+  height >1080 時停用 HUD 並提示；HEVC 使用者請改用 H.264 搭 HUD，
+  或使用 Diagnostics Window。腳本仍可用 `--engine-debug` 驗證。
 
 #### 解析度：Native 預設
 
@@ -422,6 +450,9 @@ grep -E "register_dnssd|Initialized server socket|using system MAC" \
   `Show all` 一次恢復全部。
 - 設定存在 `settings.json` 的 `hud.enabled`（預設關閉）、
   `hud.corner`、`hud.margin_x`、`hud.margin_y`、`hud.fields`。
+- **限制**：H.265/HEVC + `textoverlay` 會在第一個 frame 後卡住；
+  HEVC 且 height >1080 時 HUD 會自動停用並提示。HEVC 請改用
+  Diagnostics Window，或將 codec 切回 H.264。
 - 文字會出現在 OBS 視窗擷取中，這是預期行為。
 
 ### 影片視窗置前

@@ -10,6 +10,10 @@
             "compilerPath": "${config:msys2.prefix}/bin/g++.exe",
             "cStandard": "c17",
             "cppStandard": "c++17",
+            "defines": [
+                "_WIN32",
+                "WIN32"
+            ],
             "intelliSenseMode": "windows-gcc-x64"
         }
     ],

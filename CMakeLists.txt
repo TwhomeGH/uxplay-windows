@@ -32,6 +32,7 @@ add_executable(uxplay-windows WIN32
     src/usbdeviceconnector.cpp
     src/diagnostics.cpp
     src/diagnosticsexportdialog.cpp
+    src/diagnosticwindow.cpp
     src/resources.rc
 )
 

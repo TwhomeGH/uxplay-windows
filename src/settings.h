@@ -29,6 +29,8 @@ public:
 
     bool save() const;
     QStringList engineArguments(const QString &bleFilePath, bool engineDebug) const;
+    int requestedWidth() const;
+    int requestedHeight() const;
 
     int schemaVersion = 1;
     QString displayName = "uxplay-windows";
@@ -36,7 +38,7 @@ public:
     bool bleEnabled = true;
     bool forceFullscreen = false;
     QString renderer = "auto";
-    QString videoCodec = "hevc";
+    QString videoCodec = "h264";
     ResolutionSettings resolution;
     VideoWindowSettings videoWindow;
     bool noHold = true;

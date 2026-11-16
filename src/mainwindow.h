@@ -4,6 +4,7 @@
 
 #include <QLabel>
 #include <QMainWindow>
+#include <QDateTime>
 #include <QRect>
 #include <QComboBox>
 #include <QLineEdit>
@@ -24,6 +25,7 @@ class AirPlayWorker;
 class UsbObsController;
 class UsbDeviceConnector;
 class DiagnosticsRecorder;
+class DiagnosticsWindow;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -35,6 +37,7 @@ public:
 public slots:
     void setServerEnabled(bool enabled);
     void showAndRaise();
+    void showDiagnosticsWindow();
     void startUsbObs(bool minimize = false);
     void saveDiagnostics(bool showDialog = true);
 
@@ -110,6 +113,7 @@ private:
     void markEngineSettingsChanged(const QString &reason);
     void refreshPendingChanges();
     void applyPendingEngineChanges();
+    void updateDiagnosticsWindow();
     QString currentEngineArguments() const;
     void buildHudFieldsMenu(QMenu *menu);
     void populateLogMenu(QMenu *menu);
@@ -196,6 +200,9 @@ private:
     UsbObsController *m_usbObs = nullptr;
     UsbDeviceConnector *m_usbConnector = nullptr;
     DiagnosticsRecorder *m_diagnostics = nullptr;
+    DiagnosticsWindow *m_diagnosticsWindow = nullptr;
+    QString m_engineArgsText;
+    QDateTime m_sessionStartedAt;
     bool m_usbDeviceReady = false;
 
     QString m_clientName;
@@ -216,6 +223,11 @@ private:
     QTimer *m_settingsSaveTimer = nullptr;
     quint64 m_lastFrameCount = 0;
     quint64 m_lastInputFrameCount = 0;
+    quint64 m_audioPacketsReceived = 0;
+    quint64 m_audioPacketsDecoded = 0;
+    quint64 m_audioResendRequests = 0;
+    quint64 m_audioEmptyResends = 0;
+    quint64 m_audioBytes = 0;
     qint64 m_lastStatsMs = 0;
     qint64 m_lastStallRebuildMs = 0;
     int m_stalledFrameSamples = 0;

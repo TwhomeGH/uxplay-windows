@@ -291,19 +291,59 @@ bool AppSettings::save() const {
     }
 
     QSaveFile file(path);
+    // Some Windows profile/sandbox ACLs reject the temporary-file rename used
+    // by QSaveFile even though the target itself is writable. Fall back to a
+    // direct write instead of losing the setting (for example the HUD safety
+    // guard) after the user changes it.
+    file.setDirectWriteFallback(true);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         qWarning() << "Could not write settings file" << path << ":" << file.errorString();
-        return false;
-    }
-
-    file.write(data);
-    if (!file.commit()) {
+    } else {
+        file.write(data);
+        if (file.commit()) {
+            qDebug() << "Saved settings to" << path;
+            return true;
+        }
         qWarning() << "Could not commit settings file" << path << ":" << file.errorString();
-        return false;
     }
 
-    qDebug() << "Saved settings to" << path;
+    QFile direct(path);
+    if (!direct.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
+        qWarning() << "Could not write settings file directly" << path << ":"
+                   << direct.errorString();
+        return false;
+    }
+    if (direct.write(data) != data.size()) {
+        qWarning() << "Could not complete settings file write" << path << ":"
+                   << direct.errorString();
+        return false;
+    }
+    direct.flush();
+    direct.close();
+    qInfo() << "Saved settings to" << path << "(direct fallback)";
     return true;
+}
+
+int AppSettings::requestedWidth() const {
+    if (resolution.mode == QStringLiteral("native")) {
+        return resolution.nativeWidth;
+    }
+    if (resolution.mode == QStringLiteral("720p")) return 1280;
+    if (resolution.mode == QStringLiteral("1080p")) return 1920;
+    if (resolution.mode == QStringLiteral("1440p")) return 2560;
+    if (resolution.mode == QStringLiteral("4k")) return 3840;
+    return resolution.width;
+}
+
+int AppSettings::requestedHeight() const {
+    if (resolution.mode == QStringLiteral("native")) {
+        return resolution.nativeHeight;
+    }
+    if (resolution.mode == QStringLiteral("720p")) return 720;
+    if (resolution.mode == QStringLiteral("1080p")) return 1080;
+    if (resolution.mode == QStringLiteral("1440p")) return 1440;
+    if (resolution.mode == QStringLiteral("4k")) return 2160;
+    return resolution.height;
 }
 
 QStringList AppSettings::engineArguments(const QString &bleFilePath, bool engineDebug) const {
@@ -488,14 +528,10 @@ void AppSettings::migrateLegacy() {
     }
 
     videoCodec = haveH265 ? QStringLiteral("hevc") : QStringLiteral("h264");
-    if (!legacyFound) {
-        videoCodec = QStringLiteral("hevc");
-    }
 
     noHold = true;
     extraArgs = legacyFound ? extra
-                            : QStringList{QStringLiteral("-h265"),
-                                          QStringLiteral("-fps"),
+                            : QStringList{QStringLiteral("-fps"),
                                           QStringLiteral("60")};
 }
 
@@ -511,7 +547,7 @@ void AppSettings::sanitize() {
 
     if (videoCodec != QStringLiteral("hevc")
         && videoCodec != QStringLiteral("h264")) {
-        videoCodec = QStringLiteral("hevc");
+        videoCodec = QStringLiteral("h264");
     }
 
     if (obsMode == QStringLiteral("camera")) {

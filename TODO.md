@@ -41,7 +41,7 @@
 - [x] FPS／frame interval／last frame age telemetry（HUD）。
 - [x] HUD 欄位勾選（client／status／video／output／decoder／renderer／fps／audio）。
 - [x] 影片 Decoder／Renderer 資訊回報。
-- [ ] Diagnostics Window：Overview／Video／Audio／Network／Events、Copy／Save。
+- [x] Diagnostics Window：Overview／Video／Audio／Network／Events、Copy／Save。
 - [x] 本機診斷檢視器（bundle／log、篩選、搜尋、metrics 圖）。
 - [x] 本地化：en source、zh_TW `.ts`（228 keys）、tray 語言切換、fallback 英文。
 - [x] `check_i18n.py`：缺 key／空白翻譯／placeholder／未包 `tr()` 的 UI 字串掃描。
@@ -60,12 +60,15 @@
 - [x] tray `Rebuild AirPlay stream` 手動重建。
 - [x] D3D11／D3D12 A/B：D3D11 仍只 presented 1 frame，先排除 sink 為唯一原因。
 - [ ] 測試 `-vd avdec_h265` 軟體解碼；若有效，評估 H.265 預設或 fallback。
-- [ ] 自動重建次數上限與成功／失敗計數（diagnostics）。
+- [ ] 音訊軌道穩定性：log 出現大量 `Received empty resent audio packet`／
+  `raop_buffer_handle_resends` 重送迴圈；需確認是 Wi-Fi 封包遺失、buffer 太小
+  或重送超時（Audio 頁已加封包／重送計數）。
 - [x] 引擎 debug log 降噪：過濾每包 RTP、`/feedback` 與 HTTP 細節；`--engine-trace` 保留完整輸出。
+- [x] H.265 + HUD 保護：HEVC 且 height >1080 時自動停用 HUD，避免只出第一 frame。
 - [x] 管線層 frame heartbeat（區分 packet 有到但 pipeline 卡住）。
 - [ ] 讀取設定後套用解析度不需重啟 App（目前仍需重啟）。
 - [ ] Native 依裝置 profile 自動填入（目前使用已設定的寬高）。
-- [ ] 即時診斷面板（codec／resolution／fps／audio／latency）。
+- [x] 即時診斷面板（codec／resolution／fps／audio／latency）。
 - [ ] Latency／A-V offset instrumentation（sink／pipeline／first NTP）。
 
 ## Phase 3 — AirPlay 功能
