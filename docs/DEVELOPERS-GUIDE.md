@@ -374,6 +374,12 @@ python scripts/diagnostic_viewer.py "$env:LOCALAPPDATA\leapbtw\uxplay-windows\lo
 | `settings.json` | `msys2.root`／`msys2.prefix` |
 | `c_cpp_properties.json` | 用 `build/dev/compile_commands.json` |
 
+IntelliSense 會另外定義 `_WIN32` 與 `WIN32`；libuxplay 的 `compat.h`／
+`sockets.h` 兩者都接受。若仍看到 `sys/socket.h` 找不到，先在
+`build-dev` 後執行 **C/C++: Reset IntelliSense Database** 或
+**Developer: Reload Window**，再確認 `build/dev/compile_commands.json`
+存在。
+
 前置：
 
 1. 安裝 C/C++ extension（`ms-vscode.cpptools`）。
