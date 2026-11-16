@@ -1,5 +1,25 @@
 # ChangeHistory
 
+## 2026.11.17 00:28 新增 Doxygen 文件 CI
+
+**類型**: CI · **檔案**: `.github/workflows/docs.yml、.github/workflows/checks.yml、docs/DEVELOPERS-GUIDE.md、TODO.md`
+
+### 問題 - API 文件只在開發機產生，沒有 CI 驗證，容易與 Doxyfile 脫節
+
+### 根因 - 既有 workflow 只負責 x64／arm64 建置與 nightly，未涵蓋文件
+
+### 修改 - 新增 docs workflow：push／PR 變更 docs、Doxyfile、build_docs.ps1 時產生 API
+
+本機 Doxygen 產生 _site/api/index.html，warnings 0；YAML parse 通過。
+
+- CI 建立 _site、執行 doxygen、驗證 index 存在、Doxygen warning 非空即失敗
+- 上傳 api-reference artifact，保留 14 天；文件 PR 不觸發 nightly
+- 新增 checks workflow：PR／手動執行時在 Ubuntu 安裝 qt6-l10n-tools 並跑嚴格 i18n 檢查，不建置、不發 release
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.17 00:23 新增開發導覽、Doxygen API 與 VS Code 工作
 
 **類型**: 文件 · **檔案**: `Doxyfile、docs/API-GUIDE.md、scripts/build_docs.ps1、.vscode/tasks.json、docs/DEVELOPERS-GUIDE.md、.gitignore、TODO.md`

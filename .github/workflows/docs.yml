@@ -1,0 +1,52 @@
+name: Docs
+
+on:
+  push:
+    paths:
+      - 'docs/**'
+      - 'Doxyfile'
+      - 'scripts/build_docs.ps1'
+      - '.github/workflows/docs.yml'
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'Doxyfile'
+      - 'scripts/build_docs.ps1'
+      - '.github/workflows/docs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  api:
+    name: build API reference
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - name: Install Doxygen
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq doxygen
+
+      - name: Generate API reference
+        run: |
+          mkdir -p _site
+          doxygen Doxyfile
+          test -f _site/api/index.html
+          if [ -s doxygen-warnings.log ]; then
+            echo "Doxygen warnings:" >&2
+            cat doxygen-warnings.log >&2
+            exit 1
+          fi
+
+      - name: Upload API reference
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-reference
+          path: _site/api
+          retention-days: 14

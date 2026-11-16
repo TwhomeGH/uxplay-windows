@@ -94,6 +94,15 @@ pwsh -NoProfile -File scripts/build_docs.ps1 -Open
 
 Doxygen 只讀 `///` 與 `/** */`；新增公開 API 時請補上用途、參數與回傳值。
 
+### CI 與 API 文件
+
+- `.github/workflows/docs.yml`：變更 `docs/**`、`Doxyfile` 或
+  `scripts/build_docs.ps1` 時產生 API，並上傳 `api-reference` artifact。
+- `.github/workflows/checks.yml`：PR／手動執行翻譯檢查，不安裝建置環境、
+  不觸發 nightly。
+- x64／arm64 build workflow：push `main` 時執行 `check_i18n.py`，並建置 nightly。
+- 文件 PR 不會觸發 nightly；只有 push `main` 才會更新既有 nightly release。
+
 ## 建置
 
 ```bash

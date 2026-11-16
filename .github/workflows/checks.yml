@@ -1,0 +1,32 @@
+name: Checks
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  i18n:
+    name: translation checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Qt translation tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq qt6-l10n-tools
+
+      - name: Check translations
+        run: |
+          export PATH="/usr/lib/qt6/bin:$PATH"
+          lupdate -version
+          python scripts/check_i18n.py --require-lupdate --color=never
