@@ -1,5 +1,27 @@
 # ChangeHistory
 
+## 2026.11.17 00:50 拆分 nightly build 與 publish
+
+**類型**: CI · **檔案**: `.github/workflows/build_uxplay-windows-v2.yml、.github/workflows/build-uxplay-windows-arm64.yml、docs/DEVELOPERS-GUIDE.md、TODO.md`
+
+### 問題 - 建置與發佈耦合
+
+建置與 release 更新在同一個 job；取消長時間建置若發生在刪除 release 之後，
+可能留下沒有 nightly 或半完成 release 的狀態。
+
+### 根因 - release 步驟直接依賴同一個 job 的產物，且刪除／建立 tag 不是原子操作
+
+### 修改 - build job 只負責建置、打包、上傳 zip／MSI artifact，權限改為 contents: read
+
+YAML parse 通過；publish 仍保留先刪舊 release 的既有行為，下一步改為 idempotent。
+
+- publish job needs: build，下載 artifact 後才執行 release 刪除、tag 更新與建立
+- 取消 build 不會開始 publish；workflow concurrency 仍使用 cancel-in-progress=false
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.17 00:42 加固 CI：路徑過濾、concurrency 與 timeout
 
 **類型**: CI · **檔案**: `.github/workflows/build_uxplay-windows-v2.yml、.github/workflows/build-uxplay-windows-arm64.yml、.github/workflows/docs.yml、.github/workflows/checks.yml`

@@ -26,7 +26,12 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 45
     permissions:
-      contents: write
+      contents: read
+    outputs:
+      time: ${{ steps.meta.outputs.time }}
+      sha: ${{ steps.meta.outputs.sha }}
+      short_sha: ${{ steps.meta.outputs.short_sha }}
+      log: ${{ steps.commits.outputs.log }}
 
     steps:
       - name: clone the repo
@@ -196,17 +201,11 @@ jobs:
           name: uxplay-windows-msi
           path: uxplaywindows-installer.msi
 
-      - name: uploading artifact
+      - name: Upload zip artifact
         uses: actions/upload-artifact@v5
         with:
           name: uxplay-windows
           path: uxplay-windows-x64.zip
-
-      - name: Download x64 artifact
-        uses: actions/download-artifact@v5
-        with:
-          name: uxplay-windows
-          path: x64/
 
       - name: Get build metadata
         id: meta
@@ -229,6 +228,32 @@ jobs:
           $log >> $env:GITHUB_OUTPUT
           "COMMIT_LOG" >> $env:GITHUB_OUTPUT
 
+  publish:
+    name: publish nightly
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    if: github.event_name != 'pull_request'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 20
+
+      - name: Download zip artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: uxplay-windows
+          path: x64/
+
+      - name: Download MSI artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: uxplay-windows-msi
+          path: msi/
+
       - name: Remove previous nightly release
         shell: bash
         env:
@@ -239,28 +264,28 @@ jobs:
       - name: Update nightly tag
         shell: bash
         run: |
-          git tag -f nightly-build-x64 "$GITHUB_SHA"
+          git tag -f nightly-build-x64 "${{ needs.build.outputs.sha }}"
           git push -f origin nightly-build-x64
 
       - name: Create Pre-release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: nightly-build-x64
-          target_commitish: ${{ github.sha }}
-          name: "Nightly Build ${{ steps.meta.outputs.short_sha }} - ${{ steps.meta.outputs.time }}"
+          target_commitish: ${{ needs.build.outputs.sha }}
+          name: "Nightly Build ${{ needs.build.outputs.short_sha }} - ${{ needs.build.outputs.time }}"
           prerelease: true
           body: |
-            Nightly build for commit [`${{ steps.meta.outputs.short_sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ steps.meta.outputs.sha }}) on `${{ github.ref_name }}`.
+            Nightly build for commit [`${{ needs.build.outputs.short_sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ needs.build.outputs.sha }}) on `${{ github.ref_name }}`.
 
-            - Build time: ${{ steps.meta.outputs.time }}
+            - Build time: ${{ needs.build.outputs.time }}
             - Workflow: [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
             - Architecture: x64
 
             Recent commits:
 
-            ${{ steps.commits.outputs.log }}
+            ${{ needs.build.outputs.log }}
           files: |
             x64/*.zip
-            uxplaywindows-installer.msi
+            msi/*.msi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

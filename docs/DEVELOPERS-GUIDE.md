@@ -101,6 +101,8 @@ Doxygen 只讀 `///` 與 `/** */`；新增公開 API 時請補上用途、參數
 - `.github/workflows/checks.yml`：PR／手動執行翻譯檢查，不安裝建置環境、
   不觸發 nightly。
 - x64／arm64 build workflow：push `main` 時執行 `check_i18n.py`，並建置 nightly。
+- nightly 已拆成 `build` 與 `publish` 兩個 job：建置產物先上傳 artifact，
+  publish 才下載並更新 release；取消 build 不會動到既有 release。
 - 文件 PR 不會觸發 nightly；只有 push `main` 才會更新既有 nightly release。
 
 ### Fork 的 Actions

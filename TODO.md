@@ -49,6 +49,8 @@
 - [x] VS Code tasks：i18n 更新／檢查、API docs、診斷檢視器。
 - [x] Docs CI：Doxygen API 產生與 artifact；x64／arm64 build 已含 i18n gate。
 - [x] PR／手動 Checks workflow：Linux 安裝 qt6-l10n-tools 後執行嚴格 i18n 檢查。
+- [x] nightly build／publish 拆分：build 只上傳 artifact，publish 才改 tag／release。
+- [ ] publish 改成不先刪舊 release 的 idempotent 流程。
 - [ ] 用 frame age 做 pipeline stall 自動重建。
 - [ ] 延遲與 A-V offset：video arrival delay、audio latency。
 - [ ] `-s` 測試矩陣：720p／1080p／1440p／Native／4K 的實際尺寸、codec、CPU／GPU。
