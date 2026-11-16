@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - '.github/ISSUE_TEMPLATE/**'
   workflow_dispatch:
     inputs:
       tmate_debug_enabled:
@@ -12,10 +16,15 @@ on:
         required: false
         type: boolean
 
+concurrency:
+  group: nightly-x64
+  cancel-in-progress: false
+
 jobs:
   build:
     name: build uxplay
     runs-on: windows-latest
+    timeout-minutes: 45
     permissions:
       contents: write
 

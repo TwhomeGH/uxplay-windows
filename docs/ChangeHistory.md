@@ -1,5 +1,28 @@
 # ChangeHistory
 
+## 2026.11.17 00:42 加固 CI：路徑過濾、concurrency 與 timeout
+
+**類型**: CI · **檔案**: `.github/workflows/build_uxplay-windows-v2.yml、.github/workflows/build-uxplay-windows-arm64.yml、.github/workflows/docs.yml、.github/workflows/checks.yml`
+
+### 問題
+
+push main 的每次變更都可能啟動完整 x64／arm64 nightly；同一 nightly tag 可被
+重疊的 run 競爭；文件／檢查 workflow 沒有取消舊 run。
+
+### 根因 - workflow 沒有 paths 過濾、concurrency 與 timeout；release 步驟直接刪除並重建固定 tag
+
+### 修改 - build workflows 忽略 docs／Markdown／issue template 變更
+
+YAML parse 通過；未變更 release 的刪除／建立流程，仍有非原子失敗風險。
+
+- nightly-x64／nightly-arm64 使用 concurrency，cancel-in-progress=false，避免重疊 release
+- docs／checks 使用 cancel-in-progress=true，並加 timeout
+- docs 在 src／libuxplay 變更時重建 API
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.17 00:28 新增 Doxygen 文件 CI
 
 **類型**: CI · **檔案**: `.github/workflows/docs.yml、.github/workflows/checks.yml、docs/DEVELOPERS-GUIDE.md、TODO.md`
