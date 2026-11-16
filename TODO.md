@@ -14,8 +14,7 @@
 - [x] tray 新增 Start/Stop AirPlay；圖示與 tooltip 區分 idle／streaming／error
   （Phase 2A 已改為引擎熱啟停）。
 - [x] 單一實例保護（QLockFile 或 named mutex），第二次啟動叫回既有視窗。
-- [ ] 修正 dev 重建後仍可能出現第二個 process 的單一實例問題
-  （改用 named mutex，並在 log 記錄 lock 判定）。
+- [x] 以 Windows named mutex 取代 QLockFile，避免 stale lock 讓第二個 process 啟動。
 - [x] Bonjour 服務改檢查執行狀態並嘗試自動啟動；修正 `ACCESS_DENIED` 被誤判為存在。
 
 ## Phase 2 — 生命週期與設定模型

@@ -10,14 +10,15 @@
 #include <QDir>
 #include <QFile>
 #include <QIcon>
-#include <QLockFile>
 #include <QLocalServer>
 #include <QLocalSocket>
 #include <QMessageBox>
 #include <QProcessEnvironment>
 #include <QStandardPaths>
 #include <QSystemTrayIcon>
+#include <QThread>
 #include <QTimer>
+#include <QLockFile>
 
 #ifndef UXPLAY_APP_VERSION
 #define UXPLAY_APP_VERSION "dev"
@@ -28,32 +29,67 @@
 #include <cstdio>
 #endif
 
-static bool isUxPlayProcess(qint64 pid) {
 #ifdef _WIN32
-    if (pid <= 0) {
-        return false;
-    }
-
-    HANDLE process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE,
-                                 static_cast<DWORD>(pid));
-    if (!process) {
-        return false;
-    }
-
-    wchar_t path[MAX_PATH] = {};
-    DWORD size = MAX_PATH;
-    const BOOL ok = QueryFullProcessImageNameW(process, 0, path, &size);
-    CloseHandle(process);
-    if (!ok) {
-        return false;
-    }
-
-    return QString::fromWCharArray(path).endsWith(
-        QStringLiteral("uxplay-windows.exe"), Qt::CaseInsensitive);
-#else
-    Q_UNUSED(pid);
-    return true;
+#include <windows.h>
+#include <cstdio>
 #endif
+
+#ifdef _WIN32
+// A kernel mutex is the primary single-instance guard: it is atomic, cannot
+// go stale after a crash, and is released automatically when the process exits.
+// The old QLockFile could remove a live lock when getLockInfo() failed and then
+// let a second process start its own engine.
+static constexpr wchar_t kInstanceMutexName[] =
+    L"Local\\uxplay-windows-single-instance";
+
+static HANDLE acquireInstanceMutex(int timeoutMs) {
+    const int stepMs = 100;
+    int waitedMs = 0;
+    while (true) {
+        SetLastError(ERROR_SUCCESS);
+        HANDLE mutex = CreateMutexW(nullptr, FALSE, kInstanceMutexName);
+        if (!mutex) {
+            return nullptr;
+        }
+        const DWORD wait = WaitForSingleObject(mutex, 0);
+        if (wait == WAIT_OBJECT_0 || wait == WAIT_ABANDONED) {
+            // WAIT_ABANDONED means the previous owner died while holding it;
+            // the kernel transfers ownership to this process immediately.
+            return mutex;
+        }
+        CloseHandle(mutex);
+        if (waitedMs >= timeoutMs) {
+            return nullptr;
+        }
+        const int remaining = timeoutMs - waitedMs;
+        const int sleepMs = remaining < stepMs ? remaining : stepMs;
+        Sleep(static_cast<DWORD>(sleepMs));
+        waitedMs += sleepMs;
+    }
+}
+#endif
+
+static bool showExistingInstance(int timeoutMs) {
+    const QString instanceKey =
+        QStringLiteral("uxplay-windows-single-instance");
+    int waitedMs = 0;
+    while (true) {
+        QLocalSocket socket;
+        socket.connectToServer(instanceKey);
+        if (socket.waitForConnected(500)) {
+            socket.write("show");
+            socket.flush();
+            socket.waitForBytesWritten(500);
+            return true;
+        }
+        if (waitedMs >= timeoutMs) {
+            return false;
+        }
+        const int remaining = timeoutMs - waitedMs;
+        const int sleepMs = remaining < 100 ? remaining : 100;
+        QThread::msleep(static_cast<unsigned long>(sleepMs));
+        waitedMs += sleepMs;
+    }
 }
 
 int main(int argc, char *argv[]) {
@@ -160,40 +196,18 @@ int main(int argc, char *argv[]) {
 
     const bool restarting =
         startupArgs.contains(QStringLiteral("--restart"));
-    const QString lockPath =
-        QDir(QDir::tempPath()).filePath(QStringLiteral("uxplay-windows.lock"));
-    QLockFile instanceLock(lockPath);
-    bool lockAcquired = instanceLock.tryLock(restarting ? 10000 : 100);
-    if (!lockAcquired) {
-        qint64 pid = 0;
-        QString host;
-        QString appName;
-        const bool haveInfo = instanceLock.getLockInfo(&pid, &host, &appName);
-        const bool ownStaleLock =
-            haveInfo && pid == QCoreApplication::applicationPid();
-        const bool otherApp = haveInfo && !ownStaleLock && !isUxPlayProcess(pid);
-        if (!haveInfo || ownStaleLock || otherApp) {
-            qWarning() << "Removing stale single-instance lock" << lockPath
-                       << "pid" << pid;
-            QFile::remove(lockPath);
-            lockAcquired = instanceLock.tryLock(restarting ? 2000 : 500);
+#ifdef _WIN32
+    HANDLE instanceMutex = acquireInstanceMutex(restarting ? 10000 : 0);
+    if (!instanceMutex) {
+        if (!restarting && showExistingInstance(2000)) {
+            return 0;
         }
-    }
-    if (!lockAcquired) {
         if (!restarting) {
-            QLocalSocket socket;
-            socket.connectToServer(instanceKey);
-            if (socket.waitForConnected(1000)) {
-                socket.write("show");
-                socket.flush();
-                socket.waitForBytesWritten(500);
-            } else {
-                QMessageBox::information(
-                    nullptr, QStringLiteral("uxplay-windows"),
-                    QCoreApplication::translate(
-                        "main",
-                        "uxplay-windows is already running.\nCheck the system tray."));
-            }
+            QMessageBox::information(
+                nullptr, QStringLiteral("uxplay-windows"),
+                QCoreApplication::translate(
+                    "main",
+                    "uxplay-windows is already running.\nCheck the system tray."));
         } else {
             QMessageBox::warning(
                 nullptr, QStringLiteral("uxplay-windows"),
@@ -203,6 +217,22 @@ int main(int argc, char *argv[]) {
         }
         return 0;
     }
+#else
+    const QString lockPath =
+        QDir(QDir::tempPath()).filePath(QStringLiteral("uxplay-windows.lock"));
+    QLockFile instanceLock(lockPath);
+    const bool lockAcquired = instanceLock.tryLock();
+    if (!lockAcquired) {
+        if (!showExistingInstance(2000)) {
+            QMessageBox::information(
+                nullptr, QStringLiteral("uxplay-windows"),
+                QCoreApplication::translate(
+                    "main",
+                    "uxplay-windows is already running.\nCheck the system tray."));
+        }
+        return 0;
+    }
+#endif
 
     applog::install();
     qInfo() << "uxplay-windows starting";
@@ -242,6 +272,9 @@ int main(int argc, char *argv[]) {
             nullptr, QCoreApplication::translate("main", "Error"),
             QCoreApplication::translate("main", "System tray not available."));
         applog::shutdown();
+#ifdef _WIN32
+        CloseHandle(instanceMutex);
+#endif
         return 1;
     }
 
@@ -281,5 +314,9 @@ int main(int argc, char *argv[]) {
 
     const int rc = app.exec();
     applog::shutdown();
+#ifdef _WIN32
+    ReleaseMutex(instanceMutex);
+    CloseHandle(instanceMutex);
+#endif
     return rc;
 }

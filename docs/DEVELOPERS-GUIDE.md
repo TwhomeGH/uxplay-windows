@@ -474,7 +474,7 @@ AirPlay 影片可能出現「聲音仍在、畫面定格」而不斷線的狀態
 | 開機自啟 | `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` | 刪除 `uxplay-windows` 值 |
 | MSI 桌面捷徑 | `HKCU\Software\leapbtw\uxplay-windows` 的 `DesktopShortcut` | 由 MSI 管理 |
 | 日誌 | `%LOCALAPPDATA%\leapbtw\uxplay-windows\logs` | 關閉 App 後刪除目錄 |
-| 單一實例 lock | `%TEMP%\uxplay-windows.lock` | 正常會自動處理；卡住時關閉 App 後刪除 |
+| 單一實例 | Windows named mutex `Local\uxplay-windows-single-instance` | 由作業系統在行程結束時釋放；必要時關閉所有 `uxplay-windows.exe` |
 | BLE 狀態檔 | `%APPDATA%\leapbtw\uxplay-windows\uxplay_status.ble` | 引擎停止時自動刪除；必要時手動刪除 |
 
 `settings.json` 主要欄位：`display_name`、`ble_enabled`、`force_fullscreen`、
@@ -527,7 +527,7 @@ Windows 防火牆以**執行檔完整路徑**辨識程式；每個 build 目錄
 | GStreamer plugin 找不到 | `GST_PLUGIN_PATH` 沒指到 UCRT64 plugin | 用 `dev_run.sh`；確認 `$MSYSTEM_PREFIX/lib/gstreamer-1.0` 存在 |
 | 找不到 `libgcc_s_seh-1.dll`／`Qt6Core.dll` 或 Qt platform plugin | 直接跑了非 self-contained 的 exe | 用 `dev_run.sh`／`run-dev.cmd`；`dev_build.sh` 會複製 Qt platform plugin 到 `build/dev/platforms` |
 | 沒有聲音 | Windows 輸出裝置不對 | 在 `arguments.txt` 用 `-as` 指定 sink；或改系統預設裝置 |
-| 第二次啟動沒叫回視窗／卡在 already running | 舊 lock 的 PID 已失效或被重用 | 新版會自動清除 stale lock；仍卡住時刪 `%TEMP%\uxplay-windows.lock` |
+| 第二次啟動沒叫回視窗／卡在 already running | 舊行程仍持有 named mutex，或 IPC server 尚未啟動 | 確認托盤圖示仍在；必要時關閉所有 `uxplay-windows.exe` 後重開 |
 | BLE 找不到裝置 | `uxplay-bluetooth-beacon.exe` 不存在 | 本地 debug 可忽略；要 BLE 請 build beacon |
 | `--restart` 後沒起來 | 舊行程還沒退出 | 等 5 秒；看新行程 log 與 lock |
 

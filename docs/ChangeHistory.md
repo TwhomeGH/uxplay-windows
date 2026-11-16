@@ -1,5 +1,38 @@
 # ChangeHistory
 
+## 2026.11.17 01:43 以 named mutex 修正單一實例競態
+
+**類型**: 修正 · **檔案**: `src/main.cpp、docs/DEVELOPERS-GUIDE.md、TODO.md`
+
+### 問題 - dev 重建或強制結束後，第二個 uxplay-windows process 仍可能啟動，兩個 engine 同時佔用 AirPlay／mDNS
+
+### 根因 - 檔案互斥與 abandoned mutex
+
+QLockFile 的 stale 判定會在 getLockInfo() 失敗時移除仍然存活的 lock；以檔案作為
+互斥不是原子的。改用 named mutex 後又發現：以 CreateMutex(TRUE) 取得既有
+mutex 時不會接手 terminated process 留下的 abandoned mutex，必須用
+WaitForSingleObject() 判斷 WAIT_ABANDONED。
+
+### 修改 - kernel mutex
+
+Windows 改用 Local named mutex 作為唯一實例保證，kernel 在 process 結束時
+自動釋放；abandoned mutex 由 WaitForSingleObject() 接手。
+
+建置通過；實測：
+
+- 第二個 instance 啟動後退出，只留一個 process。
+- 強制結束第一個 process 後立即重開，新 process 可取得 mutex 並啟動。
+- `--restart` 由新 process `58748` 接手，舊 process 結束。
+- `--stop`／`--start` IPC 正常。
+
+- 一般第二次啟動透過既有 QLocalServer 呼叫 show；--restart 等待舊 process
+  釋放 mutex 後接手
+- 保留非 Windows 的 QLockFile fallback；移除舊 lock 檔案依賴
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.17 01:28 設定變更改為 pending 並只重啟引擎 worker
 
 **類型**: 功能 · **檔案**: `src/mainwindow.h、src/mainwindow.cpp、translations/uxplay-windows_zh_TW.ts、build/fillts.py、docs/DEVELOPERS-GUIDE.md、TODO.md`
