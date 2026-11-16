@@ -12,7 +12,13 @@
 
 publish 使用 `nightly-x64-<timestamp>-r<run>`／`nightly-arm64-...` 唯一 tag。
 
-YAML parse 與 markdownlint 通過；沒有先刪舊 release，建立失敗會保留既有版本。
+YAML parse 與 markdownlint 通過；遠端 run 已驗證：
+
+- x64 run `43913607610` 成功，建立 `nightly-x64-20261116-170655-r39`。
+- arm64 run `43913607523` 成功，建立 `nightly-arm64-20261116-171220-r39`。
+- 新 release 均為 prerelease；x64 資產為 zip／MSI，arm64 為 arm64 zip／MSI。
+- 舊 `nightly-build-x64`／`nightly-build-arm64` 保持不動。
+- 目前少於 10 個，prune 尚未有實際刪除案例；邏輯待累積到第 11 個時驗證。
 
 - 建立新 release 後，用 gh release list 篩選同架構，只保留最近 10 個，舊的才刪除
 - 不再刪除 nightly-build-x64／arm64；README 改連到 releases 搜尋
