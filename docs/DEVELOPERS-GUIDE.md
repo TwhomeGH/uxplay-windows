@@ -119,18 +119,30 @@ CSV 可畫 RSS 趨勢；report 有首尾 RSS、CPU 平均／峰值、初始連�
 
 ### 診斷包（Diagnostics）
 
-預設會保留最近 30 分鐘的事件與 1Hz 指標（可在 tray／主視窗關閉）。
-發生問題時：
+診斷包的用途是**重現一次事件**（連線卡住、掉 FPS、engine error），
+不是保存完整歷史。預設只匯出「上次 AirPlay 連線到現在」；若還沒
+連過，預設最近 1 小時。
 
-- 主視窗 **Save Diagnostics** 或 tray 的 **Save Diagnostics**
-- 既有實例：`uxplay-windows.exe --save-diagnostics`
+匯出流程：
+
+- 主視窗 **Save Diagnostics** 或 tray 的 **Save Diagnostics** 會開區間
+  對話框：
+  - Since last AirPlay connection（預設）
+  - Last 1 hour
+  - Last 5 hours
+  - Entire app session
+  - Custom range
+- 預設輸出**資料夾**，方便直接看 `summary.txt`；要分享給他人時才勾
+  `Create .zip for sharing`。
+- 既有實例：`uxplay-windows.exe --save-diagnostics` 使用預設區間與資料夾
+  輸出。
 
 輸出：
 
 ```text
 %LOCALAPPDATA%\leapbtw\uxplay-windows\diagnostics\
-  uxplay-diagnostics-<timestamp>.zip
-  uxplay-diagnostics-<timestamp>\
+  uxplay-diagnostics-<timestamp>\   ← 預設，直接可讀
+  uxplay-diagnostics-<timestamp>.zip  ← 只有勾選時
 ```
 
 日誌與診斷入口在 tray 的 `Logs & Diagnostics`，或主視窗 `Open Log`
@@ -148,12 +160,12 @@ CSV 可畫 RSS 趨勢；report 有首尾 RSS、CPU 平均／峰值、初始連�
 
 保留量：
 
-- 記憶體 ring buffer：3000 events、1800 metrics（1Hz 約 30 分鐘）。
+- 記憶體 ring buffer：20000 events、21600 metrics（1Hz 約 6 小時）。
 - 日誌：8MB × 5 個 rotated 檔＋目前檔（約 48MB）。
 - 影片統計每 5 秒寫一行 `[stats] fps=... interval_ms=...
   frame_age_ms=...`；連續 5 秒低於 30fps 會寫 `[stats] low_fps`。
-- 診斷包：只保留最近 **10 組** folder／zip；每次匯出後自動刪除較舊的。
-  要長期保存的 bundle 請先 copy 到其他位置。
+- 診斷包：只保留最近 **5 組** folder／zip；每次匯出後自動刪除較舊的。
+  不是每次啟動或連線都自動建包，只有按下 Save Diagnostics 才產生。
 
 匯出時會 redact 裝置名稱、UDID、MAC、IPv4 與使用者路徑；client model
 等技術欄位會保留。**不會自動上傳**；分享前請自行檢查。回報請使用

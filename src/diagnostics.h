@@ -11,6 +11,17 @@
 
 class QTimer;
 
+/// Inclusive time window for an incident-focused diagnostics export.
+struct DiagnosticsExportRange {
+    QDateTime from;
+    QDateTime to;
+    QString label;
+
+    bool isValid() const {
+        return from.isValid() && to.isValid() && from < to;
+    }
+};
+
 /// Keeps a bounded in-memory record of recent events and process metrics so a
 /// user can export a diagnostic bundle after an anomaly without reproducing it.
 class DiagnosticsRecorder : public QObject {
@@ -26,6 +37,10 @@ public:
     void event(const QString &category, const QString &message,
                const QJsonObject &data = QJsonObject());
     QString exportBundle(QString *error = nullptr);
+    QString exportBundle(const DiagnosticsExportRange &range, bool createZip,
+                         QString *error = nullptr);
+    QDateTime lastClientConnection() const;
+    QDateTime sessionStartedAt() const { return m_startedAt; }
     QString lastBundlePath() const { return m_lastBundlePath; }
 
 private slots:

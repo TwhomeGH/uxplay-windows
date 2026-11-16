@@ -39,9 +39,9 @@
 
 namespace {
 
-constexpr int kMaxEvents = 3000;
-constexpr int kMaxMetrics = 1800;
-constexpr int kMaxBundles = 10;
+constexpr int kMaxEvents = 20000;
+constexpr int kMaxMetrics = 21600;  // six hours at 1 Hz
+constexpr int kMaxBundles = 5;
 
 QString redactText(const QString &input, const QString &displayName,
                    const QString &hostName) {
@@ -265,7 +265,8 @@ QString readText(const QString &path) {
 }
 
 void writeRedactedLogs(const QString &bundleDir, const QString &displayName,
-                       const QString &hostName) {
+                       const QString &hostName,
+                       const DiagnosticsExportRange &range) {
     const QString logPath = applog::filePath();
     if (logPath.isEmpty()) {
         return;
@@ -278,21 +279,44 @@ void writeRedactedLogs(const QString &bundleDir, const QString &displayName,
 
     QStringList names;
     names << info.fileName();
-    for (int i = 1; i <= 3; ++i) {
+    for (int i = 1; i <= 5; ++i) {
         names << QStringLiteral("%1.%2.%3").arg(base).arg(i).arg(suffix);
     }
 
     const QString logOutDir = bundleDir + QStringLiteral("/logs");
     QDir().mkpath(logOutDir);
 
+    static const QRegularExpression timestamp(
+        QStringLiteral("^\\[(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3})\\]"));
     for (const QString &name : names) {
         const QString path = sourceDir.filePath(name);
         const QString text = readText(path);
         if (text.isEmpty()) {
             continue;
         }
+        QString selected = text;
+        if (range.isValid()) {
+            QStringList kept;
+            bool keepCurrent = false;
+            for (const QString &line : text.split(QLatin1Char('\n'))) {
+                const QRegularExpressionMatch match = timestamp.match(line);
+                if (match.hasMatch()) {
+                    const QDateTime stamp = QDateTime::fromString(
+                        match.captured(1), QStringLiteral("yyyy-MM-dd HH:mm:ss.zzz"));
+                    keepCurrent = stamp.isValid() && stamp >= range.from
+                                  && stamp <= range.to;
+                }
+                if (keepCurrent) {
+                    kept << line;
+                }
+            }
+            selected = kept.join(QLatin1Char('\n'));
+        }
+        if (selected.isEmpty()) {
+            continue;
+        }
         writeText(logOutDir + QLatin1Char('/') + name,
-                  redactText(text, displayName, hostName), nullptr);
+                  redactText(selected, displayName, hostName), nullptr);
     }
 }
 
@@ -510,6 +534,22 @@ void DiagnosticsRecorder::sample() {
 }
 
 QString DiagnosticsRecorder::exportBundle(QString *error) {
+    return exportBundle(DiagnosticsExportRange{}, false, error);
+}
+
+QDateTime DiagnosticsRecorder::lastClientConnection() const {
+    for (int i = m_events.size() - 1; i >= 0; --i) {
+        const EventRecord &record = m_events.at(i);
+        if (record.category == QStringLiteral("client")
+            && record.message == QStringLiteral("connected")) {
+            return record.time;
+        }
+    }
+    return {};
+}
+
+QString DiagnosticsRecorder::exportBundle(const DiagnosticsExportRange &range,
+                                          bool createZip, QString *error) {
     if (error) {
         error->clear();
     }
@@ -541,6 +581,21 @@ QString DiagnosticsRecorder::exportBundle(QString *error) {
     const QString hostName = QSysInfo::machineHostName();
     const QString displayName = m_settings.displayName;
 
+    QVector<EventRecord> selectedEvents;
+    for (const EventRecord &record : m_events) {
+        if (!range.isValid()
+            || (record.time >= range.from && record.time <= range.to)) {
+            selectedEvents.append(record);
+        }
+    }
+    QVector<MetricRecord> selectedMetrics;
+    for (const MetricRecord &record : m_metrics) {
+        if (!range.isValid()
+            || (record.time >= range.from && record.time <= range.to)) {
+            selectedMetrics.append(record);
+        }
+    }
+
     QJsonObject manifest;
     manifest[QStringLiteral("schema_version")] = 1;
     manifest[QStringLiteral("created_at")] =
@@ -569,18 +624,24 @@ QString DiagnosticsRecorder::exportBundle(QString *error) {
     manifest[QStringLiteral("engine_args")] =
         redactedEngineArgs(m_settings, displayName, hostName);
     manifest[QStringLiteral("recording_enabled")] = m_enabled;
-    manifest[QStringLiteral("event_count")] = m_events.size();
-    manifest[QStringLiteral("metric_count")] = m_metrics.size();
+    manifest[QStringLiteral("event_count")] = selectedEvents.size();
+    manifest[QStringLiteral("metric_count")] = selectedMetrics.size();
+    manifest[QStringLiteral("range_label")] =
+        range.isValid() ? range.label : QStringLiteral("session");
+    manifest[QStringLiteral("range_from")] =
+        range.isValid() ? range.from.toString(Qt::ISODateWithMs) : QString();
+    manifest[QStringLiteral("range_to")] =
+        range.isValid() ? range.to.toString(Qt::ISODateWithMs) : QString();
     manifest[QStringLiteral("last_status")] =
         redactText(m_status, displayName, hostName);
     manifest[QStringLiteral("privacy")] =
         QStringLiteral("Locally generated and redacted; review before sharing.");
 
     QJsonObject lastClient;
-    for (int i = m_events.size() - 1; i >= 0; --i) {
-        if (m_events.at(i).category == QStringLiteral("client")
-            && m_events.at(i).message == QStringLiteral("connected")) {
-            lastClient = redactValue(m_events.at(i).data, displayName, hostName)
+    for (int i = selectedEvents.size() - 1; i >= 0; --i) {
+        if (selectedEvents.at(i).category == QStringLiteral("client")
+            && selectedEvents.at(i).message == QStringLiteral("connected")) {
+            lastClient = redactValue(selectedEvents.at(i).data, displayName, hostName)
                              .toObject();
             break;
         }
@@ -596,7 +657,7 @@ QString DiagnosticsRecorder::exportBundle(QString *error) {
     int errorCount = 0;
     int lowFpsCount = 0;
     QString lastError;
-    for (const EventRecord &record : m_events) {
+    for (const EventRecord &record : selectedEvents) {
         if (record.category == QStringLiteral("client")) {
             if (record.message == QStringLiteral("connected")) ++connectCount;
             if (record.message == QStringLiteral("disconnected")) ++disconnectCount;
@@ -635,8 +696,8 @@ QString DiagnosticsRecorder::exportBundle(QString *error) {
                    .arg(redactText(clientName, displayName, hostName),
                         clientModel)
             << QStringLiteral("events: %1  metrics: %2")
-                   .arg(m_events.size())
-                   .arg(m_metrics.size())
+                   .arg(selectedEvents.size())
+                   .arg(selectedMetrics.size())
             << QStringLiteral("client_connects: %1  disconnects: %2  rejected: %3")
                    .arg(connectCount)
                    .arg(disconnectCount)
@@ -650,9 +711,9 @@ QString DiagnosticsRecorder::exportBundle(QString *error) {
                             : redactText(lastError, displayName, hostName))
             << QString();
     summary << QStringLiteral("Recent events (newest last):");
-    const int summaryStart = qMax(0, m_events.size() - 40);
-    for (int i = summaryStart; i < m_events.size(); ++i) {
-        const EventRecord &record = m_events.at(i);
+    const int summaryStart = qMax(0, selectedEvents.size() - 40);
+    for (int i = summaryStart; i < selectedEvents.size(); ++i) {
+        const EventRecord &record = selectedEvents.at(i);
         QString line = QStringLiteral("%1 [%2] %3")
                            .arg(record.time.toString(QStringLiteral("HH:mm:ss.zzz")),
                                 record.category,
@@ -671,7 +732,7 @@ QString DiagnosticsRecorder::exportBundle(QString *error) {
               summary.join(QLatin1Char('\n')) + QLatin1Char('\n'), error);
 
     QString timeline;
-    for (const EventRecord &record : m_events) {
+    for (const EventRecord &record : selectedEvents) {
         timeline += QStringLiteral("%1 [%2] %3")
                         .arg(record.time.toString(Qt::ISODateWithMs),
                              record.category,
@@ -689,7 +750,7 @@ QString DiagnosticsRecorder::exportBundle(QString *error) {
     writeText(folderPath + QStringLiteral("/timeline.txt"), timeline, error);
 
     QString eventsJson;
-    for (const EventRecord &record : m_events) {
+    for (const EventRecord &record : selectedEvents) {
         QJsonObject object;
         object[QStringLiteral("ts")] =
             record.time.toString(Qt::ISODateWithMs);
@@ -706,7 +767,7 @@ QString DiagnosticsRecorder::exportBundle(QString *error) {
               error);
 
     QString metricsJson;
-    for (const MetricRecord &record : m_metrics) {
+    for (const MetricRecord &record : selectedMetrics) {
         QJsonObject object;
         object[QStringLiteral("ts")] =
             record.time.toString(Qt::ISODateWithMs);
@@ -766,13 +827,14 @@ QString DiagnosticsRecorder::exportBundle(QString *error) {
     writeText(folderPath + QStringLiteral("/system.txt"),
               system.join(QLatin1Char('\n')) + QLatin1Char('\n'), error);
 
-    writeRedactedLogs(folderPath, displayName, hostName);
+    writeRedactedLogs(folderPath, displayName, hostName, range);
 
     const QString readme = QStringLiteral(
         "uxplay-windows diagnostics bundle\n"
         "---------------------------------\n"
-        "This bundle was generated locally. It contains recent events and\n"
-        "process metrics, logs, redacted settings, and system information.\n"
+        "This bundle was generated locally. It contains the selected\n"
+        "incident window: events, process metrics, filtered logs, redacted\n"
+        "settings, and system information.\n"
         "summary.txt is the quick human-readable entry point;\n"
         "timeline.txt and events.jsonl contain the detailed event history.\n"
         "Nothing is uploaded automatically.\n"
@@ -784,14 +846,16 @@ QString DiagnosticsRecorder::exportBundle(QString *error) {
         "\n"
         "How to use:\n"
         "1. Review the files before sharing.\n"
-        "2. Attach the .zip to the project issue template.\n"
+        "2. If sharing, compress the folder or use the optional ZIP.\n"
         "3. Describe what happened, when, and whether audio or video was\n"
         "   affected.\n");
     writeText(folderPath + QStringLiteral("/README.txt"), readme, error);
 
     const QString result =
-        zipBundle(rootDir, folderPath, folderName, zipPath) ? zipPath
-                                                            : folderPath;
+        createZip
+            ? (zipBundle(rootDir, folderPath, folderName, zipPath) ? zipPath
+                                                                   : folderPath)
+            : folderPath;
     pruneBundles(rootDir);
     m_lastBundlePath = result;
     return result;

@@ -5,6 +5,7 @@
 #include "usbdeviceconnector.h"
 #include "cleanoutputwindow.h"
 #include "diagnostics.h"
+#include "diagnosticsexportdialog.h"
 #include "mdns_responder.hpp"
 #include "uxplay_api.h"
 #include <windows.h>
@@ -25,6 +26,7 @@
 #include <QDebug>
 #include <QDateTime>
 #include <QDesktopServices>
+#include <QDialog>
 #include <QDir>
 #include <QFile>
 #include <QHBoxLayout>
@@ -2045,8 +2047,29 @@ void MainWindow::saveDiagnostics(bool showDialog) {
     m_diagnostics->event(QStringLiteral("diagnostics"),
                          QStringLiteral("saving"));
 
+    DiagnosticsExportRange exportRange;
+    bool createZip = false;
+    if (showDialog) {
+        DiagnosticsExportDialog dialog(m_diagnostics->lastClientConnection(),
+                                       m_diagnostics->sessionStartedAt(), this);
+        if (dialog.exec() != QDialog::Accepted) {
+            return;
+        }
+        exportRange = dialog.range();
+        createZip = dialog.createZip();
+    } else {
+        const QDateTime now = QDateTime::currentDateTime();
+        const QDateTime last = m_diagnostics->lastClientConnection();
+        exportRange.from = last.isValid() ? last : now.addSecs(-3600);
+        exportRange.to = now;
+        exportRange.label = last.isValid()
+                                ? QStringLiteral("Since last AirPlay connection")
+                                : QStringLiteral("Last 1 hour");
+    }
+
     QString error;
-    const QString path = m_diagnostics->exportBundle(&error);
+    const QString path =
+        m_diagnostics->exportBundle(exportRange, createZip, &error);
     if (path.isEmpty()) {
         const QString message =
             error.isEmpty() ? QStringLiteral("Could not save diagnostics.")

@@ -33,6 +33,7 @@
 - [ ] 健康狀態（RSS／CPU／last error）寫入 log 或 tray tooltip。
 - [x] 診斷包：ring buffer、Save diagnostics、redaction、issue template。
 - [x] 診斷包 `summary.txt`／`timeline.txt`；日誌 8MB×5。
+- [x] 診斷匯出時間區間（上次連線／1h／5h／session／自訂）與資料夾預設、zip 可選。
 - [x] `Native (device)` 解析度預設（2360x1640 實測 H.265）。
 - [x] 新增 720p 解析度，補效能／codec 測試缺口。
 - [x] Media Info HUD：點擊穿透疊層、主視窗／tray 開關、左上／右上。
