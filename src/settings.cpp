@@ -113,6 +113,8 @@ AppSettings AppSettings::fromJson(const QString &path, bool *ok) {
     settings.schemaVersion = object.value(QStringLiteral("schema_version")).toInt(1);
     settings.displayName =
         object.value(QStringLiteral("display_name")).toString(settings.displayName);
+    settings.language =
+        object.value(QStringLiteral("language")).toString(settings.language);
     settings.bleEnabled =
         object.value(QStringLiteral("ble_enabled")).toBool(settings.bleEnabled);
     settings.forceFullscreen =
@@ -266,6 +268,7 @@ bool AppSettings::save() const {
     QJsonObject object;
     object[QStringLiteral("schema_version")] = 1;
     object[QStringLiteral("display_name")] = displayName;
+    object[QStringLiteral("language")] = language;
     object[QStringLiteral("ble_enabled")] = bleEnabled;
     object[QStringLiteral("force_fullscreen")] = forceFullscreen;
     object[QStringLiteral("renderer")] = renderer;
@@ -564,6 +567,12 @@ void AppSettings::sanitize() {
         && hudCorner != QStringLiteral("bottom-right")) {
         hudCorner = QStringLiteral("top-left");
     }
+    if (language != QStringLiteral("system")
+        && language != QStringLiteral("en")
+        && language != QStringLiteral("zh_TW")) {
+        language = QStringLiteral("system");
+    }
+
     hudMarginX = qBound(0, hudMarginX, 1000);
     hudMarginY = qBound(0, hudMarginY, 1000);
     const QStringList allowedFields = {

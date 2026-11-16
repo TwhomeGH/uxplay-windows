@@ -36,30 +36,30 @@ CleanOutputWindow::CleanOutputWindow(QWidget *parent)
     setMouseTracking(true);
 
     m_menu = new QMenu(this);
-    QAction *alwaysOnTop = m_menu->addAction("Always on top");
+    QAction *alwaysOnTop = m_menu->addAction(tr("Always on top"));
     alwaysOnTop->setCheckable(true);
     alwaysOnTop->setChecked(m_alwaysOnTop);
     connect(alwaysOnTop, &QAction::toggled, this,
             &CleanOutputWindow::setAlwaysOnTop);
 
-    QAction *copyName = m_menu->addAction("Copy OBS source name");
+    QAction *copyName = m_menu->addAction(tr("Copy OBS source name"));
     connect(copyName, &QAction::triggered, this, [this]() {
         QGuiApplication::clipboard()->setText(obsSourceName());
         QToolTip::showText(QCursor::pos(),
-                           QStringLiteral("Copied: %1").arg(obsSourceName()),
+                           tr("Copied: %1").arg(obsSourceName()),
                            this);
     });
 
     m_menu->addSeparator();
-    QAction *move = m_menu->addAction("Move window");
+    QAction *move = m_menu->addAction(tr("Move window"));
     connect(move, &QAction::triggered, this, &CleanOutputWindow::beginSystemMove);
-    QAction *resize = m_menu->addAction("Resize window");
+    QAction *resize = m_menu->addAction(tr("Resize window"));
     connect(resize, &QAction::triggered, this, [this]() {
         beginSystemResize(Qt::BottomEdge | Qt::RightEdge);
     });
-    QAction *reset = m_menu->addAction("Reset size");
+    QAction *reset = m_menu->addAction(tr("Reset size"));
     connect(reset, &QAction::triggered, this, &CleanOutputWindow::resetSize);
-    QAction *closeAction = m_menu->addAction("Close");
+    QAction *closeAction = m_menu->addAction(tr("Close"));
     connect(closeAction, &QAction::triggered, this, &QWidget::close);
 }
 

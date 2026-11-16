@@ -1,7 +1,12 @@
 #include "logging.h"
 #include "mainwindow.h"
+#include "settings.h"
 
 #include <QApplication>
+#include <QDir>
+#include <QLibraryInfo>
+#include <QLocale>
+#include <QTranslator>
 #include <QDir>
 #include <QFile>
 #include <QIcon>
@@ -72,6 +77,55 @@ int main(int argc, char *argv[]) {
     app.setWindowIcon(
         QIcon(QApplication::applicationDirPath() + "/resources/icon.ico"));
 
+    // The source language is English. A missing .qm, an empty translation,
+    // or an unavailable locale falls back to the English source string.
+    const AppSettings startupSettings = AppSettings::load();
+    QString requestedLanguage = startupSettings.language;
+    for (const QString &argument : QCoreApplication::arguments()) {
+        if (argument.startsWith(QStringLiteral("--lang="))) {
+            requestedLanguage = argument.mid(7);
+        }
+    }
+    QStringList languageCandidates;
+    if (requestedLanguage.isEmpty()
+        || requestedLanguage == QStringLiteral("system")) {
+        for (const QString &uiLanguage : QLocale::system().uiLanguages()) {
+            languageCandidates << QString(uiLanguage).replace('-', '_');
+        }
+    } else {
+        languageCandidates << QString(requestedLanguage).replace('-', '_');
+    }
+    languageCandidates.removeDuplicates();
+
+    auto *translator = new QTranslator(&app);
+    bool translatorLoaded = false;
+    QString loadedLanguage;
+    for (const QString &code : languageCandidates) {
+        if (code == QStringLiteral("en") || code.isEmpty()) {
+            continue;
+        }
+        const QString resource =
+            QStringLiteral(":/i18n/uxplay-windows_%1.qm").arg(code);
+        const QString file = QApplication::applicationDirPath()
+                             + QStringLiteral("/translations/uxplay-windows_")
+                             + code + QStringLiteral(".qm");
+        const QString appDirFile =
+            QApplication::applicationDirPath()
+            + QStringLiteral("/uxplay-windows_") + code
+            + QStringLiteral(".qm");
+        if (translator->load(resource) || translator->load(file)
+            || translator->load(appDirFile)) {
+            app.installTranslator(translator);
+            translatorLoaded = true;
+            loadedLanguage = code;
+            qInfo() << "Loaded translation:" << code;
+            break;
+        }
+    }
+    if (!translatorLoaded) {
+        qInfo() << "No translation loaded; using English source strings";
+    }
+
     // Only one tray process may own the engine and the mDNS registration.
     // A second launch asks the first instance to show its window instead.
     const QString instanceKey = QStringLiteral("uxplay-windows-single-instance");
@@ -135,19 +189,26 @@ int main(int argc, char *argv[]) {
                 socket.waitForBytesWritten(500);
             } else {
                 QMessageBox::information(
-                    nullptr, "uxplay-windows",
-                    "uxplay-windows is already running.\nCheck the system tray.");
+                    nullptr, QStringLiteral("uxplay-windows"),
+                    QCoreApplication::translate(
+                        "main",
+                        "uxplay-windows is already running.\nCheck the system tray."));
             }
         } else {
             QMessageBox::warning(
-                nullptr, "uxplay-windows",
-                "Another uxplay-windows instance is still running.");
+                nullptr, QStringLiteral("uxplay-windows"),
+                QCoreApplication::translate(
+                    "main",
+                    "Another uxplay-windows instance is still running."));
         }
         return 0;
     }
 
     applog::install();
     qInfo() << "uxplay-windows starting";
+    qInfo() << "UI language:"
+            << (translatorLoaded ? loadedLanguage
+                                 : QStringLiteral("en (source; no translation loaded)"));
     qInfo() << "Executable:" << QCoreApplication::applicationFilePath();
     qInfo() << "Arguments:" << QCoreApplication::arguments();
 
@@ -177,7 +238,9 @@ int main(int argc, char *argv[]) {
 
     if (!QSystemTrayIcon::isSystemTrayAvailable()) {
         qCritical() << "System tray not available";
-        QMessageBox::critical(nullptr, "Error", "System tray not available.");
+        QMessageBox::critical(
+            nullptr, QCoreApplication::translate("main", "Error"),
+            QCoreApplication::translate("main", "System tray not available."));
         applog::shutdown();
         return 1;
     }

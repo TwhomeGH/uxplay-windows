@@ -42,6 +42,7 @@
 - [x] 影片 Decoder／Renderer 資訊回報。
 - [ ] Diagnostics Window：Overview／Video／Audio／Network／Events、Copy／Save。
 - [x] 本機診斷檢視器（bundle／log、篩選、搜尋、metrics 圖）。
+- [x] 本地化基礎：en source、zh_TW `.ts`、語言設定、`check_i18n.py`。
 - [ ] 用 frame age 做 pipeline stall 自動重建。
 - [ ] 延遲與 A-V offset：video arrival delay、audio latency。
 - [ ] `-s` 測試矩陣：720p／1080p／1440p／Native／4K 的實際尺寸、codec、CPU／GPU。

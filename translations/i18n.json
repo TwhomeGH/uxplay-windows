@@ -1,0 +1,10 @@
+{
+  "source_language": "en",
+  "fallback_language": "en",
+  "languages": [
+    {
+      "code": "zh_TW",
+      "file": "uxplay-windows_zh_TW.ts"
+    }
+  ]
+}

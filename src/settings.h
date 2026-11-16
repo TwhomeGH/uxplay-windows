@@ -32,6 +32,7 @@ public:
 
     int schemaVersion = 1;
     QString displayName = "uxplay-windows";
+    QString language = "system";
     bool bleEnabled = true;
     bool forceFullscreen = false;
     QString renderer = "auto";

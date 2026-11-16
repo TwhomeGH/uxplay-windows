@@ -14,22 +14,22 @@ DiagnosticsExportDialog::DiagnosticsExportDialog(
     QWidget *parent)
     : QDialog(parent), m_lastConnection(lastConnection),
       m_sessionStart(sessionStart) {
-    setWindowTitle("Save Diagnostics");
+    setWindowTitle(tr("Save Diagnostics"));
     setMinimumWidth(520);
 
     auto *intro = new QLabel(
-        "Export one incident window, not the entire history.\\n"
-        "Data is written locally and is never uploaded. A folder is the "
-        "default; ZIP is only for sharing.",
+        tr("Export one incident window, not the entire history.\n"
+           "Data is written locally and is never uploaded. A folder is the "
+           "default; ZIP is only for sharing."),
         this);
     intro->setWordWrap(true);
 
     m_mode = new QComboBox(this);
-    m_mode->addItem("Since last AirPlay connection");
-    m_mode->addItem("Last 1 hour");
-    m_mode->addItem("Last 5 hours");
-    m_mode->addItem("Entire app session");
-    m_mode->addItem("Custom range...");
+    m_mode->addItem(tr("Since last AirPlay connection"));
+    m_mode->addItem(tr("Last 1 hour"));
+    m_mode->addItem(tr("Last 5 hours"));
+    m_mode->addItem(tr("Entire app session"));
+    m_mode->addItem(tr("Custom range..."));
     if (!m_lastConnection.isValid()) {
         m_mode->setCurrentIndex(LastHour);
     }
@@ -47,20 +47,20 @@ DiagnosticsExportDialog::DiagnosticsExportDialog(
     m_to->setCalendarPopup(true);
     m_to->setDateTimeRange(earliest, now);
 
-    m_zip = new QCheckBox("Create .zip for sharing (optional)", this);
+    m_zip = new QCheckBox(tr("Create .zip for sharing (optional)"), this);
     m_hint = new QLabel(this);
     m_hint->setWordWrap(true);
     m_hint->setStyleSheet(QStringLiteral("color: #666;"));
 
     auto *form = new QFormLayout();
-    form->addRow("Range", m_mode);
-    form->addRow("From", m_from);
-    form->addRow("To", m_to);
+    form->addRow(tr("Range"), m_mode);
+    form->addRow(tr("From"), m_from);
+    form->addRow(tr("To"), m_to);
     form->addRow(QString(), m_zip);
 
     m_buttons = new QDialogButtonBox(
         QDialogButtonBox::Save | QDialogButtonBox::Cancel, this);
-    m_buttons->button(QDialogButtonBox::Save)->setText("Save Diagnostics");
+    m_buttons->button(QDialogButtonBox::Save)->setText(tr("Save Diagnostics"));
 
     auto *layout = new QVBoxLayout(this);
     layout->addWidget(intro);
@@ -112,8 +112,8 @@ DiagnosticsExportRange DiagnosticsExportDialog::range() const {
     result.from = startForMode();
     result.to = endForMode();
     const QStringList labels = {
-        "Since last AirPlay connection", "Last 1 hour", "Last 5 hours",
-        "Entire app session", "Custom range"};
+        tr("Since last AirPlay connection"), tr("Last 1 hour"),
+        tr("Last 5 hours"), tr("Entire app session"), tr("Custom range...")};
     const int index = qBound(0, m_mode->currentIndex(), labels.size() - 1);
     result.label = labels.at(index);
     return result;
@@ -130,7 +130,7 @@ void DiagnosticsExportDialog::updateControls() {
 
     const DiagnosticsExportRange selected = range();
     if (custom && !selected.isValid()) {
-        m_hint->setText("From must be earlier than To.");
+        m_hint->setText(tr("From must be earlier than To."));
         if (m_buttons) {
             m_buttons->button(QDialogButtonBox::Save)->setEnabled(false);
         }
@@ -141,13 +141,13 @@ void DiagnosticsExportDialog::updateControls() {
     }
 
     if (custom) {
-        m_hint->setText(QStringLiteral("Custom window: %1 → %2")
+        m_hint->setText(tr("Custom window: %1 → %2")
                             .arg(selected.from.toString(
                                      QStringLiteral("yyyy-MM-dd HH:mm:ss")),
                                  selected.to.toString(
                                      QStringLiteral("yyyy-MM-dd HH:mm:ss"))));
     } else {
-        m_hint->setText(QStringLiteral("%1: %2 → %3")
+        m_hint->setText(tr("%1: %2 → %3")
                             .arg(selected.label,
                                  selected.from.toString(
                                      QStringLiteral("yyyy-MM-dd HH:mm:ss")),

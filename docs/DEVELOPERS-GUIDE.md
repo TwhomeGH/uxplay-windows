@@ -338,6 +338,24 @@ grep -E "register_dnssd|Initialized server socket|using system MAC" \
 - 需要一直保持在最上層時，tray 勾選 `Video always on top`；
   設定存在 `video_window.always_on_top`，預設關閉。
 
+### 本地化
+
+- 來源語言是英文；`translations/uxplay-windows_zh_TW.ts` 是繁體中文。
+- `settings.json` 的 `language` 可設 `system`（預設）、`en`、`zh_TW`。
+  也可用 tray 的 `Language` 子選單或 `--lang=zh_TW` 覆寫；變更後重啟 App。
+- 缺 `.qm`、翻譯為空或找不到 locale 時，Qt 會顯示英文原文；
+  不會顯示空字串或 key。
+- 新增 UI 字串時用 `tr("...")`，再執行：
+
+```powershell
+lupdate src -ts translations/uxplay-windows_zh_TW.ts -no-obsolete
+# 填入翻譯後
+python scripts/check_i18n.py
+```
+
+`scripts/check_i18n.py` 會檢查缺少的 source key、空白／unfinished
+翻譯與多餘的 catalog key；`lrelease` 由 CMake 的翻譯 target 產生 `.qm`。
+
 ### 凍結與重建
 
 AirPlay 影片可能出現「聲音仍在、畫面定格」而不斷線的狀態。

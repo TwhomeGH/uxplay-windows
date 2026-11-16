@@ -57,6 +57,14 @@ target_compile_definitions(uxplay-windows PRIVATE
     USB_BRIDGE_SCRIPT="${CMAKE_SOURCE_DIR}/usbcapture/spike/tools/stream_to_tcp.py"
 )
 
+find_package(Qt6 COMPONENTS LinguistTools QUIET)
+if(Qt6LinguistTools_FOUND)
+    qt_add_translations(uxplay-windows
+        TS_FILES translations/uxplay-windows_zh_TW.ts
+        RESOURCE_PREFIX "/i18n"
+    )
+endif()
+
 execute_process(
     COMMAND git describe --tags --always --dirty --match "v[0-9]*"
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}

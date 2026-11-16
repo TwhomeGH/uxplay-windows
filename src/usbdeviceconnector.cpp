@@ -39,12 +39,12 @@ void UsbDeviceConnector::connectDevice() {
     m_python = UsbPython::find();
     if (!m_python.valid()) {
         finish(false,
-               QStringLiteral("Python 3 with pymobiledevice3 was not found. "
-                              "Set UXPLAY_USB_PYTHON to a Python interpreter."));
+               tr("Python 3 with pymobiledevice3 was not found. "
+                  "Set UXPLAY_USB_PYTHON to a Python interpreter."));
         return;
     }
 
-    Q_EMIT statusChanged(QStringLiteral("Checking USB device..."), true);
+    Q_EMIT statusChanged(tr("Checking USB device..."), true);
     run(QStringList{QStringLiteral("usbmux"), QStringLiteral("list")}, 15000,
         [this](bool ok, const QByteArray &output) {
             parseDeviceList(ok, output);
@@ -54,7 +54,7 @@ void UsbDeviceConnector::connectDevice() {
 void UsbDeviceConnector::parseDeviceList(bool ok,
                                          const QByteArray &output) {
     if (!ok) {
-        finish(false, QStringLiteral("Could not query usbmux. ") +
+        finish(false, tr("Could not query usbmux. ") +
                           lastLine(output));
         return;
     }
@@ -62,15 +62,15 @@ void UsbDeviceConnector::parseDeviceList(bool ok,
     QJsonParseError parseError;
     const QJsonDocument document = QJsonDocument::fromJson(output, &parseError);
     if (parseError.error != QJsonParseError::NoError || !document.isArray()) {
-        finish(false, QStringLiteral("usbmux returned invalid JSON."));
+        finish(false, tr("usbmux returned invalid JSON."));
         return;
     }
 
     const QJsonArray devices = document.array();
     if (devices.isEmpty()) {
         finish(false,
-               QStringLiteral("No USB device found. Connect and unlock the "
-                              "iPad, then press Connect again."));
+               tr("No USB device found. Connect and unlock the "
+                  "iPad, then press Connect again."));
         return;
     }
 
@@ -81,7 +81,7 @@ void UsbDeviceConnector::parseDeviceList(bool ok,
                  .toString(device.value(QStringLiteral("Identifier"))
                                .toString());
     Q_EMIT statusChanged(
-        QStringLiteral("Found %1; checking pairing...").arg(m_deviceName),
+        tr("Found %1; checking pairing...").arg(m_deviceName),
         true);
     checkPairing();
 }
@@ -94,7 +94,7 @@ void UsbDeviceConnector::checkPairing() {
     run(args, 20000, [this](bool ok, const QByteArray &) {
         if (ok) {
             Q_EMIT statusChanged(
-                QStringLiteral("Paired; checking Developer Mode..."), true);
+                tr("Paired; checking Developer Mode..."), true);
             checkDeveloperMode();
         } else {
             pairDevice();
@@ -104,7 +104,7 @@ void UsbDeviceConnector::checkPairing() {
 
 void UsbDeviceConnector::pairDevice() {
     Q_EMIT statusChanged(
-        QStringLiteral("Tap Trust This Computer on the iPad..."), true);
+        tr("Tap Trust This Computer on the iPad..."), true);
 
     QStringList args{QStringLiteral("lockdown"), QStringLiteral("pair")};
     if (!m_udid.isEmpty()) {
@@ -113,13 +113,13 @@ void UsbDeviceConnector::pairDevice() {
     run(args, 90000, [this](bool ok, const QByteArray &output) {
         if (!ok) {
             finish(false,
-                   QStringLiteral("Pairing failed. Unlock the iPad, tap Trust "
-                                  "This Computer, then press Connect again. ") +
+                   tr("Pairing failed. Unlock the iPad, tap Trust "
+                      "This Computer, then press Connect again. ") +
                        lastLine(output));
             return;
         }
         Q_EMIT statusChanged(
-            QStringLiteral("Paired; checking Developer Mode..."), true);
+            tr("Paired; checking Developer Mode..."), true);
         checkDeveloperMode();
     });
 }
@@ -134,20 +134,20 @@ void UsbDeviceConnector::checkDeveloperMode() {
                 (!text.contains(QStringLiteral("true")) &&
                  !text.contains(QStringLiteral("false")))) {
                 finish(false,
-                       QStringLiteral("Could not read Developer Mode status. ") +
+                       tr("Could not read Developer Mode status. ") +
                            lastLine(output));
                 return;
             }
             if (text.contains(QStringLiteral("false"))) {
                 finish(false,
-                       QStringLiteral("Developer Mode is off. Enable it in "
-                                      "Settings > Privacy & Security > "
-                                      "Developer Mode, reboot, then press "
-                                      "Connect again."));
+                       tr("Developer Mode is off. Enable it in "
+                          "Settings > Privacy & Security > "
+                          "Developer Mode, reboot, then press "
+                          "Connect again."));
                 return;
             }
             Q_EMIT statusChanged(
-                QStringLiteral("Developer Mode on; mounting the DDI..."),
+                tr("Developer Mode on; mounting the DDI..."),
                 true);
             mountDdi();
         });
@@ -159,7 +159,7 @@ void UsbDeviceConnector::mountDdi() {
         300000, [this](bool ok, const QByteArray &output) {
             if (!ok) {
                 finish(false,
-                       QStringLiteral("Developer Disk Image mount failed. ") +
+                       tr("Developer Disk Image mount failed. ") +
                            lastLine(output));
                 return;
             }
@@ -168,7 +168,7 @@ void UsbDeviceConnector::mountDdi() {
 }
 
 void UsbDeviceConnector::readPower() {
-    Q_EMIT statusChanged(QStringLiteral("Reading battery and power..."),
+    Q_EMIT statusChanged(tr("Reading battery and power..."),
                          true);
 
     QStringList batteryArgs{QStringLiteral("lockdown"),
@@ -228,7 +228,7 @@ void UsbDeviceConnector::readPower() {
                 }
             }
             buildPowerSummary();
-            QString message = QStringLiteral("USB ready: %1").arg(m_deviceName);
+            QString message = tr("USB ready: %1").arg(m_deviceName);
             if (!m_powerSummary.isEmpty()) {
                 message += QStringLiteral(" · ") + m_powerSummary;
             }
@@ -243,11 +243,11 @@ void UsbDeviceConnector::buildPowerSummary() {
         parts << QStringLiteral("%1%").arg(m_batteryPercent);
     }
     if (m_batteryPercent >= 0) {
-        parts << (m_charging ? QStringLiteral("charging")
-                             : QStringLiteral("not charging"));
+        parts << (m_charging ? tr("charging")
+                             : tr("not charging"));
     }
     if (m_adapterWatts > 0) {
-        parts << QStringLiteral("%1W adapter").arg(m_adapterWatts);
+        parts << tr("%1W adapter").arg(m_adapterWatts);
     }
     m_powerSummary = parts.join(QStringLiteral(" · "));
 }
@@ -346,7 +346,7 @@ void UsbDeviceConnector::cancel() {
     m_onDone = nullptr;
     m_busy = false;
     m_ready = false;
-    Q_EMIT statusChanged(QStringLiteral("USB check cancelled"), false);
+    Q_EMIT statusChanged(tr("USB check cancelled"), false);
 }
 
 QString UsbDeviceConnector::lastLine(const QByteArray &output) {

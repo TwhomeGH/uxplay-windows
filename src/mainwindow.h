@@ -103,7 +103,9 @@ private:
     void updateFrameStats();
     void updateOutputLabel();
     void setHudCorner(const QString &corner);
+    void setLanguage(const QString &language);
     void rebuildAirplayStream();
+    void openDiagnosticsViewer();
     void saveSettingsSoon();
     void buildHudFieldsMenu(QMenu *menu);
     void populateLogMenu(QMenu *menu);
@@ -146,6 +148,9 @@ private:
     QAction *m_saveDiagnosticsAction = nullptr;
     QAction *m_hudAction = nullptr;
     QAction *m_videoOnTopAction = nullptr;
+    QAction *m_languageSystemAction = nullptr;
+    QAction *m_languageEnglishAction = nullptr;
+    QAction *m_languageChineseAction = nullptr;
     QAction *m_hudTopLeftAction = nullptr;
     QAction *m_hudTopRightAction = nullptr;
     QAction *m_hudBottomLeftAction = nullptr;

@@ -1,5 +1,25 @@
 # ChangeHistory
 
+## 2026.11.16 23:17 加入中文本地化與診斷檢視器入口
+
+**類型**: 功能 · **檔案**: `CMakeLists.txt、translations/uxplay-windows_zh_TW.ts、translations/i18n.json、src/main.cpp、src/mainwindow.cpp、src/diagnosticsexportdialog.cpp、scripts/check_i18n.py、scripts/diagnostic_viewer.*、docs/DEVELOPERS-GUIDE.md`
+
+### 問題 - UI 只有英文；翻譯缺少 key 檢查；診斷檢視器只能手動執行且不會 reload
+
+### 根因 - 沒有 QTranslator/語言設定；沒有 catalog 驗證；viewer 只有 snapshot
+
+### 修改 - 加入 zh_TW .ts、CMake 翻譯 target、system/en/zh_TW 語言設定與 --lang
+
+建置通過；--lang=zh_TW 實測中文 UI；checker 228/228 translated；`--lang=fr` 實測退回英文 source。
+
+- 缺翻譯 fallback 英文 source；checker 檢查缺 key／空翻譯／多餘 key
+- 硬編碼 UI 字串轉為 `tr()`（主視窗、tray、USB、Bonjour、Clean Output、診斷對話框）
+- tray 加入 Open Diagnostics Viewer；viewer 加入 reload endpoint
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.16 22:37 HUD 欄位選擇、解碼器資訊與診斷摘要
 
 **類型**: 功能 · **檔案**: `libuxplay/uxplay.cpp、src/settings.h、src/settings.cpp、src/mainwindow.h、src/mainwindow.cpp、src/logging.cpp、src/diagnostics.cpp、docs/DEVELOPERS-GUIDE.md`

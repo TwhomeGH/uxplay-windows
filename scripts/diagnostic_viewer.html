@@ -306,7 +306,12 @@ $("search").addEventListener("input", (event) => { state.q = event.target.value;
 $("severity").addEventListener("change", (event) => { state.severity = event.target.value; state.offset = 0; loadEvents(); });
 $("source").addEventListener("change", (event) => { state.source = event.target.value; state.offset = 0; loadEvents(); });
 $("more").addEventListener("click", () => { state.offset += state.limit; loadEvents(); });
-$("refresh").addEventListener("click", () => { loadSummary(); state.offset = 0; loadEvents(); });
+$("refresh").addEventListener("click", async () => {
+  try { await getJson("/api/reload"); } catch (error) { /* keep old snapshot */ }
+  loadSummary();
+  state.offset = 0;
+  loadEvents();
+});
 
 loadSummary();
 loadEvents();

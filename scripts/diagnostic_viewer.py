@@ -346,6 +346,7 @@ def summarize(path: Path, events: list[Event], metrics: list[Metric],
 
 class ViewerHandler(BaseHTTPRequestHandler):
     dataset: dict = {}
+    source_path: Path | None = None
 
     def log_message(self, format: str, *args) -> None:  # noqa: A002,A003
         return
@@ -388,6 +389,21 @@ class ViewerHandler(BaseHTTPRequestHandler):
                 metric.as_dict() for metric in dataset["metrics"][-120:]
             ]
             self.send_json(summary)
+            return
+        if parsed.path == "/api/reload":
+            if self.source_path is None:
+                self.send_json({"error": "no source path"}, 400)
+                return
+            try:
+                dataset = load_bundle(self.source_path)
+                self.__class__.dataset = dataset
+                summary = dict(dataset["summary"])
+                summary["metrics_preview"] = [
+                    metric.as_dict() for metric in dataset["metrics"][-120:]
+                ]
+                self.send_json(summary)
+            except (OSError, ValueError) as error:
+                self.send_json({"error": str(error)}, 500)
             return
         if parsed.path == "/api/events":
             self.handle_events(parse_qs(parsed.query))
@@ -481,6 +497,7 @@ def main() -> None:
     try:
         dataset = load_bundle(path)
         ViewerHandler.dataset = dataset
+        ViewerHandler.source_path = path
         summary = dataset["summary"]
         server = bind_server(args.host, args.port)
         url = f"http://{args.host}:{server.server_address[1]}/"

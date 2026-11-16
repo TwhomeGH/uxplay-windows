@@ -41,7 +41,7 @@ UsbObsController::UsbObsController(QObject *parent) : QObject(parent) {
     m_startTimer->setSingleShot(true);
     connect(m_startTimer, &QTimer::timeout, this, [this]() {
         if (m_active && !m_started) {
-            fail(QStringLiteral("Timed out waiting for the USB screen stream"));
+            fail(tr("Timed out waiting for the USB screen stream"));
         }
     });
 }
@@ -63,16 +63,16 @@ void UsbObsController::start() {
 
     if (!choosePython()) {
         Q_EMIT errorOccurred(
-            QStringLiteral("Python was not found. Set UXPLAY_USB_PYTHON to a "
-                           "Python 3 interpreter."));
+            tr("Python was not found. Set UXPLAY_USB_PYTHON to a "
+               "Python 3 interpreter."));
         return;
     }
 
     m_bridgeScript = findBridgeScript();
     if (m_bridgeScript.isEmpty()) {
         Q_EMIT errorOccurred(
-            QStringLiteral("stream_to_tcp.py was not found next to the "
-                           "executable or in the source tree."));
+            tr("stream_to_tcp.py was not found next to the "
+               "executable or in the source tree."));
         return;
     }
 
@@ -80,8 +80,8 @@ void UsbObsController::start() {
     m_tcpPort = findFreePort();
     if (!m_httpPort || !m_tcpPort) {
         Q_EMIT errorOccurred(
-            QStringLiteral("Could not allocate local ports for the USB "
-                           "Clean Output."));
+            tr("Could not allocate local ports for the USB "
+               "Clean Output."));
         return;
     }
 
@@ -143,7 +143,7 @@ void UsbObsController::startSidecar() {
                 if (m_stopping || !m_active) {
                     return;
                 }
-                fail(QStringLiteral("USB sidecar failed to start (%1)")
+                fail(tr("USB sidecar failed to start (%1)")
                          .arg(static_cast<int>(error)));
             });
     connect(m_sidecar,
@@ -152,7 +152,7 @@ void UsbObsController::startSidecar() {
                 if (m_stopping || !m_active) {
                     return;
                 }
-                fail(QStringLiteral("USB sidecar exited (code %1)").arg(code));
+                fail(tr("USB sidecar exited (code %1)").arg(code));
             });
 
     QStringList args = m_pythonArgs;
@@ -164,7 +164,7 @@ void UsbObsController::startSidecar() {
                   .arg(m_python, args.join(QLatin1Char(' '))));
     m_sidecar->start(m_python, args);
     if (!m_sidecar->waitForStarted(kSidecarStartTimeoutMs)) {
-        fail(QStringLiteral("USB sidecar did not start: %1")
+        fail(tr("USB sidecar did not start: %1")
                  .arg(m_sidecar->errorString()));
         return;
     }
@@ -245,7 +245,7 @@ void UsbObsController::startBridge() {
                 if (m_stopping || !m_active) {
                     return;
                 }
-                fail(QStringLiteral("USB bridge failed to start (%1)")
+                fail(tr("USB bridge failed to start (%1)")
                          .arg(static_cast<int>(error)));
             });
     connect(m_bridge,
@@ -254,7 +254,7 @@ void UsbObsController::startBridge() {
                 if (m_stopping || !m_active) {
                     return;
                 }
-                fail(QStringLiteral("USB bridge exited (code %1)").arg(code));
+                fail(tr("USB bridge exited (code %1)").arg(code));
             });
 
     QStringList args = m_pythonArgs;
@@ -265,7 +265,7 @@ void UsbObsController::startBridge() {
                   .arg(m_python, args.join(QLatin1Char(' '))));
     m_bridge->start(m_python, args);
     if (!m_bridge->waitForStarted(kBridgeStartTimeoutMs)) {
-        fail(QStringLiteral("USB bridge did not start: %1")
+        fail(tr("USB bridge did not start: %1")
                  .arg(m_bridge->errorString()));
     }
 }
@@ -329,11 +329,11 @@ void UsbObsController::startPipeline() {
     m_crop = gst_bin_get_by_name(GST_BIN(m_pipeline), "crop");
     m_sink = gst_bin_get_by_name(GST_BIN(m_pipeline), "sink");
     if (!m_parser || !m_rotation || !m_crop || !m_sink) {
-        fail(QStringLiteral("USB pipeline is missing a required element"));
+        fail(tr("USB pipeline is missing a required element"));
         return;
     }
     if (!GST_IS_VIDEO_OVERLAY(m_sink)) {
-        fail(QStringLiteral("d3d11videosink does not support VideoOverlay"));
+        fail(tr("d3d11videosink does not support VideoOverlay"));
         return;
     }
 
@@ -362,7 +362,7 @@ void UsbObsController::startPipeline() {
     const GstStateChangeReturn result =
         gst_element_set_state(m_pipeline, GST_STATE_PLAYING);
     if (result == GST_STATE_CHANGE_FAILURE) {
-        fail(QStringLiteral("GStreamer could not start the USB pipeline"));
+        fail(tr("GStreamer could not start the USB pipeline"));
         return;
     }
     appendLog(QStringLiteral("pipeline started"));
@@ -441,7 +441,7 @@ void UsbObsController::handleBusMessage(GstMessage *message) {
     }
     case GST_MESSAGE_EOS:
         QMetaObject::invokeMethod(
-            this, [this]() { fail(QStringLiteral("USB stream ended")); },
+            this, [this]() { fail(tr("USB stream ended")); },
             Qt::QueuedConnection);
         break;
     case GST_MESSAGE_WARNING: {
