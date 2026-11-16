@@ -372,19 +372,20 @@ Data is written locally and is never uploaded. A folder is the default; ZIP is o
             <location filename="../src/mainwindow.cpp" line="189" />
             <location filename="../src/mainwindow.cpp" line="230" />
             <location filename="../src/mainwindow.cpp" line="510" />
-            <location filename="../src/mainwindow.cpp" line="757" />
-            <location filename="../src/mainwindow.cpp" line="1081" />
-            <location filename="../src/mainwindow.cpp" line="1527" />
-            <location filename="../src/mainwindow.cpp" line="1546" />
-            <location filename="../src/mainwindow.cpp" line="1642" />
-            <location filename="../src/mainwindow.cpp" line="1646" />
-            <location filename="../src/mainwindow.cpp" line="1662" />
-            <location filename="../src/mainwindow.cpp" line="1730" />
-            <location filename="../src/mainwindow.cpp" line="1782" />
-            <location filename="../src/mainwindow.cpp" line="2033" />
-            <location filename="../src/mainwindow.cpp" line="2172" />
-            <location filename="../src/mainwindow.cpp" line="2391" />
-            <location filename="../src/mainwindow.cpp" line="2599" />
+            <location filename="../src/mainwindow.cpp" line="758" />
+            <location filename="../src/mainwindow.cpp" line="1082" />
+            <location filename="../src/mainwindow.cpp" line="1529" />
+            <location filename="../src/mainwindow.cpp" line="1548" />
+            <location filename="../src/mainwindow.cpp" line="1644" />
+            <location filename="../src/mainwindow.cpp" line="1648" />
+            <location filename="../src/mainwindow.cpp" line="1664" />
+            <location filename="../src/mainwindow.cpp" line="1732" />
+            <location filename="../src/mainwindow.cpp" line="1784" />
+            <location filename="../src/mainwindow.cpp" line="2035" />
+            <location filename="../src/mainwindow.cpp" line="2134" />
+            <location filename="../src/mainwindow.cpp" line="2209" />
+            <location filename="../src/mainwindow.cpp" line="2428" />
+            <location filename="../src/mainwindow.cpp" line="2636" />
             <source>uxplay-windows</source>
             <translation>uxplay-windows</translation>
         </message>
@@ -405,7 +406,7 @@ Data is written locally and is never uploaded. A folder is the default; ZIP is o
         </message>
         <message>
             <location filename="../src/mainwindow.cpp" line="227" />
-            <location filename="../src/mainwindow.cpp" line="1067" />
+            <location filename="../src/mainwindow.cpp" line="1068" />
             <source>AirPlay Name</source>
             <translation>AirPlay 名稱</translation>
         </message>
@@ -491,7 +492,7 @@ Data is written locally and is never uploaded. A folder is the default; ZIP is o
         </message>
         <message>
             <location filename="../src/mainwindow.cpp" line="373" />
-            <location filename="../src/mainwindow.cpp" line="1749" />
+            <location filename="../src/mainwindow.cpp" line="1751" />
             <source>Connect USB device</source>
             <translation>連線 USB 裝置</translation>
         </message>
@@ -517,7 +518,7 @@ Data is written locally and is never uploaded. A folder is the default; ZIP is o
         </message>
         <message>
             <location filename="../src/mainwindow.cpp" line="402" />
-            <location filename="../src/mainwindow.cpp" line="1834" />
+            <location filename="../src/mainwindow.cpp" line="1836" />
             <source>Open Log</source>
             <translation>開啟日誌</translation>
         </message>
@@ -607,13 +608,13 @@ Data is written locally and is never uploaded. A folder is the default; ZIP is o
         </message>
         <message>
             <location filename="../src/mainwindow.cpp" line="516" />
-            <location filename="../src/mainwindow.cpp" line="955" />
+            <location filename="../src/mainwindow.cpp" line="956" />
             <source>Client: -</source>
             <translation>用戶端：-</translation>
         </message>
         <message>
             <location filename="../src/mainwindow.cpp" line="517" />
-            <location filename="../src/mainwindow.cpp" line="956" />
+            <location filename="../src/mainwindow.cpp" line="957" />
             <source>Connections: 0</source>
             <translation>連線數：0</translation>
         </message>
@@ -624,50 +625,50 @@ Data is written locally and is never uploaded. A folder is the default; ZIP is o
         </message>
         <message>
             <location filename="../src/mainwindow.cpp" line="519" />
-            <location filename="../src/mainwindow.cpp" line="900" />
+            <location filename="../src/mainwindow.cpp" line="901" />
             <source>Video Codec: -</source>
             <translation>視訊編碼：-</translation>
         </message>
         <message>
             <location filename="../src/mainwindow.cpp" line="520" />
-            <location filename="../src/mainwindow.cpp" line="901" />
+            <location filename="../src/mainwindow.cpp" line="902" />
             <source>Video Decoder: -</source>
             <translation>視訊解碼器：-</translation>
         </message>
         <message>
             <location filename="../src/mainwindow.cpp" line="521" />
-            <location filename="../src/mainwindow.cpp" line="902" />
+            <location filename="../src/mainwindow.cpp" line="903" />
             <source>Video Renderer: -</source>
             <translation>視訊 Renderer：-</translation>
         </message>
         <message>
             <location filename="../src/mainwindow.cpp" line="522" />
-            <location filename="../src/mainwindow.cpp" line="903" />
+            <location filename="../src/mainwindow.cpp" line="904" />
             <source>Stream Size: -</source>
             <translation>串流尺寸：-</translation>
         </message>
         <message>
             <location filename="../src/mainwindow.cpp" line="523" />
-            <location filename="../src/mainwindow.cpp" line="904" />
+            <location filename="../src/mainwindow.cpp" line="905" />
             <source>Audio Codec: -</source>
             <translation>音訊編碼：-</translation>
         </message>
         <message>
             <location filename="../src/mainwindow.cpp" line="524" />
-            <location filename="../src/mainwindow.cpp" line="905" />
+            <location filename="../src/mainwindow.cpp" line="906" />
             <source>Audio Format: -</source>
             <translation>音訊格式：-</translation>
         </message>
         <message>
             <location filename="../src/mainwindow.cpp" line="532" />
-            <location filename="../src/mainwindow.cpp" line="2637" />
+            <location filename="../src/mainwindow.cpp" line="2674" />
             <source>Stop AirPlay</source>
             <translation>停止 AirPlay</translation>
         </message>
         <message>
             <location filename="../src/mainwindow.cpp" line="533" />
-            <location filename="../src/mainwindow.cpp" line="1554" />
-            <location filename="../src/mainwindow.cpp" line="1591" />
+            <location filename="../src/mainwindow.cpp" line="1556" />
+            <location filename="../src/mainwindow.cpp" line="1593" />
             <source>USB Clean Output (experimental)</source>
             <translation>USB 乾淨輸出（實驗性）</translation>
         </message>
@@ -757,13 +758,13 @@ Data is written locally and is never uploaded. A folder is the default; ZIP is o
             <translation>USB: </translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="758" />
-            <location filename="../src/mainwindow.cpp" line="779" />
+            <location filename="../src/mainwindow.cpp" line="759" />
+            <location filename="../src/mainwindow.cpp" line="780" />
             <source>HEVC needs height above 1080p; this resolution will use H.264.</source>
             <translation>HEVC 需要高度高於 1080p；此解析度會使用 H.264。</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="776" />
+            <location filename="../src/mainwindow.cpp" line="777" />
             <source>H.264 only: HEVC is not advertised to the client.</source>
             <translation>僅 H.264：不會向用戶端宣告 HEVC。</translation>
         </message>
@@ -778,452 +779,457 @@ Data is written locally and is never uploaded. A folder is the default; ZIP is o
             <translation>HEVC 需要請求高度高於 1080p（例如 4K）。在 1080p 時，即使啟用 HEVC，用戶端仍會使用 H.264。此版本的 HEVC 為實驗性；若畫面凍結，請改用 H.264。</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="783" />
+            <location filename="../src/mainwindow.cpp" line="784" />
             <source>HEVC is experimental in this build; if the video freezes, switch to H.264.</source>
             <translation>此版本的 HEVC 為實驗性；若畫面凍結，請改用 H.264。</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="899" />
+            <location filename="../src/mainwindow.cpp" line="900" />
             <source>Status: %1</source>
             <translation>狀態：%1</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="915" />
+            <location filename="../src/mainwindow.cpp" line="916" />
             <source>Status: Streaming</source>
             <translation>狀態：串流中</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="919" />
+            <location filename="../src/mainwindow.cpp" line="920" />
             <source>Video Codec: %1</source>
             <translation>視訊編碼：%1</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="921" />
+            <location filename="../src/mainwindow.cpp" line="922" />
             <source>Video Decoder: %1</source>
             <translation>視訊解碼器：%1</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="923" />
+            <location filename="../src/mainwindow.cpp" line="924" />
             <source>Video Renderer: %1</source>
             <translation>視訊 Renderer：%1</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="925" />
+            <location filename="../src/mainwindow.cpp" line="926" />
             <source>Stream Size: %1</source>
             <translation>串流尺寸：%1</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="938" />
+            <location filename="../src/mainwindow.cpp" line="939" />
             <source>Audio Codec: %1</source>
             <translation>音訊編碼：%1</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="940" />
+            <location filename="../src/mainwindow.cpp" line="941" />
             <source>Audio Format: %1</source>
             <translation>音訊格式：%1</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="981" />
+            <location filename="../src/mainwindow.cpp" line="982" />
             <source>Client: %1</source>
             <translation>用戶端：%1</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="982" />
+            <location filename="../src/mainwindow.cpp" line="983" />
             <source>unknown</source>
             <translation>未知</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="989" />
+            <location filename="../src/mainwindow.cpp" line="990" />
             <source>Status: Connected</source>
             <translation>狀態：已連線</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="997" />
+            <location filename="../src/mainwindow.cpp" line="998" />
             <source>Device connected</source>
             <translation>裝置已連線</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="998" />
+            <location filename="../src/mainwindow.cpp" line="999" />
             <source>A device connected</source>
             <translation>有裝置已連線</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="1019" />
+            <location filename="../src/mainwindow.cpp" line="1020" />
             <source>Device disconnected</source>
             <translation>裝置已中斷</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="1025" />
-            <location filename="../src/mainwindow.cpp" line="1254" />
-            <location filename="../src/mainwindow.cpp" line="1480" />
+            <location filename="../src/mainwindow.cpp" line="1026" />
+            <location filename="../src/mainwindow.cpp" line="1255" />
+            <location filename="../src/mainwindow.cpp" line="1482" />
             <source>Not connected</source>
             <translation>未連線</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="1044" />
+            <location filename="../src/mainwindow.cpp" line="1045" />
             <source>A device</source>
             <translation>有裝置</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="1045" />
+            <location filename="../src/mainwindow.cpp" line="1046" />
             <source>Connection rejected</source>
             <translation>連線被拒絕</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="1058" />
+            <location filename="../src/mainwindow.cpp" line="1059" />
             <source>Connections: %1</source>
             <translation>連線數：%1</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="1068" />
+            <location filename="../src/mainwindow.cpp" line="1069" />
             <source>Enter a name for this AirPlay receiver.</source>
             <translation>請輸入此 AirPlay 接收器的名稱。</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="1082" />
+            <location filename="../src/mainwindow.cpp" line="1083" />
             <source>AirPlay name saved. Apply engine changes to use it.</source>
             <translation>已儲存 AirPlay 名稱，套用引擎變更後生效。</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="1181" />
+            <location filename="../src/mainwindow.cpp" line="1182" />
             <source>Waiting for stream</source>
             <translation>等待串流</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="1528" />
+            <location filename="../src/mainwindow.cpp" line="1530" />
             <source>Starting AirPlay</source>
             <translation>正在啟動 AirPlay</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="1528" />
+            <location filename="../src/mainwindow.cpp" line="1530" />
             <source>Stopping AirPlay</source>
             <translation>正在停止 AirPlay</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="1542" />
+            <location filename="../src/mainwindow.cpp" line="1544" />
             <source>Stop USB Clean Output</source>
             <translation>停止 USB 乾淨輸出</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="1547" />
+            <location filename="../src/mainwindow.cpp" line="1549" />
             <source>USB Clean Output started. Add it in OBS with Window Capture.</source>
             <translation>USB 乾淨輸出已啟動。請在 OBS 以視窗擷取加入。</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="1588" />
+            <location filename="../src/mainwindow.cpp" line="1590" />
             <source>Cancel USB check</source>
             <translation>取消 USB 檢查</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="1612" />
+            <location filename="../src/mainwindow.cpp" line="1614" />
             <source>
 USB uses the iPad's only port. Unplug to charge, or use a PD dock.</source>
             <translation>
 USB 佔用 iPad 唯一的連接埠。若要充電請拔除，或使用 PD 擴充座。</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="1619" />
+            <location filename="../src/mainwindow.cpp" line="1621" />
             <source>Reconnect USB device</source>
             <translation>重新連線 USB 裝置</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="1632" />
+            <location filename="../src/mainwindow.cpp" line="1634" />
             <source>iPad is not charging (%1W adapter); USB uses its only port. Unplug to charge, or use a PD dock.</source>
             <translation>iPad 未充電（%1W 變壓器）；USB 佔用其唯一連接埠。若要充電請拔除，或使用 PD 擴充座。</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="1638" />
+            <location filename="../src/mainwindow.cpp" line="1640" />
             <source>iPad battery is low (%1%).</source>
             <translation>iPad 電量偏低（%1%）。</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="1647" />
+            <location filename="../src/mainwindow.cpp" line="1649" />
             <source>USB ready: %1</source>
             <translation>USB 就緒：%1</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="1659" />
+            <location filename="../src/mainwindow.cpp" line="1661" />
             <source>Retry USB connection</source>
             <translation>重試 USB 連線</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="1731" />
+            <location filename="../src/mainwindow.cpp" line="1733" />
             <source>Virtual camera is not implemented yet. Use Clean window for now.</source>
             <translation>虛擬攝影機尚未實作，請先使用乾淨視窗。</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="1783" />
+            <location filename="../src/mainwindow.cpp" line="1785" />
             <source>Rebuilding AirPlay stream...</source>
             <translation>正在重建 AirPlay 串流…</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="1837" />
+            <location filename="../src/mainwindow.cpp" line="1839" />
             <source>Open Log With...</source>
             <translation>以其他程式開啟日誌...</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="1841" />
+            <location filename="../src/mainwindow.cpp" line="1843" />
             <source>Open Log Folder</source>
             <translation>開啟日誌資料夾</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="1846" />
+            <location filename="../src/mainwindow.cpp" line="1848" />
             <source>Open Diagnostics Folder</source>
             <translation>開啟診斷資料夾</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="1850" />
+            <location filename="../src/mainwindow.cpp" line="1852" />
             <source>Open Diagnostics Viewer</source>
             <translation>開啟診斷檢視器</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="1878" />
-            <location filename="../src/mainwindow.cpp" line="1891" />
+            <location filename="../src/mainwindow.cpp" line="1880" />
+            <location filename="../src/mainwindow.cpp" line="1893" />
             <source>Diagnostics Viewer</source>
             <translation>診斷檢視器</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="1879" />
+            <location filename="../src/mainwindow.cpp" line="1881" />
             <source>The viewer could not start. Run this from the project folder:
 python scripts/diagnostic_viewer.py</source>
             <translation>無法啟動檢視器。請在專案資料夾執行：
 python scripts/diagnostic_viewer.py</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="1892" />
+            <location filename="../src/mainwindow.cpp" line="1894" />
             <source>Could not launch the diagnostics viewer.</source>
             <translation>無法啟動診斷檢視器。</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="1997" />
-            <location filename="../src/mainwindow.cpp" line="2249" />
+            <location filename="../src/mainwindow.cpp" line="1999" />
+            <location filename="../src/mainwindow.cpp" line="2286" />
             <source>Client</source>
             <translation>用戶端</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="1998" />
-            <location filename="../src/mainwindow.cpp" line="2262" />
+            <location filename="../src/mainwindow.cpp" line="2000" />
+            <location filename="../src/mainwindow.cpp" line="2299" />
             <source>Status</source>
             <translation>狀態</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="1999" />
+            <location filename="../src/mainwindow.cpp" line="2001" />
             <source>Video codec</source>
             <translation>視訊編碼</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2000" />
+            <location filename="../src/mainwindow.cpp" line="2002" />
             <source>Output size</source>
             <translation>輸出尺寸</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2001" />
-            <location filename="../src/mainwindow.cpp" line="2285" />
+            <location filename="../src/mainwindow.cpp" line="2003" />
+            <location filename="../src/mainwindow.cpp" line="2322" />
             <source>Decoder</source>
             <translation>解碼器</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2002" />
-            <location filename="../src/mainwindow.cpp" line="2291" />
+            <location filename="../src/mainwindow.cpp" line="2004" />
+            <location filename="../src/mainwindow.cpp" line="2328" />
             <source>Renderer</source>
             <translation>Renderer</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2003" />
-            <location filename="../src/mainwindow.cpp" line="2310" />
+            <location filename="../src/mainwindow.cpp" line="2005" />
+            <location filename="../src/mainwindow.cpp" line="2347" />
             <source>FPS</source>
             <translation>FPS</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2004" />
-            <location filename="../src/mainwindow.cpp" line="2325" />
+            <location filename="../src/mainwindow.cpp" line="2006" />
+            <location filename="../src/mainwindow.cpp" line="2362" />
             <source>Audio</source>
             <translation>音訊</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2017" />
+            <location filename="../src/mainwindow.cpp" line="2019" />
             <source>Show all</source>
             <translation>顯示全部</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2034" />
+            <location filename="../src/mainwindow.cpp" line="2036" />
             <source>Restart uxplay-windows to apply the language change.</source>
             <translation>請重新啟動 uxplay-windows 以套用語言變更。</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2173" />
+            <location filename="../src/mainwindow.cpp" line="2135" />
+            <source>H.265 stalled twice; switched to H.264 for stability.</source>
+            <translation>H.265 連續兩次停住；已切換到 H.264 以維持穩定。</translation>
+        </message>
+        <message>
+            <location filename="../src/mainwindow.cpp" line="2210" />
             <source>HUD is disabled while HEVC is selected because it can freeze the video. Use H.264 for HUD, or open the Diagnostics Window.</source>
             <translation>選擇 HEVC 時 HUD 會停用，因為可能造成畫面凍結。若要使用 HUD，請改用 H.264，或開啟「診斷視窗」。</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2251" />
+            <location filename="../src/mainwindow.cpp" line="2288" />
             <source>Client: </source>
             <translation>用戶端：</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2256" />
+            <location filename="../src/mainwindow.cpp" line="2293" />
             <source>Status: </source>
             <translation>狀態：</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2265" />
+            <location filename="../src/mainwindow.cpp" line="2302" />
             <source>Video</source>
             <translation>視訊</translation>
         </message>
         <message>
             <location filename="../src/mainwindow.cpp" line="663" />
-            <location filename="../src/mainwindow.cpp" line="2267" />
+            <location filename="../src/mainwindow.cpp" line="2304" />
             <source>Video Codec: </source>
             <translation>視訊編碼：</translation>
         </message>
         <message>
             <location filename="../src/mainwindow.cpp" line="667" />
-            <location filename="../src/mainwindow.cpp" line="2277" />
-            <location filename="../src/mainwindow.cpp" line="2346" />
+            <location filename="../src/mainwindow.cpp" line="2314" />
+            <location filename="../src/mainwindow.cpp" line="2383" />
             <source>waiting</source>
             <translation>等待中</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2279" />
+            <location filename="../src/mainwindow.cpp" line="2316" />
             <source>Output</source>
             <translation>輸出</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2280" />
+            <location filename="../src/mainwindow.cpp" line="2317" />
             <source>%1  (requested %2)</source>
             <translation>%1（請求 %2）</translation>
         </message>
         <message>
             <location filename="../src/mainwindow.cpp" line="671" />
-            <location filename="../src/mainwindow.cpp" line="2287" />
+            <location filename="../src/mainwindow.cpp" line="2324" />
             <source>Video Decoder: </source>
             <translation>視訊解碼器：</translation>
         </message>
         <message>
             <location filename="../src/mainwindow.cpp" line="672" />
-            <location filename="../src/mainwindow.cpp" line="2293" />
+            <location filename="../src/mainwindow.cpp" line="2330" />
             <source>Video Renderer: </source>
             <translation>視訊 Renderer：</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2301" />
+            <location filename="../src/mainwindow.cpp" line="2338" />
             <source>%1 (%2, age %3 ms)</source>
             <translation>%1（%2，frame age %3 ms）</translation>
         </message>
         <message>
             <location filename="../src/mainwindow.cpp" line="679" />
-            <location filename="../src/mainwindow.cpp" line="2314" />
+            <location filename="../src/mainwindow.cpp" line="2351" />
             <source>Audio Codec: </source>
             <translation>音訊編碼：</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2348" />
+            <location filename="../src/mainwindow.cpp" line="2385" />
             <source>Output: %1   (requested %2)</source>
             <translation>輸出：%1（請求 %2）</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2376" />
+            <location filename="../src/mainwindow.cpp" line="2413" />
             <source>Since last AirPlay connection</source>
             <translation>自上次 AirPlay 連線起</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2377" />
+            <location filename="../src/mainwindow.cpp" line="2414" />
             <source>Last 1 hour</source>
             <translation>最近 1 小時</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2385" />
+            <location filename="../src/mainwindow.cpp" line="2422" />
             <source>Could not save diagnostics.</source>
             <translation>無法儲存診斷。</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2389" />
+            <location filename="../src/mainwindow.cpp" line="2426" />
             <source>Diagnostics</source>
             <translation>診斷</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2400" />
-            <location filename="../src/mainwindow.cpp" line="2409" />
+            <location filename="../src/mainwindow.cpp" line="2437" />
+            <location filename="../src/mainwindow.cpp" line="2446" />
             <source>Diagnostics saved</source>
             <translation>診斷已儲存</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2410" />
+            <location filename="../src/mainwindow.cpp" line="2447" />
             <source>Recent diagnostics were saved.</source>
             <translation>已儲存近期診斷。</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2413" />
+            <location filename="../src/mainwindow.cpp" line="2450" />
             <source>The bundle is generated locally and redacted, but review it before sharing. It contains logs, settings, events, metrics and system information.</source>
             <translation>此診斷包在本機產生並已遮蔽敏感資訊，但分享前仍請自行檢查。內容包含日誌、設定、事件、指標與系統資訊。</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2417" />
+            <location filename="../src/mainwindow.cpp" line="2454" />
             <source>Open folder</source>
             <translation>開啟資料夾</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2419" />
+            <location filename="../src/mainwindow.cpp" line="2456" />
             <source>Copy path</source>
             <translation>複製路徑</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2600" />
+            <location filename="../src/mainwindow.cpp" line="2637" />
             <source>Windows woke from sleep. Restarting to refresh AirPlay discovery.</source>
             <translation>Windows 已從睡眠喚醒，正在重新啟動以更新 AirPlay 探索。</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2612" />
+            <location filename="../src/mainwindow.cpp" line="2649" />
             <source>AirPlay stopped</source>
             <translation>AirPlay 已停止</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2614" />
+            <location filename="../src/mainwindow.cpp" line="2651" />
             <source>Engine failing - see log</source>
             <translation>Engine 發生錯誤 — 請看日誌</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2617" />
+            <location filename="../src/mainwindow.cpp" line="2654" />
             <source>UxPlay server starting...</source>
             <translation>UxPlay 伺服器啟動中…</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2620" />
+            <location filename="../src/mainwindow.cpp" line="2657" />
             <source>Streaming: %1</source>
             <translation>串流中：%1</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2621" />
+            <location filename="../src/mainwindow.cpp" line="2658" />
             <source>Connected: %1</source>
             <translation>已連線：%1</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2624" />
+            <location filename="../src/mainwindow.cpp" line="2661" />
             <source>UxPlay server running - waiting for connection</source>
             <translation>UxPlay 伺服器執行中 — 等待連線</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2633" />
+            <location filename="../src/mainwindow.cpp" line="2670" />
             <source>Open uxplay-windows on login: ON</source>
             <translation>登入時開啟 uxplay-windows：開</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2634" />
+            <location filename="../src/mainwindow.cpp" line="2671" />
             <source>Open uxplay-windows on login: OFF</source>
             <translation>登入時開啟 uxplay-windows：關</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2638" />
+            <location filename="../src/mainwindow.cpp" line="2675" />
             <source>Start AirPlay</source>
             <translation>開始 AirPlay</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2752" />
+            <location filename="../src/mainwindow.cpp" line="2789" />
             <source>Bonjour Service Not Running</source>
             <translation>Bonjour 服務未執行</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2753" />
+            <location filename="../src/mainwindow.cpp" line="2790" />
             <source>Bonjour Service is installed but could not be started.
 
 Open Services (services.msc), start 'Bonjour Service', then relaunch uxplay-windows.</source>
@@ -1232,12 +1238,12 @@ Open Services (services.msc), start 'Bonjour Service', then relaunch uxplay-wind
 請開啟服務（services.msc），啟動「Bonjour Service」，然後重新啟動 uxplay-windows。</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2761" />
+            <location filename="../src/mainwindow.cpp" line="2798" />
             <source>Bonjour Service Required</source>
             <translation>需要 Bonjour 服務</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2762" />
+            <location filename="../src/mainwindow.cpp" line="2799" />
             <source>Bonjour Service is required for discovery (mDNS). It is not installed.
 
 Do you want to install it now?</source>
@@ -1246,33 +1252,33 @@ Do you want to install it now?</source>
 要立即安裝嗎？</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2768" />
+            <location filename="../src/mainwindow.cpp" line="2805" />
             <source>Bonjour Service Missing</source>
             <translation>缺少 Bonjour 服務</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2769" />
+            <location filename="../src/mainwindow.cpp" line="2806" />
             <source>Bonjour Service is required. The application will now exit.</source>
             <translation>需要 Bonjour 服務，應用程式即將結束。</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2774" />
+            <location filename="../src/mainwindow.cpp" line="2811" />
             <source>Installing Bonjour Service</source>
             <translation>正在安裝 Bonjour 服務</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2775" />
+            <location filename="../src/mainwindow.cpp" line="2812" />
             <source>Starting installation of 'Bonjour Service'. Follow any UAC prompt.</source>
             <translation>正在開始安裝「Bonjour Service」，請依照 UAC 提示操作。</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2780" />
-            <location filename="../src/mainwindow.cpp" line="2796" />
+            <location filename="../src/mainwindow.cpp" line="2817" />
+            <location filename="../src/mainwindow.cpp" line="2833" />
             <source>Installation Failed</source>
             <translation>安裝失敗</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2781" />
+            <location filename="../src/mainwindow.cpp" line="2818" />
             <source>Failed to install 'Bonjour Service'.
 
 The application will now exit.</source>
@@ -1281,7 +1287,7 @@ The application will now exit.</source>
 應用程式即將結束。</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2797" />
+            <location filename="../src/mainwindow.cpp" line="2834" />
             <source>Bonjour Service was installed but could not be started.
 
 Open Services (services.msc), start 'Bonjour Service', then relaunch uxplay-windows.</source>
@@ -1290,12 +1296,12 @@ Open Services (services.msc), start 'Bonjour Service', then relaunch uxplay-wind
 請開啟服務（services.msc），啟動「Bonjour Service」，然後重新啟動 uxplay-windows。</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2807" />
+            <location filename="../src/mainwindow.cpp" line="2844" />
             <source>Bonjour Service Status Unknown</source>
             <translation>Bonjour 服務狀態未知</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2808" />
+            <location filename="../src/mainwindow.cpp" line="2845" />
             <source>Could not query Bonjour Service status (access denied or service manager unavailable).
 
 Discovery may still work. Check the log for details.</source>
@@ -1304,12 +1310,12 @@ Discovery may still work. Check the log for details.</source>
 探索仍可能可用，請查看日誌了解詳情。</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2829" />
+            <location filename="../src/mainwindow.cpp" line="2866" />
             <source>Restart Failed</source>
             <translation>重新啟動失敗</translation>
         </message>
         <message>
-            <location filename="../src/mainwindow.cpp" line="2830" />
+            <location filename="../src/mainwindow.cpp" line="2867" />
             <source>Could not restart uxplay-windows.
 
 Please close and open it manually.</source>
