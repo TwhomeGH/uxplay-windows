@@ -10,6 +10,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 BUILD_DIR="${BUILD_DIR:-$REPO_ROOT/build/dev}"
 EXE="$BUILD_DIR/uxplay-windows.exe"
 ENGINE_DEBUG=0
+ENGINE_TRACE=0
 DETACH=0
 
 usage() {
@@ -18,6 +19,7 @@ Usage: scripts/dev_run.sh [options]
 
 Options:
   --engine-debug  Pass -d to the UxPlay engine (debug logging)
+  --engine-trace  Include high-frequency packet/HTTP engine debug logs
   --detach        Start in the background and return
   -h, --help      Show this help
 
@@ -30,6 +32,7 @@ EOF
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --engine-debug) ENGINE_DEBUG=1 ;;
+        --engine-trace) ENGINE_TRACE=1 ;;
         --detach) DETACH=1 ;;
         -h|--help) usage; exit 0 ;;
         *)
@@ -76,6 +79,9 @@ fi
 ARGS=()
 if [[ "$ENGINE_DEBUG" -eq 1 ]]; then
     ARGS+=("--engine-debug")
+fi
+if [[ "$ENGINE_TRACE" -eq 1 ]]; then
+    ARGS+=("--engine-trace")
 fi
 
 if [[ -n "${LOCALAPPDATA:-}" ]]; then

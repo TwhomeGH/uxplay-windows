@@ -215,7 +215,12 @@ private:
     QTimer *m_statsTimer = nullptr;
     QTimer *m_settingsSaveTimer = nullptr;
     quint64 m_lastFrameCount = 0;
+    quint64 m_lastInputFrameCount = 0;
     qint64 m_lastStatsMs = 0;
+    qint64 m_lastStallRebuildMs = 0;
+    int m_stalledFrameSamples = 0;
+    int m_stallRebuildCount = 0;
+    double m_inputFrameAgeMs = -1.0;
     qint64 m_lastFrameRecoveryMs = 0;
     double m_fps = 0.0;
     double m_frameIntervalMs = 0.0;

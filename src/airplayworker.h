@@ -17,6 +17,7 @@ public:
                             int openConnections);
     void publishEngineLog(int level, const QString &message);
     void publishEngineReady();
+    void setEngineTrace(bool enabled);
     void stopAirplay();
 
 signals:
@@ -34,4 +35,5 @@ protected:
 
 private:
     QStringList m_args;
+    bool m_engineTrace = false;
 };

@@ -1,5 +1,37 @@
 # ChangeHistory
 
+## 2026.11.17 03:35 加入 pipeline stall 重建與 debug log 降噪
+
+**類型**: 修正 · **檔案**: `libuxplay/renderers/video_renderer.c、libuxplay/renderers/video_renderer.h、libuxplay/uxplay.cpp、libuxplay/uxplay_api.h、src/mainwindow.cpp、src/mainwindow.h、src/airplayworker.cpp、src/airplayworker.h、scripts/dev_run.sh、docs/DEVELOPERS-GUIDE.md、TODO.md`
+
+### 問題 - RTP 有進但畫面停住
+
+HEVC 連線會出現 RTP 持續進來但只 presented 1 frame，frame age 持續增加；
+同時 `--engine-debug` 的每包 RTP、`/feedback` 與 HTTP 細節讓 log 難以閱讀。
+
+### 根因 - watchdog 覆蓋不足
+
+既有 watchdog 只涵蓋無 codec 或無 video packet，無法區分「有 input 但
+pipeline 不輸出」。`--engine-debug` 直接啟用 engine 的逐包 debug log。
+
+### 修改 - 新增 input heartbeat
+
+video_renderer 增加 input frame 計數與 age；stats tick 比對 input 與
+presented。
+
+建置通過；log 已顯示過濾提示。實際 stall 重建仍需 iPad 重現驗證。
+
+- input 持續增加且 presented frame age > 5 秒連續 2 次時，記錄
+  `pipeline_stall` 並自動重建 engine worker；每連線最多 3 次，暫停／鎖定
+  不觸發
+- `AirPlayWorker` 過濾每包 RTP、`/feedback`、HTTP 連線細節；新增
+  `--engine-trace` 保留完整輸出
+- `dev_run.sh` 支援 `--engine-trace`；文件說明 log 等級與 D3D11 對照建議
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.17 01:43 以 named mutex 修正單一實例競態
 
 **類型**: 修正 · **檔案**: `src/main.cpp、docs/DEVELOPERS-GUIDE.md、TODO.md`

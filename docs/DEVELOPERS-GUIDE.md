@@ -160,9 +160,13 @@ BUILD_DIR=/f/uxplay-windows/build/mydev bash scripts/dev_build.sh
 
 ```bash
 bash scripts/dev_run.sh                  # 前景執行，終端可看 printf 輸出
-bash scripts/dev_run.sh --engine-debug   # 額外傳 -d 給引擎
+bash scripts/dev_run.sh --engine-debug   # 額外傳 -d 給引擎，保留生命週期與錯誤資訊
+bash scripts/dev_run.sh --engine-trace   # 連 packet／HTTP debug 也輸出（量很大）
 bash scripts/dev_run.sh --detach         # 背景啟動後返回
 ```
+
+`--engine-debug` 會過濾每包 RTP、`/feedback` keepalive 與 HTTP
+連線細節；需要逐包追查時再加 `--engine-trace`。
 
 從 Explorer／PowerShell 直接啟動時，用建置時產生的 wrapper：
 
@@ -173,6 +177,17 @@ bash scripts/dev_run.sh --detach         # 背景啟動後返回
 
 `dev_build.sh` 會把 `$MSYSTEM_PREFIX/bin`（含
 `libgcc_s_seh-1.dll`、Qt6、GStreamer）寫進 `run-dev.cmd` 的 `PATH`。
+
+### Pipeline stall 自動重建
+
+stats tick 同時讀取「送進 pipeline 的輸入幀」與「實際 presented 的幀」：
+
+- input 持續增加，但 presented frame age 超過 5 秒且連續 2 次：
+  判定為 decoder／sink stall，記錄 `[stats] pipeline_stall` 並自動重建
+  AirPlay engine worker。
+- input 停止（例如 iPad 暫停或鎖定）不算 stall，避免誤重建。
+- 同一連線最多自動重建 3 次；之後保留手動 `Rebuild AirPlay stream`。
+- H.265 + D3D12 若反覆只送 1 frame，先把 renderer 改成 D3D11 比較。
 
 ### AirPlay soak 監測
 

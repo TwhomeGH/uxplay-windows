@@ -866,6 +866,11 @@ void MainWindow::clearClientInfo() {
 void MainWindow::onClientConnected(const QString &name, const QString &model,
                                    const QString &deviceid) {
     const bool isNew = (deviceid != m_clientDeviceId) || m_clientName.isEmpty();
+    if (isNew) {
+        m_stalledFrameSamples = 0;
+        m_stallRebuildCount = 0;
+        m_lastStallRebuildMs = 0;
+    }
     m_clientName = name;
     m_clientModel = model;
     m_clientDeviceId = deviceid;
@@ -1090,6 +1095,12 @@ void MainWindow::startServer() {
 
     m_worker = new AirPlayWorker(this);
     m_worker->setArgs(args);
+    const bool engineTrace =
+        QCoreApplication::arguments().contains(QStringLiteral("--engine-trace"));
+    m_worker->setEngineTrace(engineTrace);
+    if (engineDebug && !engineTrace) {
+        qInfo() << "Engine packet/HTTP debug logs are filtered; use --engine-trace for full output";
+    }
 
     connect(m_worker, &AirPlayWorker::started, this, &MainWindow::onAirplayStarted);
     connect(m_worker, &AirPlayWorker::stopped, this, &MainWindow::onAirplayStopped);
@@ -1174,7 +1185,10 @@ void MainWindow::onAirplayStarted() {
     m_videoTitleTimer->start(250);
     if (m_statsTimer) {
         m_lastFrameCount = 0;
+        m_lastInputFrameCount = 0;
         m_lastStatsMs = 0;
+        m_stalledFrameSamples = 0;
+        m_inputFrameAgeMs = -1.0;
         m_statsTimer->start(1000);
     }
 }
@@ -1947,9 +1961,14 @@ void MainWindow::updateFrameStats() {
 
     uint64_t frames = 0;
     double ageMs = -1.0;
+    uint64_t inputFrames = 0;
+    double inputAgeMs = -1.0;
     get_uxplay_frame_stats(&frames, &ageMs);
+    get_uxplay_video_input_stats(&inputFrames, &inputAgeMs);
 
     const qint64 now = QDateTime::currentMSecsSinceEpoch();
+    const bool inputAdvanced =
+        m_lastInputFrameCount > 0 && inputFrames > m_lastInputFrameCount;
     if (m_lastStatsMs > 0 && now > m_lastStatsMs
         && frames >= m_lastFrameCount) {
         const double seconds = (now - m_lastStatsMs) / 1000.0;
@@ -1958,8 +1977,50 @@ void MainWindow::updateFrameStats() {
         m_frameIntervalMs = m_fps > 0.0 ? 1000.0 / m_fps : 0.0;
     }
     m_frameAgeMs = ageMs;
+    m_inputFrameAgeMs = inputAgeMs;
     m_lastFrameCount = frames;
     m_lastStatsMs = now;
+
+    // A stalled decoder/sink still accepts RTP input, so input activity plus a
+    // frozen presented frame is the signature of a pipeline stall. Do not use
+    // frame age alone: pause/lock-screen also stops frame presentation.
+    const bool pipelineStalled =
+        m_streaming && frames > 1 && m_frameAgeMs > 5000.0
+        && inputAdvanced && m_inputFrameAgeMs >= 0.0
+        && m_inputFrameAgeMs < 1500.0;
+    if (pipelineStalled) {
+        ++m_stalledFrameSamples;
+    } else {
+        m_stalledFrameSamples = 0;
+    }
+    if (m_stalledFrameSamples >= 2
+        && now - m_lastStallRebuildMs >= 15000
+        && m_stallRebuildCount < 3) {
+        qWarning().noquote()
+            << QStringLiteral("[stats] pipeline_stall fps=%1 frame_age_ms=%2 "
+                              "input_age_ms=%3 frames=%4 input_frames=%5")
+                   .arg(m_fps, 0, 'f', 1)
+                   .arg(m_frameAgeMs, 0, 'f', 0)
+                   .arg(m_inputFrameAgeMs, 0, 'f', 0)
+                   .arg(frames)
+                   .arg(inputFrames);
+        if (m_diagnostics) {
+            m_diagnostics->event(
+                QStringLiteral("video"), QStringLiteral("pipeline_stall"),
+                QJsonObject{{QStringLiteral("fps"), m_fps},
+                            {QStringLiteral("frame_age_ms"), m_frameAgeMs},
+                            {QStringLiteral("input_age_ms"), m_inputFrameAgeMs},
+                            {QStringLiteral("attempt"),
+                             m_stallRebuildCount + 1}});
+        }
+        ++m_stallRebuildCount;
+        m_stalledFrameSamples = 0;
+        m_lastStallRebuildMs = now;
+        rebuildAirplayStream();
+        m_lastInputFrameCount = inputFrames;
+        return;
+    }
+    m_lastInputFrameCount = inputFrames;
 
     if (m_fps > 0.0 && m_fps < 30.0) {
         m_lowFpsSamples++;

@@ -29,6 +29,44 @@ static void logCallback(int level, const char *message) {
     activeWorker->publishEngineLog(level, QString::fromUtf8(message));
 }
 
+static bool isHighFrequencyEngineLog(int level, const QString &message) {
+    // DEBUG_DATA / DEBUG packet and HTTP chatter is useful when explicitly
+    // tracing, but it drowns the incident timeline during normal debugging.
+    if (level >= 7) {
+        static const QStringList noisyPrefixes = {
+            QStringLiteral("raop_rtp video:"),
+            QStringLiteral("raop_rtp audio:"),
+            QStringLiteral("raop_ntp"),
+            QStringLiteral("httpd receiving on socket"),
+            QStringLiteral("httpd: current connections:"),
+            QStringLiteral("connection "),
+            QStringLiteral("new request, connection"),
+            QStringLiteral("conn_request"),
+            QStringLiteral("client closed connection"),
+            QStringLiteral("removing connection"),
+            QStringLiteral("Destroying connection"),
+            QStringLiteral("Open connections:"),
+            QStringLiteral("GStreamer unhandled audio bus message"),
+        };
+        for (const QString &prefix : noisyPrefixes) {
+            if (message.startsWith(prefix)) {
+                return true;
+            }
+        }
+        if (message.startsWith(QStringLiteral("RTSP/1.0"))
+            || message.startsWith(QStringLiteral("POST "))
+            || message.startsWith(QStringLiteral("TEARDOWN "))) {
+            return true;
+        }
+    }
+
+    // /feedback is an AirPlay keepalive. A healthy connection sends it rarely;
+    // a retry loop can produce dozens per second, so keep the first useful
+    // lifecycle lines but do not write every request.
+    return message.contains(QStringLiteral("/feedback"))
+        || message.contains(QStringLiteral("raop_handler_feedback"));
+}
+
 static void readyCallback() {
     if (!activeWorker) return;
 
@@ -60,7 +98,14 @@ void AirPlayWorker::publishClientEvent(const QString &event,
     emit connectionCountChanged(openConnections);
 }
 
+void AirPlayWorker::setEngineTrace(bool enabled) {
+    m_engineTrace = enabled;
+}
+
 void AirPlayWorker::publishEngineLog(int level, const QString &message) {
+    if (!m_engineTrace && isHighFrequencyEngineLog(level, message)) {
+        return;
+    }
     switch (level) {
     case 0:
     case 1:
