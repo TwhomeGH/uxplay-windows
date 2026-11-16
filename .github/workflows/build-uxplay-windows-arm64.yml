@@ -128,6 +128,11 @@ jobs:
               --break-system-packages
           fi
 
+      - name: check translations
+        shell: msys2 {0}
+        run: |
+          python scripts/check_i18n.py --require-lupdate
+
       - name: make release! (arm64)
         shell: msys2 {0}
         run: |

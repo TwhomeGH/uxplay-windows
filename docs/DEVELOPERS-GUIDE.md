@@ -354,7 +354,16 @@ python scripts/check_i18n.py
 ```
 
 `scripts/check_i18n.py` 會檢查缺少的 source key、空白／unfinished
-翻譯與多餘的 catalog key；`lrelease` 由 CMake 的翻譯 target 產生 `.qm`。
+翻譯、多餘 catalog key、placeholder 不一致，以及未使用 `tr()` 的明顯 UI
+字串；輸出以 `[ERROR]`／`[WARN]`／`[OK]` 顏色區分。完整規範見
+`translations/README.md`。
+
+沒有 `lupdate` 時，本機預設只驗證 catalog 並顯示黃色警告；若要避免跳過
+source-key 比對，使用 `--require-lupdate`。正式 CI 使用：
+
+```powershell
+python scripts/check_i18n.py --require-lupdate
+```
 
 ### 凍結與重建
 

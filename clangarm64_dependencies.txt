@@ -16,3 +16,6 @@ mingw-w64-clang-aarch64-python-psutil
 mingw-w64-clang-aarch64-python-pip
 
 mingw-w64-clang-aarch64-pyinstaller
+
+mingw-w64-clang-aarch64-qt6-tools
+mingw-w64-clang-aarch64-qt6-declarative

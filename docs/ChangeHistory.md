@@ -1,5 +1,27 @@
 # ChangeHistory
 
+## 2026.11.17 00:08 加入 i18n 規範與 CI 翻譯檢查
+
+**類型**: 維護 · **檔案**: `translations/README.md、scripts/check_i18n.py、translations/i18n.json、.github/workflows、ucrt_x64_dependencies.txt、clangarm64_dependencies.txt、docs/DEVELOPERS-GUIDE.md、TODO.md`
+
+### 問題 - 英文原文直接作為 Qt key，缺少 placeholder／裸 UI 字串檢查，CI 未阻擋缺翻譯
+
+### 根因 - Qt lupdate 只產生 catalog；沒有規範與自動化 gate
+
+### 修改 - 新增 translations/README.md 規範（key、context、placeholder、禁止拼接）
+
+check_i18n.py 228/228 通過；markdownlint 與 YAML parse 通過。
+
+- check_i18n.py 加入 placeholder 比對與裸 UI 字串掃描（allowlist 在 i18n.json）
+- 無 lupdate 時不再用不可靠的 regex 比對 source key，改為黃色警告並跳過；
+  `--require-lupdate` 讓 CI 在缺少 lupdate 時失敗
+- 輸出以 `[ERROR]` 紅色、`[WARN]` 黃色、`[OK]` 綠色區分；支援 `--color`
+- x64／arm64 CI 加入 qt6-tools／declarative 與 `check_i18n.py --require-lupdate` 步驟
+
+**相關文件**: translations/README.md
+
+---
+
 ## 2026.11.16 23:17 加入中文本地化與診斷檢視器入口
 
 **類型**: 功能 · **檔案**: `CMakeLists.txt、translations/uxplay-windows_zh_TW.ts、translations/i18n.json、src/main.cpp、src/mainwindow.cpp、src/diagnosticsexportdialog.cpp、scripts/check_i18n.py、scripts/diagnostic_viewer.*、docs/DEVELOPERS-GUIDE.md`

@@ -16,3 +16,6 @@ mingw-w64-ucrt-x86_64-python-psutil
 mingw-w64-ucrt-x86_64-python-pip
 
 mingw-w64-ucrt-x86_64-pyinstaller
+
+mingw-w64-ucrt-x86_64-qt6-tools
+mingw-w64-ucrt-x86_64-qt6-declarative

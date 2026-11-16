@@ -1,6 +1,17 @@
 {
   "source_language": "en",
   "fallback_language": "en",
+  "technical_literals": [
+    "uxplay-windows",
+    "D3D11",
+    "D3D12",
+    "auto",
+    "d3d11",
+    "d3d12",
+    "hevc",
+    "h264",
+    "AirPlay Video Stream"
+  ],
   "languages": [
     {
       "code": "zh_TW",
