@@ -58,7 +58,8 @@
 - [ ] `-s` 測試矩陣：720p／1080p／1440p／Native／4K 的實際尺寸、codec、CPU／GPU。
 - [x] 凍結 watchdog：8 秒無 video packet 自動重建 mirror 連線。
 - [x] tray `Rebuild AirPlay stream` 手動重建。
-- [ ] 追查 HEVC 只 presented 1 frame：D3D11／D3D12 renderer A/B，確認是否為 sink 問題。
+- [x] D3D11／D3D12 A/B：D3D11 仍只 presented 1 frame，先排除 sink 為唯一原因。
+- [ ] 測試 `-vd avdec_h265` 軟體解碼；若有效，評估 H.265 預設或 fallback。
 - [ ] 自動重建次數上限與成功／失敗計數（diagnostics）。
 - [x] 引擎 debug log 降噪：過濾每包 RTP、`/feedback` 與 HTTP 細節；`--engine-trace` 保留完整輸出。
 - [x] 管線層 frame heartbeat（區分 packet 有到但 pipeline 卡住）。

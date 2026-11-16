@@ -51,6 +51,8 @@ static bool isHighFrequencyEngineLog(int level, const QString &rawMessage) {
             QStringLiteral("Open connections:"),
             QStringLiteral("GStreamer unhandled audio bus message"),
             QStringLiteral("Received video streaming performance info packet"),
+            QStringLiteral("GStreamer h264 bus message"),
+            QStringLiteral("GStreamer h265 bus message"),
         };
         for (const QString &prefix : noisyPrefixes) {
             if (message.startsWith(prefix)) {
@@ -71,7 +73,9 @@ static bool isHighFrequencyEngineLog(int level, const QString &rawMessage) {
     // a retry loop can produce dozens per second, so keep the first useful
     // lifecycle lines but do not write every request.
     return message.contains(QStringLiteral("/feedback"))
-        || message.contains(QStringLiteral("raop_handler_feedback"));
+        || message.contains(QStringLiteral("raop_handler_feedback"))
+        || message.contains(QStringLiteral("GStreamer h264 bus message"))
+        || message.contains(QStringLiteral("GStreamer h265 bus message"));
 }
 
 static void readyCallback() {
