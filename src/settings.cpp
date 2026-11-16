@@ -143,6 +143,14 @@ AppSettings AppSettings::fromJson(const QString &path, bool *ok) {
         hud.value(QStringLiteral("margin_x")).toInt(settings.hudMarginX);
     settings.hudMarginY =
         hud.value(QStringLiteral("margin_y")).toInt(settings.hudMarginY);
+    if (hud.contains(QStringLiteral("fields"))) {
+        const QJsonArray fields =
+            hud.value(QStringLiteral("fields")).toArray();
+        settings.hudFields.clear();
+        for (const QJsonValue &value : fields) {
+            settings.hudFields.append(value.toString());
+        }
+    }
 
     const QJsonObject obs = object.value(QStringLiteral("obs")).toObject();
     settings.obsMode =
@@ -244,6 +252,11 @@ bool AppSettings::save() const {
     hudObject[QStringLiteral("corner")] = hudCorner;
     hudObject[QStringLiteral("margin_x")] = hudMarginX;
     hudObject[QStringLiteral("margin_y")] = hudMarginY;
+    QJsonArray fieldsArray;
+    for (const QString &field : hudFields) {
+        fieldsArray.append(field);
+    }
+    hudObject[QStringLiteral("fields")] = fieldsArray;
 
     QJsonArray extra;
     for (const QString &arg : extraArgs) {
@@ -266,13 +279,21 @@ bool AppSettings::save() const {
     object[QStringLiteral("hud")] = hudObject;
     object[QStringLiteral("extra_args")] = extra;
 
+    const QByteArray data = QJsonDocument(object).toJson(QJsonDocument::Indented);
+    QFile existing(path);
+    if (existing.open(QIODevice::ReadOnly)) {
+        if (existing.readAll() == data) {
+            return true;
+        }
+    }
+
     QSaveFile file(path);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         qWarning() << "Could not write settings file" << path << ":" << file.errorString();
         return false;
     }
 
-    file.write(QJsonDocument(object).toJson(QJsonDocument::Indented));
+    file.write(data);
     if (!file.commit()) {
         qWarning() << "Could not commit settings file" << path << ":" << file.errorString();
         return false;
@@ -545,6 +566,19 @@ void AppSettings::sanitize() {
     }
     hudMarginX = qBound(0, hudMarginX, 1000);
     hudMarginY = qBound(0, hudMarginY, 1000);
+    const QStringList allowedFields = {
+        QStringLiteral("client"), QStringLiteral("status"),
+        QStringLiteral("video"), QStringLiteral("output"),
+        QStringLiteral("decoder"), QStringLiteral("renderer"),
+        QStringLiteral("fps"), QStringLiteral("audio")};
+    QStringList sanitizedFields;
+    for (const QString &field : hudFields) {
+        if (allowedFields.contains(field)
+            && !sanitizedFields.contains(field)) {
+            sanitizedFields.append(field);
+        }
+    }
+    hudFields = sanitizedFields;
 }
 
 void AppSettings::archiveLegacy() {

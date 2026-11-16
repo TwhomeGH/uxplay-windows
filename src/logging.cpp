@@ -16,8 +16,8 @@
 namespace applog {
 namespace {
 
-constexpr qint64 kMaxBytes = 2 * 1024 * 1024;
-constexpr int kMaxRotatedFiles = 3;
+constexpr qint64 kMaxBytes = 8 * 1024 * 1024;
+constexpr int kMaxRotatedFiles = 5;
 
 QMutex g_mutex;
 QFile g_file;

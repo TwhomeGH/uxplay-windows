@@ -1,5 +1,26 @@
 # ChangeHistory
 
+## 2026.11.16 22:37 HUD 欄位選擇、解碼器資訊與診斷摘要
+
+**類型**: 功能 · **檔案**: `libuxplay/uxplay.cpp、src/settings.h、src/settings.cpp、src/mainwindow.h、src/mainwindow.cpp、src/logging.cpp、src/diagnostics.cpp、docs/DEVELOPERS-GUIDE.md`
+
+### 問題 - HUD 無法只顯示需要的欄位；Decoder／Renderer 空白；日誌保留短、設定高頻寫入、診斷包不好讀
+
+### 根因 - HUD 固定欄位；decoder/renderer 只在啟動時回報；日誌 2MB×3；每次套用直接同步 save
+
+### 修改 - HUD fields 勾選清單（tray 與主視窗 Fields...），settings hud.fields
+
+建置通過；已確認無 Saved settings 高頻洗版，summary/timeline 已產生。
+
+- video_set_codec 回報 decoder/renderer
+- 日誌 8MB×5；stats 以 key=value 記錄，低 FPS 產生 event
+- settings.save 比對內容避免重複寫入；runtime apply 與落盤分離，1.2s debounce
+- 診斷包新增 summary.txt 與 timeline.txt，README 指向摘要
+
+**相關文件**: docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.16 00:22 影片視窗改為一次性置前，always-on-top 可選
 
 **類型**: 改善 · **檔案**: `src/settings.h、src/settings.cpp、src/mainwindow.h、src/mainwindow.cpp、docs/DEVELOPERS-GUIDE.md`

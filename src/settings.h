@@ -45,6 +45,9 @@ public:
     QString hudCorner = "top-left";
     int hudMarginX = 8;
     int hudMarginY = 72;
+    QStringList hudFields = {
+        "client", "status", "video", "output",
+        "decoder", "renderer", "fps", "audio"};
     QString obsMode = "off";
     QStringList extraArgs;
 

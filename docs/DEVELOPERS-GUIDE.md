@@ -141,13 +141,17 @@ CSV 可畫 RSS 趨勢；report 有首尾 RSS、CPU 平均／峰值、初始連�
 - **Open Log Folder**：開啟日誌資料夾。
 - **Open Diagnostics Folder**：開啟診斷包資料夾（不存在時會建立）。
 
-內容包括 `manifest.json`、`events.jsonl`、`metrics.jsonl`、logs、
-`settings.redacted.json`、`system.txt` 與 `README.txt`。
+內容包括 `summary.txt`（先看這個）、`timeline.txt`、`manifest.json`、
+`events.jsonl`、`metrics.jsonl`、logs、`settings.redacted.json`、
+`system.txt` 與 `README.txt`。`summary.txt` 會列出 build、client、
+連線次數、engine error、低 FPS 事件與最近 40 筆事件。
 
 保留量：
 
 - 記憶體 ring buffer：3000 events、1800 metrics（1Hz 約 30 分鐘）。
-- 日誌：2MB × 3 個 rotated 檔＋目前檔。
+- 日誌：8MB × 5 個 rotated 檔＋目前檔（約 48MB）。
+- 影片統計每 5 秒寫一行 `[stats] fps=... interval_ms=...
+  frame_age_ms=...`；連續 5 秒低於 30fps 會寫 `[stats] low_fps`。
 - 診斷包：只保留最近 **10 組** folder／zip；每次匯出後自動刪除較舊的。
   要長期保存的 bundle 請先 copy 到其他位置。
 
@@ -286,8 +290,12 @@ grep -E "register_dnssd|Initialized server socket|using system MAC" \
 - 位置：tray `HUD position` 可選 `Top left`／`Top right`／
   `Bottom left`／`Bottom right`；另可用主視窗 `HUD margin` 的 X／Y
   像素微調，預設 `8`／`72`。
-- 設定存在 `settings.json` 的 `hud.corner`、`hud.margin_x`、
-  `hud.margin_y`。
+- 欄位：tray `HUD fields` 或主視窗 `Fields...` 可勾選只顯示
+  Client／Status／Video／Output／Decoder／Renderer／FPS／Audio；
+  `Show all` 一次恢復全部。
+- 設定存在 `settings.json` 的 `hud.enabled`（預設關閉）、
+  `hud.corner`、`hud.margin_x`、`hud.margin_y`、`hud.fields`。
+- 文字會出現在 OBS 視窗擷取中，這是預期行為。
 
 ### 影片視窗置前
 
@@ -295,9 +303,6 @@ grep -E "register_dnssd|Initialized server socket|using system MAC" \
   將它拉到其他一般視窗之上，預設不持續置頂。
 - 需要一直保持在最上層時，tray 勾選 `Video always on top`；
   設定存在 `video_window.always_on_top`，預設關閉。
-- 文字會出現在 OBS 視窗擷取中，這是預期行為。
-- 設定存在 `settings.json` 的 `hud.enabled`（預設關閉）、
-  `hud.corner`、`hud.margin_x`、`hud.margin_y`。
 
 ### 凍結與重建
 

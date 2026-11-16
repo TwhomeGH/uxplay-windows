@@ -590,6 +590,104 @@ QString DiagnosticsRecorder::exportBundle(QString *error) {
     writeJson(folderPath + QStringLiteral("/manifest.json"),
               QJsonDocument(manifest), error);
 
+    int connectCount = 0;
+    int disconnectCount = 0;
+    int rejectedCount = 0;
+    int errorCount = 0;
+    int lowFpsCount = 0;
+    QString lastError;
+    for (const EventRecord &record : m_events) {
+        if (record.category == QStringLiteral("client")) {
+            if (record.message == QStringLiteral("connected")) ++connectCount;
+            if (record.message == QStringLiteral("disconnected")) ++disconnectCount;
+            if (record.message == QStringLiteral("rejected")) ++rejectedCount;
+        }
+        if (record.category == QStringLiteral("video")
+            && record.message == QStringLiteral("low_fps")) {
+            ++lowFpsCount;
+        }
+        if (record.category == QStringLiteral("engine")
+            && (record.message.contains(QStringLiteral("error"),
+                                        Qt::CaseInsensitive)
+                || record.message.contains(QStringLiteral("failed"),
+                                           Qt::CaseInsensitive))) {
+            ++errorCount;
+            lastError = record.message;
+        }
+    }
+
+    const QString clientName = lastClient.value(QStringLiteral("name")).toString();
+    const QString clientModel = lastClient.value(QStringLiteral("model")).toString();
+    QStringList summary;
+    summary << QStringLiteral("uxplay-windows diagnostics summary")
+            << QStringLiteral("================================")
+            << QStringLiteral("created: %1")
+                   .arg(QDateTime::currentDateTime().toString(Qt::ISODate))
+            << QStringLiteral("app: %1 (%2, %3)")
+                   .arg(QStringLiteral(UXPLAY_APP_VERSION),
+                        QStringLiteral(UXPLAY_GIT_SHA),
+                        QStringLiteral(UXPLAY_BUILD_TYPE))
+            << QStringLiteral("session_started: %1")
+                   .arg(m_startedAt.toString(Qt::ISODate))
+            << QStringLiteral("last_status: %1")
+                   .arg(redactText(m_status, displayName, hostName))
+            << QStringLiteral("last_client: %1 (%2)")
+                   .arg(redactText(clientName, displayName, hostName),
+                        clientModel)
+            << QStringLiteral("events: %1  metrics: %2")
+                   .arg(m_events.size())
+                   .arg(m_metrics.size())
+            << QStringLiteral("client_connects: %1  disconnects: %2  rejected: %3")
+                   .arg(connectCount)
+                   .arg(disconnectCount)
+                   .arg(rejectedCount)
+            << QStringLiteral("engine_errors: %1  low_fps_windows: %2")
+                   .arg(errorCount)
+                   .arg(lowFpsCount)
+            << QStringLiteral("last_error: %1")
+                   .arg(lastError.isEmpty()
+                            ? QStringLiteral("none")
+                            : redactText(lastError, displayName, hostName))
+            << QString();
+    summary << QStringLiteral("Recent events (newest last):");
+    const int summaryStart = qMax(0, m_events.size() - 40);
+    for (int i = summaryStart; i < m_events.size(); ++i) {
+        const EventRecord &record = m_events.at(i);
+        QString line = QStringLiteral("%1 [%2] %3")
+                           .arg(record.time.toString(QStringLiteral("HH:mm:ss.zzz")),
+                                record.category,
+                                redactText(record.message, displayName, hostName));
+        if (!record.data.isEmpty()) {
+            line += QLatin1Char(' ')
+                    + QString::fromUtf8(QJsonDocument(
+                                            redactValue(record.data, displayName,
+                                                        hostName)
+                                                .toObject())
+                                            .toJson(QJsonDocument::Compact));
+        }
+        summary << line;
+    }
+    writeText(folderPath + QStringLiteral("/summary.txt"),
+              summary.join(QLatin1Char('\n')) + QLatin1Char('\n'), error);
+
+    QString timeline;
+    for (const EventRecord &record : m_events) {
+        timeline += QStringLiteral("%1 [%2] %3")
+                        .arg(record.time.toString(Qt::ISODateWithMs),
+                             record.category,
+                             redactText(record.message, displayName, hostName));
+        if (!record.data.isEmpty()) {
+            timeline += QLatin1Char(' ')
+                        + QString::fromUtf8(
+                              QJsonDocument(redactValue(record.data, displayName,
+                                                        hostName)
+                                                .toObject())
+                                  .toJson(QJsonDocument::Compact));
+        }
+        timeline += QLatin1Char('\n');
+    }
+    writeText(folderPath + QStringLiteral("/timeline.txt"), timeline, error);
+
     QString eventsJson;
     for (const EventRecord &record : m_events) {
         QJsonObject object;
@@ -675,6 +773,8 @@ QString DiagnosticsRecorder::exportBundle(QString *error) {
         "---------------------------------\n"
         "This bundle was generated locally. It contains recent events and\n"
         "process metrics, logs, redacted settings, and system information.\n"
+        "summary.txt is the quick human-readable entry point;\n"
+        "timeline.txt and events.jsonl contain the detailed event history.\n"
         "Nothing is uploaded automatically.\n"
         "\n"
         "Redaction:\n"

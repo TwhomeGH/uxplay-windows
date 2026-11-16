@@ -65,6 +65,8 @@ private slots:
     void openLogFile();
     void toggleDiagnostics(bool enabled);
     void toggleHud(bool enabled);
+    void toggleHudField(const QString &field, bool enabled);
+    void showAllHudFields();
     void toggleVideoAlwaysOnTop(bool enabled);
     void toggleBle(bool checked); // bluetooth
     void toggleForceFullscreen(bool checked);
@@ -102,6 +104,8 @@ private:
     void updateOutputLabel();
     void setHudCorner(const QString &corner);
     void rebuildAirplayStream();
+    void saveSettingsSoon();
+    void buildHudFieldsMenu(QMenu *menu);
     void populateLogMenu(QMenu *menu);
 
     QProcess *m_beacon = nullptr;
@@ -168,6 +172,9 @@ private:
     QCheckBox *m_hudCheckbox = nullptr;
     QSpinBox *m_hudXSpin = nullptr;
     QSpinBox *m_hudYSpin = nullptr;
+    QPushButton *m_hudFieldsButton = nullptr;
+    QMenu *m_hudFieldsMenu = nullptr;
+    QList<QAction *> m_hudFieldActions;
     QLabel *m_outputLabel = nullptr;
     QLabel *m_statusLabel = nullptr;
     QLabel *m_errorLabel = nullptr;
@@ -192,12 +199,16 @@ private:
     QString m_lastEngineError;
     QTimer *m_videoTitleTimer = nullptr;
     QTimer *m_statsTimer = nullptr;
+    QTimer *m_settingsSaveTimer = nullptr;
     quint64 m_lastFrameCount = 0;
     qint64 m_lastStatsMs = 0;
     qint64 m_lastFrameRecoveryMs = 0;
     double m_fps = 0.0;
     double m_frameIntervalMs = 0.0;
     double m_frameAgeMs = -1.0;
+    int m_lowFpsSamples = 0;
+    qint64 m_lastStatsLogMs = 0;
+    qint64 m_lastGeometrySaveMs = 0;
     quintptr m_videoWindowHandle = 0;
     QRect m_lastVideoWindowRect;
     bool m_videoWindowApplied = false;

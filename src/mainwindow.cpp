@@ -147,6 +147,12 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     connect(m_statsTimer, &QTimer::timeout, this,
             &MainWindow::updateFrameStats);
 
+    m_settingsSaveTimer = new QTimer(this);
+    m_settingsSaveTimer->setSingleShot(true);
+    m_settingsSaveTimer->setInterval(1200);
+    connect(m_settingsSaveTimer, &QTimer::timeout, this,
+            [this]() { m_settings.save(); });
+
     if (!m_serverEnabled) {
         qInfo() << "AirPlay disabled by server_enabled=false; engine not started";
         updateStatus();
@@ -415,17 +421,23 @@ void MainWindow::setupUI() {
     connect(m_hudXSpin, QOverload<int>::of(&QSpinBox::valueChanged),
             this, [this](int value) {
                 m_settings.hudMarginX = value;
-                m_settings.save();
+                saveSettingsSoon();
                 updateHud();
             });
     connect(m_hudYSpin, QOverload<int>::of(&QSpinBox::valueChanged),
             this, [this](int value) {
                 m_settings.hudMarginY = value;
-                m_settings.save();
+                saveSettingsSoon();
                 updateHud();
             });
     hudMarginLayout->addWidget(m_hudXSpin);
     hudMarginLayout->addWidget(m_hudYSpin);
+    m_hudFieldsButton = new QPushButton("Fields...", this);
+    m_hudFieldsButton->setToolTip("Choose which lines the HUD shows.");
+    m_hudFieldsMenu = new QMenu(this);
+    buildHudFieldsMenu(m_hudFieldsMenu);
+    m_hudFieldsButton->setMenu(m_hudFieldsMenu);
+    hudMarginLayout->addWidget(m_hudFieldsButton);
     layout->addLayout(hudMarginLayout);
 
     m_rebuildButton = new QPushButton("Rebuild AirPlay stream", this);
@@ -535,6 +547,8 @@ void MainWindow::setupTray() {
     connect(m_hudBottomRightAction, &QAction::triggered, this, [this]() {
         setHudCorner(QStringLiteral("bottom-right"));
     });
+    QMenu *hudFields = m_trayMenu->addMenu("HUD fields");
+    buildHudFieldsMenu(hudFields);
     m_trayMenu->addSeparator();
     m_trayMenu->addAction("Rebuild AirPlay stream", this,
                          &MainWindow::rebuildAirplayStream);
@@ -1042,6 +1056,8 @@ void MainWindow::stopServer() {
     m_fps = 0.0;
     m_frameIntervalMs = 0.0;
     m_frameAgeMs = -1.0;
+    m_lowFpsSamples = 0;
+    m_lastStatsLogMs = 0;
     if (m_worker) {
         AirPlayWorker *worker = m_worker;
         m_worker = nullptr;
@@ -1251,6 +1267,11 @@ void MainWindow::saveVideoWindowGeometry() {
     if (current == m_lastVideoWindowRect) {
         return;
     }
+    const qint64 now = QDateTime::currentMSecsSinceEpoch();
+    if (now - m_lastGeometrySaveMs < 1000) {
+        return;
+    }
+    m_lastGeometrySaveMs = now;
 
     m_lastVideoWindowRect = current;
     m_settings.videoWindow.hasGeometry = true;
@@ -1258,7 +1279,7 @@ void MainWindow::saveVideoWindowGeometry() {
     m_settings.videoWindow.y = current.y();
     m_settings.videoWindow.width = current.width();
     m_settings.videoWindow.height = current.height();
-    m_settings.save();
+    saveSettingsSoon();
 }
 
 void MainWindow::onAirplayStopped() {
@@ -1270,6 +1291,8 @@ void MainWindow::onAirplayStopped() {
     m_fps = 0.0;
     m_frameIntervalMs = 0.0;
     m_frameAgeMs = -1.0;
+    m_lowFpsSamples = 0;
+    m_lastStatsLogMs = 0;
     m_videoWindowHandle = 0;
     m_videoWindowApplied = false;
     m_lastVideoWindowRect = QRect();
@@ -1679,6 +1702,12 @@ void MainWindow::toggleDiagnostics(bool enabled) {
     }
 }
 
+void MainWindow::saveSettingsSoon() {
+    if (m_settingsSaveTimer && !m_settingsSaveTimer->isActive()) {
+        m_settingsSaveTimer->start();
+    }
+}
+
 void MainWindow::toggleHud(bool enabled) {
     m_settings.hudEnabled = enabled;
     m_settings.save();
@@ -1696,6 +1725,73 @@ void MainWindow::toggleVideoAlwaysOnTop(bool enabled) {
                          SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
         }
     }
+}
+
+void MainWindow::toggleHudField(const QString &field, bool enabled) {
+    if (enabled) {
+        if (!m_settings.hudFields.contains(field)) {
+            m_settings.hudFields.append(field);
+        }
+    } else {
+        m_settings.hudFields.removeAll(field);
+    }
+    m_settings.save();
+    for (QAction *action : m_hudFieldActions) {
+        if (action && action->data().toString() == field
+            && action->isChecked() != enabled) {
+            const bool blocked = action->blockSignals(true);
+            action->setChecked(enabled);
+            action->blockSignals(blocked);
+        }
+    }
+    updateHud();
+}
+
+void MainWindow::showAllHudFields() {
+    m_settings.hudFields = {
+        QStringLiteral("client"), QStringLiteral("status"),
+        QStringLiteral("video"), QStringLiteral("output"),
+        QStringLiteral("decoder"), QStringLiteral("renderer"),
+        QStringLiteral("fps"), QStringLiteral("audio")};
+    m_settings.save();
+    for (QAction *action : m_hudFieldActions) {
+        if (!action) {
+            continue;
+        }
+        const bool blocked = action->blockSignals(true);
+        action->setChecked(true);
+        action->blockSignals(blocked);
+    }
+    updateHud();
+}
+
+void MainWindow::buildHudFieldsMenu(QMenu *menu) {
+    if (!menu) {
+        return;
+    }
+    const QList<QPair<QString, QString>> fields = {
+        {QStringLiteral("client"), QStringLiteral("Client")},
+        {QStringLiteral("status"), QStringLiteral("Status")},
+        {QStringLiteral("video"), QStringLiteral("Video codec")},
+        {QStringLiteral("output"), QStringLiteral("Output size")},
+        {QStringLiteral("decoder"), QStringLiteral("Decoder")},
+        {QStringLiteral("renderer"), QStringLiteral("Renderer")},
+        {QStringLiteral("fps"), QStringLiteral("FPS")},
+        {QStringLiteral("audio"), QStringLiteral("Audio")}};
+    for (const auto &entry : fields) {
+        QAction *action = menu->addAction(entry.second);
+        action->setCheckable(true);
+        action->setChecked(m_settings.hudFields.contains(entry.first));
+        action->setData(entry.first);
+        m_hudFieldActions.append(action);
+        connect(action, &QAction::toggled, this,
+                [this, field = entry.first](bool enabled) {
+                    toggleHudField(field, enabled);
+                });
+    }
+    menu->addSeparator();
+    QAction *all = menu->addAction("Show all");
+    connect(all, &QAction::triggered, this, &MainWindow::showAllHudFields);
 }
 
 void MainWindow::setHudCorner(const QString &corner) {
@@ -1730,6 +1826,39 @@ void MainWindow::updateFrameStats() {
     m_frameAgeMs = ageMs;
     m_lastFrameCount = frames;
     m_lastStatsMs = now;
+
+    if (m_fps > 0.0 && m_fps < 30.0) {
+        m_lowFpsSamples++;
+        if (m_lowFpsSamples == 5) {
+            qWarning().noquote()
+                << QStringLiteral("[stats] low_fps fps=%1 interval_ms=%2 "
+                                  "frame_age_ms=%3 duration_s=5")
+                       .arg(m_fps, 0, 'f', 1)
+                       .arg(m_frameIntervalMs, 0, 'f', 1)
+                       .arg(m_frameAgeMs, 0, 'f', 0);
+            if (m_diagnostics) {
+                m_diagnostics->event(
+                    QStringLiteral("video"), QStringLiteral("low_fps"),
+                    QJsonObject{{QStringLiteral("fps"), m_fps},
+                                {QStringLiteral("interval_ms"),
+                                 m_frameIntervalMs},
+                                {QStringLiteral("frame_age_ms"),
+                                 m_frameAgeMs}});
+            }
+        }
+    } else {
+        m_lowFpsSamples = 0;
+    }
+    if (!m_clientName.isEmpty() && now - m_lastStatsLogMs >= 5000) {
+        qInfo().noquote()
+            << QStringLiteral("[stats] fps=%1 interval_ms=%2 frame_age_ms=%3 "
+                              "frames=%4")
+                   .arg(m_fps, 0, 'f', 1)
+                   .arg(m_frameIntervalMs, 0, 'f', 1)
+                   .arg(m_frameAgeMs, 0, 'f', 0)
+                   .arg(frames);
+        m_lastStatsLogMs = now;
+    }
 
     updateHud();
 }
@@ -1790,14 +1919,17 @@ void MainWindow::updateHud() {
                               "<span foreground=\"%2\">%3</span>")
             .arg(label, color, escapeMarkup(value));
     };
+    auto hasField = [this](const char *key) {
+        return m_settings.hudFields.contains(QString::fromLatin1(key));
+    };
 
-    if (m_clientAction) {
+    if (hasField("client") && m_clientAction) {
         lines << line(QStringLiteral("Client"),
                       withoutPrefix(actionText(m_clientAction),
                                     QStringLiteral("Client: ")),
                       QStringLiteral("#FFFFFF"));
     }
-    if (m_mediaStatusAction) {
+    if (hasField("status") && m_mediaStatusAction) {
         const QString status = withoutPrefix(
             actionText(m_mediaStatusAction), QStringLiteral("Status: "));
         const QString color = status.contains(QStringLiteral("Streaming"))
@@ -1807,7 +1939,7 @@ void MainWindow::updateHud() {
                                         : QStringLiteral("#FFFFFF");
         lines << line(QStringLiteral("Status"), status, color);
     }
-    if (m_videoCodecAction) {
+    if (hasField("video") && m_videoCodecAction) {
         lines << line(QStringLiteral("Video"),
                       withoutPrefix(actionText(m_videoCodecAction),
                                     QStringLiteral("Video Codec: ")),
@@ -1826,23 +1958,25 @@ void MainWindow::updateHud() {
         (m_streamWidth > 0 && m_streamHeight > 0)
             ? QStringLiteral("%1x%2").arg(m_streamWidth).arg(m_streamHeight)
             : QStringLiteral("waiting");
-    lines << line(QStringLiteral("Output"),
-                  QStringLiteral("%1  (requested %2)").arg(actual, requested),
-                  QStringLiteral("#FFFFFF"));
+    if (hasField("output")) {
+        lines << line(QStringLiteral("Output"),
+                      QStringLiteral("%1  (requested %2)").arg(actual, requested),
+                      QStringLiteral("#FFFFFF"));
+    }
 
-    if (m_videoDecoderAction) {
+    if (hasField("decoder") && m_videoDecoderAction) {
         lines << line(QStringLiteral("Decoder"),
                       withoutPrefix(actionText(m_videoDecoderAction),
                                     QStringLiteral("Video Decoder: ")),
                       QStringLiteral("#FFFFFF"));
     }
-    if (m_videoRendererAction) {
+    if (hasField("renderer") && m_videoRendererAction) {
         lines << line(QStringLiteral("Renderer"),
                       withoutPrefix(actionText(m_videoRendererAction),
                                     QStringLiteral("Video Renderer: ")),
                       QStringLiteral("#FFFFFF"));
     }
-    if (m_lastStatsMs > 0 && m_frameAgeMs >= 0.0) {
+    if (hasField("fps") && m_lastStatsMs > 0 && m_frameAgeMs >= 0.0) {
         const QString interval =
             m_fps > 0.0
                 ? QStringLiteral("%1 ms").arg(m_frameIntervalMs, 0, 'f', 1)
@@ -1858,7 +1992,7 @@ void MainWindow::updateHud() {
                                         : QStringLiteral("#7EE787");
         lines << line(QStringLiteral("FPS"), fpsText, color);
     }
-    if (m_audioCodecAction) {
+    if (hasField("audio") && m_audioCodecAction) {
         QString audio = withoutPrefix(actionText(m_audioCodecAction),
                                       QStringLiteral("Audio Codec: "));
         if (m_audioFormatAction) {
