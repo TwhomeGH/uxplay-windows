@@ -9,3 +9,5 @@ _site/
 /*.wixpdb
 /.wix/
 .playwright-mcp/*
+__pycache__/
+*.pyc

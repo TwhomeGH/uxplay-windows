@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>uxplay-windows 診斷檢視器</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #101318; --panel: #181c23; --panel2: #20252e;
+    --border: #303846; --text: #e8ecf3; --muted: #98a4b5;
+    --accent: #6ea8fe; --ok: #4ade80; --warn: #f0b429; --error: #ff6b6b;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 14px/1.5 "Segoe UI", "Microsoft JhengHei", sans-serif; }
+  header { padding: 16px 22px; border-bottom: 1px solid var(--border);
+           background: linear-gradient(180deg, #1b222d, #141820); }
+  h1 { margin: 0 0 4px; font-size: 19px; }
+  .meta { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+  .layout { display: grid; grid-template-columns: 250px minmax(0, 1fr);
+            min-height: calc(100vh - 86px); }
+  aside { border-right: 1px solid var(--border); padding: 14px;
+          background: var(--panel); }
+  aside h2, section h2 { margin: 0 0 10px; font-size: 12px;
+          letter-spacing: .08em; color: var(--muted); text-transform: uppercase; }
+  button { font: inherit; cursor: pointer; }
+  button.cat { display: flex; justify-content: space-between; width: 100%;
+          padding: 7px 9px; margin: 2px 0; border: 0; border-radius: 7px;
+          background: transparent; color: var(--text); text-align: left; }
+  button.cat:hover { background: var(--panel2); }
+  button.cat.active { background: #263a58; color: #dbe8ff; }
+  button.cat .count { color: var(--muted); font-variant-numeric: tabular-nums; }
+  main { padding: 16px; min-width: 0; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+           gap: 10px; margin-bottom: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--border);
+          border-radius: 10px; padding: 10px 12px; }
+  .card .label { color: var(--muted); font-size: 11px; }
+  .card .value { font-size: 20px; font-weight: 650; margin-top: 2px; }
+  .card.error .value { color: var(--error); }
+  .card.warn .value { color: var(--warn); }
+  .card.ok .value { color: var(--ok); }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  input[type=search], select { background: var(--panel2); color: var(--text);
+          border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
+  input[type=search] { min-width: 240px; flex: 1 1 300px; }
+  .status { color: var(--muted); font-size: 12px; margin: 8px 0; }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  th, td { padding: 7px 8px; border-bottom: 1px solid var(--border);
+           vertical-align: top; text-align: left; }
+  th { position: sticky; top: 0; background: var(--panel); color: var(--muted);
+       font-size: 11px; z-index: 1; }
+  td.time { white-space: nowrap; color: var(--muted); font-size: 12px;
+            width: 175px; }
+  td.cat { width: 105px; color: var(--accent); font-size: 12px;
+           font-family: ui-monospace, Consolas, monospace; overflow-wrap: anywhere; }
+  td.msg { overflow-wrap: anywhere; }
+  tr.error td.msg { color: #ffc2c2; }
+  tr.warn td.msg { color: #ffe2a3; }
+  .badge { display: inline-block; padding: 1px 6px; border-radius: 999px;
+           font-size: 10px; margin-left: 6px; border: 1px solid var(--border);
+           color: var(--muted); }
+  .fields { margin-top: 3px; }
+  .fields summary { color: var(--muted); cursor: pointer; font-size: 11px; }
+  .fields pre { margin: 5px 0 0; padding: 7px; background: #0c0f14;
+                border: 1px solid var(--border); border-radius: 6px;
+                white-space: pre-wrap; font-size: 11px; color: #c7d2e4; }
+  .empty { color: var(--muted); padding: 24px 0; text-align: center; }
+  .load { margin: 12px 0; padding: 8px 16px; border-radius: 8px;
+          border: 1px solid var(--border); background: var(--panel2);
+          color: var(--text); }
+  .metrics { margin-top: 24px; }
+  .chart { width: 100%; height: 180px; background: var(--panel);
+           border: 1px solid var(--border); border-radius: 10px; }
+  .legend { color: var(--muted); font-size: 11px; margin: 6px 0; }
+  @media (max-width: 820px) {
+    .layout { grid-template-columns: 1fr; }
+    aside { border-right: 0; border-bottom: 1px solid var(--border);
+            max-height: 210px; overflow: auto; }
+    td.time { width: 125px; }
+    td.cat { width: 78px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>uxplay-windows 診斷檢視器</h1>
+  <div class="meta" id="meta">載入中…</div>
+</header>
+<div class="layout">
+  <aside>
+    <h2>分類</h2>
+    <div id="categories"></div>
+  </aside>
+  <main>
+    <div class="cards" id="cards"></div>
+    <div class="toolbar">
+      <input id="search" type="search" placeholder="搜尋事件、欄位、錯誤字串…" autocomplete="off">
+      <select id="severity">
+        <option value="">全部嚴重度</option>
+        <option value="error">Error</option>
+        <option value="warn">Warning</option>
+        <option value="info">Info</option>
+      </select>
+      <select id="source">
+        <option value="">全部來源</option>
+        <option value="log">log</option>
+        <option value="event">event</option>
+        <option value="timeline">timeline</option>
+      </select>
+      <button class="load" id="refresh" type="button">重新載入</button>
+    </div>
+    <div class="status" id="status"></div>
+    <table>
+      <thead><tr><th>時間</th><th>分類</th><th>內容</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="empty" id="empty" hidden>沒有符合條件的事件。</div>
+    <button class="load" id="more" type="button" hidden>載入更多</button>
+    <section class="metrics">
+      <h2>系統指標</h2>
+      <div class="legend" id="metricLegend">尚無 metrics。</div>
+      <svg class="chart" id="chart" viewBox="0 0 800 180" preserveAspectRatio="none"></svg>
+    </section>
+  </main>
+</div>
+<script>
+const state = { category: "", severity: "", source: "", q: "", offset: 0, limit: 300, total: 0 };
+const $ = (id) => document.getElementById(id);
+const esc = (value) => String(value ?? "");
+let searchTimer = 0;
+
+function addText(parent, tag, text, className) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  node.textContent = text;
+  parent.appendChild(node);
+  return node;
+}
+
+function stamp(value) {
+  if (!value) return "—";
+  const text = String(value);
+  return text.length > 19 ? text.slice(0, 19).replace("T", " ") : text;
+}
+
+async function getJson(url) {
+  const response = await fetch(url, { cache: "no-store" });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return response.json();
+}
+
+function renderCards(summary) {
+  const cards = $("cards");
+  cards.replaceChildren();
+  const items = [
+    ["事件", summary.events, ""],
+    ["錯誤", summary.errors, summary.errors ? "error" : "ok"],
+    ["警告", summary.warnings, summary.warnings ? "warn" : "ok"],
+    ["Low FPS", summary.low_fps, summary.low_fps ? "warn" : "ok"],
+    ["連線", summary.connects, ""],
+    ["斷線", summary.disconnects, ""],
+    ["Metrics", summary.metrics, ""],
+  ];
+  for (const [label, value, className] of items) {
+    const card = document.createElement("div");
+    card.className = "card " + className;
+    addText(card, "div", label, "label");
+    addText(card, "div", value, "value");
+    cards.appendChild(card);
+  }
+}
+
+function renderMeta(summary) {
+  const manifest = summary;
+  const parts = [
+    summary.path || "",
+    summary.range ? `範圍 ${summary.range}` : "",
+    manifest.app_version ? `版本 ${manifest.app_version}` : "",
+    manifest.git_sha ? `SHA ${manifest.git_sha}` : "",
+    manifest.build_type ? manifest.build_type : "",
+    summary.last_status ? `狀態 ${summary.last_status}` : "",
+  ].filter(Boolean);
+  $("meta").textContent = parts.join("  ·  ");
+}
+
+function renderCategories(summary) {
+  const host = $("categories");
+  host.replaceChildren();
+  const all = document.createElement("button");
+  all.className = "cat" + (state.category === "" ? " active" : "");
+  addText(all, "span", "全部");
+  addText(all, "span", String(summary.events), "count");
+  all.addEventListener("click", () => { state.category = ""; state.offset = 0; loadEvents(); renderCategories(summary); });
+  host.appendChild(all);
+  for (const item of summary.categories || []) {
+    const button = document.createElement("button");
+    button.className = "cat" + (state.category === item.name ? " active" : "");
+    addText(button, "span", item.name);
+    addText(button, "span", String(item.count), "count");
+    button.addEventListener("click", () => {
+      state.category = state.category === item.name ? "" : item.name;
+      state.offset = 0;
+      loadEvents();
+      renderCategories(summary);
+    });
+    host.appendChild(button);
+  }
+}
+
+function renderEvent(event) {
+  const row = document.createElement("tr");
+  row.className = event.severity === "error" ? "error" : event.severity === "warn" ? "warn" : "";
+  addText(row, "td", stamp(event.ts), "time");
+  addText(row, "td", event.category, "cat");
+  const message = document.createElement("td");
+  message.className = "msg";
+  addText(message, "span", event.message);
+  addText(message, "span", event.severity, "badge");
+  addText(message, "span", event.source, "badge");
+  if (event.fields && Object.keys(event.fields).length) {
+    const details = document.createElement("details");
+    details.className = "fields";
+    const summary = document.createElement("summary");
+    summary.textContent = `${Object.keys(event.fields).length} 個欄位`;
+    details.appendChild(summary);
+    const pre = document.createElement("pre");
+    pre.textContent = Object.entries(event.fields)
+      .map(([key, value]) => `${key}=${value}`).join("\n");
+    details.appendChild(pre);
+    message.appendChild(details);
+  }
+  row.appendChild(message);
+  return row;
+}
+
+async function loadEvents() {
+  const params = new URLSearchParams({
+    category: state.category, severity: state.severity,
+    source: state.source, q: state.q,
+    offset: String(state.offset), limit: String(state.limit),
+  });
+  try {
+    const data = await getJson(`/api/events?${params}`);
+    state.total = data.total;
+    const rows = $("rows");
+    rows.replaceChildren();
+    for (const event of data.events) rows.appendChild(renderEvent(event));
+    $("empty").hidden = data.events.length !== 0;
+    $("more").hidden = !data.hasMore;
+    $("status").textContent = `顯示 ${data.offset + data.events.length} / ${data.total} 筆`;
+  } catch (error) {
+    $("status").textContent = `載入失敗：${error.message}`;
+  }
+}
+
+async function loadSummary() {
+  try {
+    const summary = await getJson("/api/summary");
+    renderCards(summary);
+    renderMeta(summary);
+    renderCategories(summary);
+    drawMetrics(summary.metrics_preview || []);
+  } catch (error) {
+    $("meta").textContent = `無法載入 summary：${error.message}`;
+  }
+}
+
+function drawMetrics(metrics) {
+  const svg = $("chart");
+  svg.replaceChildren();
+  if (!metrics.length) {
+    $("metricLegend").textContent = "尚無 metrics。";
+    return;
+  }
+  $("metricLegend").textContent = "CPU %（紅） / Working set MB（藍），最近 " + metrics.length + " 筆";
+  const width = 800, height = 180, pad = 8;
+  const cpus = metrics.map((m) => Number(m.cpu_pct));
+  const rss = metrics.map((m) => Number(m.working_set_mb));
+  const maxCpu = Math.max(1, ...cpus.filter(Number.isFinite));
+  const maxRss = Math.max(1, ...rss.filter(Number.isFinite));
+  const line = (values, max, color) => {
+    const points = values.map((value, index) => {
+      const x = pad + (index / Math.max(1, values.length - 1)) * (width - pad * 2);
+      const y = height - pad - (Number.isFinite(value) ? value / max : 0) * (height - pad * 2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(" ");
+    const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+    polyline.setAttribute("points", points);
+    polyline.setAttribute("fill", "none");
+    polyline.setAttribute("stroke", color);
+    polyline.setAttribute("stroke-width", "2");
+    svg.appendChild(polyline);
+  };
+  line(cpus, maxCpu, "#ff6b6b");
+  line(rss, maxRss, "#6ea8fe");
+}
+
+function scheduleSearch() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => { state.offset = 0; loadEvents(); }, 250);
+}
+
+$("search").addEventListener("input", (event) => { state.q = event.target.value; scheduleSearch(); });
+$("severity").addEventListener("change", (event) => { state.severity = event.target.value; state.offset = 0; loadEvents(); });
+$("source").addEventListener("change", (event) => { state.source = event.target.value; state.offset = 0; loadEvents(); });
+$("more").addEventListener("click", () => { state.offset += state.limit; loadEvents(); });
+$("refresh").addEventListener("click", () => { loadSummary(); state.offset = 0; loadEvents(); });
+
+loadSummary();
+loadEvents();
+</script>
+</body>
+</html>

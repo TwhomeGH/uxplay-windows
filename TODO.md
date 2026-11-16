@@ -40,6 +40,7 @@
 - [x] HUD 欄位勾選（client／status／video／output／decoder／renderer／fps／audio）。
 - [x] 影片 Decoder／Renderer 資訊回報。
 - [ ] Diagnostics Window：Overview／Video／Audio／Network／Events、Copy／Save。
+- [x] 本機診斷檢視器（bundle／log、篩選、搜尋、metrics 圖）。
 - [ ] 用 frame age 做 pipeline stall 自動重建。
 - [ ] 延遲與 A-V offset：video arrival delay、audio latency。
 - [ ] `-s` 測試矩陣：720p／1080p／1440p／Native／4K 的實際尺寸、codec、CPU／GPU。

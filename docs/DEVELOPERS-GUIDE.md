@@ -159,6 +159,28 @@ CSV 可畫 RSS 趨勢；report 有首尾 RSS、CPU 平均／峰值、初始連�
 等技術欄位會保留。**不會自動上傳**；分享前請自行檢查。回報請使用
 `.github/ISSUE_TEMPLATE/bug_report.yml` 並附上 zip。
 
+### 診斷檢視器
+
+本機唯讀檢視器，靈感來自 ReplyKit 的 `diagnostic_viewer.py`，但改成
+讀我們的 bundle／日誌格式：
+
+```powershell
+# 自動開最新的 bundle（沒有 bundle 時可指定 log）
+python scripts/diagnostic_viewer.py
+
+# 指定 bundle 或目前 log
+python scripts/diagnostic_viewer.py "$env:LOCALAPPDATA\leapbtw\uxplay-windows\diagnostics\uxplay-diagnostics-....zip"
+python scripts/diagnostic_viewer.py "$env:LOCALAPPDATA\leapbtw\uxplay-windows\logs\uxplay-windows.log"
+```
+
+檢視器只綁 `127.0.0.1`，不依賴外部套件、不上傳。內容：
+
+- Overview cards：events／errors／warnings／low_fps／connects／disconnects。
+- 分類篩選、嚴重度、來源（event／log／timeline）、全文搜尋。
+- 事件列可展開 `key=value` 欄位。
+- 系統指標：CPU、working set 的時序圖。
+- `summary.txt` 是 bundle 的快速入口；`timeline.txt` 是完整時間軸。
+
 ### 視訊編碼偏好（HEVC / H.264）
 
 主視窗 `Video Codec` 預設 `HEVC / H.265 (needs >1080p)`，可切回
