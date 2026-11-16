@@ -23,6 +23,86 @@
                 "kind": "build",
                 "isDefault": true
             }
+        },
+        {
+            "label": "i18n: update catalog",
+            "type": "process",
+            "command": "${config:msys2.prefix}\\bin\\lupdate.exe",
+            "args": [
+                "src",
+                "-ts",
+                "translations/uxplay-windows_zh_TW.ts",
+                "-no-obsolete"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "detail": "Scan tr() strings and refresh the .ts catalog."
+        },
+        {
+            "label": "i18n: check",
+            "type": "process",
+            "command": "python",
+            "args": [
+                "scripts/check_i18n.py",
+                "--require-lupdate",
+                "--color=always"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "LUPDATE": "${config:msys2.prefix}\\bin\\lupdate.exe"
+                }
+            },
+            "problemMatcher": [],
+            "group": {
+                "kind": "test"
+            },
+            "detail": "Fail on missing translations, placeholder mismatches, or bare UI strings."
+        },
+        {
+            "label": "i18n: check catalog only",
+            "type": "process",
+            "command": "python",
+            "args": [
+                "scripts/check_i18n.py",
+                "--color=always"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "detail": "Validate the catalog when lupdate is unavailable."
+        },
+        {
+            "label": "docs: api",
+            "type": "shell",
+            "command": "pwsh",
+            "args": [
+                "-NoProfile",
+                "-File",
+                "${workspaceFolder}/scripts/build_docs.ps1",
+                "-Open"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "detail": "Build _site/api with Doxygen and open the index."
+        },
+        {
+            "label": "diagnostics: viewer",
+            "type": "process",
+            "command": "python",
+            "args": [
+                "scripts/diagnostic_viewer.py"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "detail": "Open the local read-only diagnostics viewer."
         }
     ]
 }

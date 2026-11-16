@@ -45,6 +45,8 @@
 - [x] 本地化：en source、zh_TW `.ts`（228 keys）、tray 語言切換、fallback 英文。
 - [x] `check_i18n.py`：缺 key／空白翻譯／placeholder／未包 `tr()` 的 UI 字串掃描。
 - [x] 翻譯檢查接入 x64／arm64 CI；`--require-lupdate`、顏色輸出、lupdate 缺失降級警告。
+- [x] 開發導覽 `docs/API-GUIDE.md`、Doxygen `Doxyfile`、`scripts/build_docs.ps1`。
+- [x] VS Code tasks：i18n 更新／檢查、API docs、診斷檢視器。
 - [ ] 用 frame age 做 pipeline stall 自動重建。
 - [ ] 延遲與 A-V offset：video arrival delay、audio latency。
 - [ ] `-s` 測試矩陣：720p／1080p／1440p／Native／4K 的實際尺寸、codec、CPU／GPU。

@@ -1,5 +1,24 @@
 # ChangeHistory
 
+## 2026.11.17 00:23 新增開發導覽、Doxygen API 與 VS Code 工作
+
+**類型**: 文件 · **檔案**: `Doxyfile、docs/API-GUIDE.md、scripts/build_docs.ps1、.vscode/tasks.json、docs/DEVELOPERS-GUIDE.md、.gitignore、TODO.md`
+
+### 問題 - 開發入口分散，缺少程式碼模組導覽與 API 參考；i18n／docs 指令只能手動記
+
+### 根因 - 沒有 Doxygen 設定與 VS Code task；文件只有零散章節
+
+### 修改 - 新增 Doxygen 設定與 API-GUIDE 模組地圖、生命週期、註解策略
+
+Doxygen 產生 _site/api/index.html，warnings 0；tasks JSON／markdownlint 通過。
+
+- 新增 build_docs.ps1（本機 Doxygen 或 Docker fallback）
+- VS Code tasks：i18n 更新／檢查、docs api、diagnostics viewer
+
+**相關文件**: docs/API-GUIDE.md
+
+---
+
 ## 2026.11.17 00:08 加入 i18n 規範與 CI 翻譯檢查
 
 **類型**: 維護 · **檔案**: `translations/README.md、scripts/check_i18n.py、translations/i18n.json、.github/workflows、ucrt_x64_dependencies.txt、clangarm64_dependencies.txt、docs/DEVELOPERS-GUIDE.md、TODO.md`

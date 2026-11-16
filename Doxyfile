@@ -1,0 +1,62 @@
+# Doxygen configuration for the uxplay-windows API reference.
+# Generated output goes to _site/api; it is intentionally not committed.
+#
+# Local preview:
+#   pwsh -NoProfile -File scripts/build_docs.ps1 -Open
+#
+# If doxygen is unavailable locally, the script falls back to a disposable
+# Ubuntu container (Docker Desktop required).
+
+PROJECT_NAME           = "uxplay-windows"
+PROJECT_NUMBER         = "0.1"
+PROJECT_BRIEF          = "Windows AirPlay receiver GUI and UxPlay engine integration"
+OUTPUT_DIRECTORY       = _site/api
+OUTPUT_LANGUAGE        = English
+CREATE_SUBDIRS         = NO
+ALLOW_UNICODE_NAMES    = YES
+FULL_PATH_NAMES        = NO
+
+INPUT                  = src \
+                         libuxplay/uxplay_api.h \
+                         libuxplay/renderers \
+                         docs/API-GUIDE.md
+FILE_PATTERNS          = *.h *.hpp *.c *.cpp
+RECURSIVE              = YES
+EXCLUDE_PATTERNS       = */build/* */_site/* */3rdparty/* */libuxplay/lib/*
+
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = NO
+HIDE_UNDOC_MEMBERS     = NO
+WARN_IF_UNDOCUMENTED   = NO
+WARN_IF_DOC_ERROR      = YES
+WARN_AS_ERROR          = NO
+
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = NO
+SEARCH_INCLUDES        = YES
+USE_MDFILE_AS_MAINPAGE = docs/API-GUIDE.md
+INCLUDE_PATH           = src libuxplay
+PREDEFINED             = _WIN32 Q_OS_WIN
+
+GENERATE_HTML          = YES
+HTML_OUTPUT            = .
+HTML_DYNAMIC_SECTIONS  = YES
+GENERATE_TREEVIEW      = YES
+DISABLE_INDEX          = NO
+SEARCHENGINE           = YES
+SOURCE_BROWSER         = NO
+INLINE_SOURCES         = NO
+REFERENCED_BY_RELATION = NO
+REFERENCES_RELATION    = NO
+
+GENERATE_LATEX         = NO
+GENERATE_XML           = NO
+GENERATE_MAN           = NO
+GENERATE_RTF           = NO
+HAVE_DOT               = NO
+CALL_GRAPH             = NO
+CALLER_GRAPH           = NO
+
+QUIET                  = YES
+WARN_LOGFILE           = doxygen-warnings.log

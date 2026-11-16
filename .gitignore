@@ -4,6 +4,7 @@ release/
 Bonjour SDK/
 dnssd.dll
 _site/
+doxygen-warnings.log
 /LICENSE.rtf
 /*.msi
 /*.wixpdb

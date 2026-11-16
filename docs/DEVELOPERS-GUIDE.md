@@ -3,6 +3,34 @@
 > 這份是本地開發的單一入口。Release 安裝包流程見
 > [BUILDING.md](./BUILDING.md)；變更歷史用 `changelogkit` 維護。
 
+## 文件導覽
+
+| 想知道什麼 | 去哪裡 |
+| --- | --- |
+| 先跑起來、建置、除錯 | 本文件〈最快路徑〉與〈執行與除錯〉 |
+| 程式碼模組與閱讀順序 | [API-GUIDE.md](./API-GUIDE.md) |
+| 類別／函式／參數 | `_site/api/index.html`（由 Doxygen 產生） |
+| 翻譯規範與 fallback | [translations/README.md](../translations/README.md) |
+| 最近改了什麼 | [ChangeHistory.md](./ChangeHistory.md) |
+| 待辦與優先順序 | [TODO.md](../TODO.md) |
+| Release 產物 | [BUILDING.md](./BUILDING.md) |
+
+## VS Code 工作
+
+`.vscode/tasks.json` 提供：
+
+| 任務 | 用途 |
+| --- | --- |
+| `build-dev` | `scripts/dev_build.sh` |
+| `i18n: update catalog` | `lupdate` 更新 `.ts` |
+| `i18n: check` | 嚴格檢查翻譯（需要 lupdate） |
+| `i18n: check catalog only` | 沒有 lupdate 時只驗 catalog |
+| `docs: api` | 建置 Doxygen API 並開啟 |
+| `diagnostics: viewer` | 開啟本機診斷檢視器 |
+
+按 `Ctrl+Shift+B` 可直接跑 `build-dev`；其他任務從
+`Terminal → Run Task...` 選取。F5 使用 `.vscode/launch.json` 的 gdb 設定。
+
 ## 最快路徑
 
 ```bash
@@ -36,6 +64,12 @@ App 是托盤程式：關閉視窗只會隱藏，要退出請用托盤選單的 
   忽略）。內容需有 `Include/dns_sd.h` 與 `Lib/x64/dnssd.lib`。
 - **Bonjour Service** 必須存在並執行。App 現在會檢查狀態並嘗試啟動；
   失敗時會提示用 `services.msc` 手動啟動。
+- （選配）Doxygen 產生 API 參考：
+
+  ```bash
+  pacman -S --needed --noconfirm mingw-w64-ucrt-x86_64-doxygen
+  ```
+
 - （選配）BLE beacon 需要 Python 套件；本地 debug 沒 build
   `uxplay-bluetooth-beacon.exe` 也能跑，App 只會在 log 記一筆
   `uxplay-bluetooth-beacon.exe not found`，mDNS 發現不受影響。
@@ -46,6 +80,19 @@ App 是托盤程式：關閉視窗只會隱藏，要退出請用托盤選單的 
 `scripts/dev_run.sh` 與 `build/dev/run-dev.cmd` 會先停止**同一個 dev
 exe 路徑**的舊 instance，再啟動新 build，避免舊 process 鎖住檔案或連到
 舊版本。這只比對 dev build 路徑，不會誤殺已安裝的正式版。
+
+## API 文件
+
+Doxygen 入口在 [API-GUIDE.md](./API-GUIDE.md)，設定在 `Doxyfile`。
+
+```powershell
+pwsh -NoProfile -File scripts/build_docs.ps1 -Open
+```
+
+輸出 `_site/api/index.html`，`_site/` 不進版控。VS Code 任務
+`docs: api` 等同這個指令；沒有本機 Doxygen 時腳本會嘗試 Docker。
+
+Doxygen 只讀 `///` 與 `/** */`；新增公開 API 時請補上用途、參數與回傳值。
 
 ## 建置
 
@@ -348,10 +395,19 @@ grep -E "register_dnssd|Initialized server socket|using system MAC" \
 - 新增 UI 字串時用 `tr("...")`，再執行：
 
 ```powershell
+# 有 lupdate 在 PATH 時
 lupdate src -ts translations/uxplay-windows_zh_TW.ts -no-obsolete
+
+# 沒有 PATH 時指定實際路徑
+$lupdate = "$env:MSYSTEM_PREFIX\bin\lupdate.exe"
+& $lupdate src -ts translations/uxplay-windows_zh_TW.ts -no-obsolete
+
 # 填入翻譯後
-python scripts/check_i18n.py
+python scripts/check_i18n.py --lupdate $lupdate --color=always
 ```
+
+VS Code 可直接跑 `i18n: update catalog` 與 `i18n: check`；後者會使用
+`${config:msys2.prefix}\bin\lupdate.exe`。
 
 `scripts/check_i18n.py` 會檢查缺少的 source key、空白／unfinished
 翻譯、多餘 catalog key、placeholder 不一致，以及未使用 `tr()` 的明顯 UI
