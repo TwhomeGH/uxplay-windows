@@ -1,5 +1,24 @@
 # ChangeHistory
 
+## 2026.11.17 00:53 改寫 README 為維護中 fork 入口
+
+**類型**: 文件 · **檔案**: `README.md`
+
+### 問題 - README 最上方是過期的 4 May 2026 公告；releases 連結指向上游；功能與 nightly 說明不符目前 fork
+
+### 根因 - README 沿用上游內容，沒有隨 fork 的功能、release 與文件入口更新
+
+### 修改 - 移除 diff 樣式公告，改為 maintained fork 說明與 x64／arm64 nightly 連結
+
+markdownlint 通過；release tag 與資產名稱已對照 GitHub API。
+
+- 補功能、安裝、需求、用法、診斷、已知限制、開發與 issue 入口
+- 同步目前 nightly 資產名稱與 experimental USB 限制
+
+**相關文件**: README.md
+
+---
+
 ## 2026.11.17 00:50 拆分 nightly build 與 publish
 
 **類型**: CI · **檔案**: `.github/workflows/build_uxplay-windows-v2.yml、.github/workflows/build-uxplay-windows-arm64.yml、docs/DEVELOPERS-GUIDE.md、TODO.md`

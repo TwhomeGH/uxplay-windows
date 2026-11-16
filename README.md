@@ -1,62 +1,157 @@
-```diff
-+ 4 may 2026
-+ new version is finally out! check it out in the releases section!
-```
-
 # FREE AirPlay to your Windows PC
+
 Free as both in "freedom" and "free beer"!
 
+This repository is a **maintained fork** of
+[leapbtw/uxplay-windows](https://github.com/leapbtw/uxplay-windows), built on
+[UxPlay](https://github.com/FDH2/UxPlay/). It adds lifecycle controls,
+diagnostics, localization, HUD telemetry and a small set of Windows-focused
+fixes on top of the original project.
+
+## Download
+
+Nightly builds are published as prereleases with fixed tags:
+
+- **x64:** [nightly-build-x64](https://github.com/TwhomeGH/uxplay-windows/releases/tag/nightly-build-x64)
+- **arm64:** [nightly-build-arm64](https://github.com/TwhomeGH/uxplay-windows/releases/tag/nightly-build-arm64)
+
+The x64 release contains:
+
+```text
+uxplay-windows-x64.zip
+uxplaywindows-installer.msi
+```
+
+The arm64 release contains the corresponding arm64 assets.
+
+Nightly tags are replaced when a new build is published. They are not signed
+release artifacts; use them for testing and report the commit shown in the
+release body when something breaks.
+
+## Features
+
+- AirPlay mirroring and audio playback to Windows 10/11.
+- H.264 and HEVC advertisement; the final codec is chosen by the Apple client.
+- Native, 720p, 1080p, 1440p, 4K and custom resolution requests.
+- Frameless/native video window with remembered geometry, optional always-on-top.
+- Media Info HUD with selectable fields, corner position and pixel margins.
+- Tray controls: Start/Stop AirPlay, Restart, Rebuild AirPlay stream, Show Settings.
+- In-process engine restart, so changing Start/Stop does not restart the whole app.
+- Single-instance protection with a second launch raising the existing window.
+- Recent diagnostics ring buffer, folder/ZIP export and a local viewer.
+- System, English and Traditional Chinese UI.
+- Optional USB capture path for OBS, clearly marked experimental and off by default.
+
 ## Installation
-Download the latest version of uxplay-windows from [**releases**](https://github.com/leapbtw/uxplay-windows/releases/latest).
 
-After installing, control uxplay-windows from it's [tray icon](https://www.odu.edu/sites/default/files/documents/win10-system-tray.pdf)! Right-click it to start or stop AirPlay. \
-You can also set it to run automatically when your PC starts
+### MSI installer (recommended)
 
-## FAQ — Please Read!
-> [!NOTE]
-> *What is uxplay-windows?*
-> 
-> [uxplay-windows](.) is a software that allows you to video stream with AirPlay to your windows PC. \
-> It turns [UxPlay](https://github.com/FDH2/UxPlay/) into a fully featured App for Windows 10/11 users, making it easier for those who may find compiling UxPlay challenging.
-> 
-> Most other software achieving the same functionality as `uxplay-windows` is usually paid and non-free.
+Download `uxplaywindows-installer.msi` from the latest nightly release and run
+it. The installed application is controlled from its tray icon.
 
+### Portable ZIP
 
-> [!TIP]
-> *My \<apple device\> can't connect to my PC!!!*
-> 1. Check if the `uxplay-windows.exe` is running: right-click the tray icon and restart it.
-> 2. Toggle Wi-Fi and Bluetooth OFF on your iPhone/iPad/Mac, wait a couple of seconds and reconnect. It might take a few attempts.
-> 3. As last resort, close uxplay-windows, open Task Manager and restart `Bonjour Service` from the Services tab. Then reopen uxplay-windows and try again
+Download the ZIP, extract it, and run `uxplay-windows.exe`. Keep the extracted
+folder intact: Qt and GStreamer DLLs are next to the executable.
+
+### After installing
+
+- Right-click the tray icon to start, stop or restart AirPlay.
+- `Show Settings` opens the configuration window.
+- The app may be set to start when you log in.
+- If Windows Firewall prompts, allow the application. The MSI installs one
+  managed firewall rule for the installed executable; development builds in
+  different paths may create separate rules.
 
 > [!IMPORTANT]
-> *Why is Windows Defender complaining during installation?*
-> 
-> ![alt text](https://raw.githubusercontent.com/leapbtw/uxplay-windows/refs/heads/main/stuff/defender.png "defender")
+> **Why does Windows Defender complain?**
 >
-> Just click on `More info` and it will let you install. It complains because the executable is not signed. If you don't trust this software you can always build it yourself! See below.
->
-> If prompted by Windows Firewall, please **allow** uxplay-windows to
-> ensure it functions properly. The MSI installer creates one managed
-> rule for the installed executable; development builds in different
-> paths create separate Windows rules.
+> The executable is not code-signed. Click `More info` and continue only if you
+> trust the build, or build it yourself. Windows SmartScreen may show the same
+> warning.
 
+## Requirements
 
-> [!NOTE]
->  *How do I build this software myself?*
-> 
-> Please see [BUILDING.md](./docs/BUILDING.md)
-<br>
+- Windows 10 or 11 (x64 or arm64).
+- Bonjour Service for AirPlay discovery (mDNS). The app checks it and offers
+  installation/start guidance when it is missing.
+- The Apple device and the PC must be able to reach each other on the same
+  network. Guest Wi-Fi, client isolation and VPNs can prevent discovery.
 
-## TODO
-- make an update checker
+## Usage
 
-## Known Issues
-~~uxplay bugs out when waking PC from Sleep~~
-~~you can fix this by killing uxplay-windows.exe and restarting Bonjour Service, and restarting uxplay.exe. Also restarting your PC might fix this.~~  \
-Apparently moving from Bonjour PS to mDNSResponder fixed it? :)
+1. Start `uxplay-windows`; the tray icon shows the current state.
+2. On the Apple device, open Control Center or the AirPlay menu and select the
+   receiver name shown in the app.
+3. Use the tray menu or main window to adjust resolution, codec, renderer,
+   HUD and diagnostics.
+4. If the video window freezes, try `Rebuild AirPlay stream` before restarting
+   the whole app.
 
-## Reporting Issues
-Please report issues related to the build system created with GitHub Actions in this repository. For issues related to other parts of this software, report them in their respective repositories.
+Some renderer, codec and capture settings are applied at the next engine
+start. Settings that change the listening identity can require an app restart;
+the UI reports when that is the case.
+
+## Diagnostics
+
+`Save Diagnostics` exports a bounded incident window as a local folder (ZIP is
+optional). Bundles contain events, metrics, filtered logs, redacted settings
+and system information; nothing is uploaded automatically.
+
+For development, inspect a bundle or the current log with:
+
+```powershell
+python scripts/diagnostic_viewer.py
+```
+
+The viewer binds to `127.0.0.1` and is read-only.
+
+## Known limitations
+
+- HEVC is only advertised usefully when the requested height is above 1080p;
+  at 1080p the Apple client commonly chooses H.264. This is client behavior,
+  not a local decoder setting.
+- The AirPlay video window is created by the GStreamer renderer; it is not a
+  regular Qt window. Window geometry and HUD are managed by the app around it.
+- USB capture is opt-in and experimental. It requires Python,
+  `pymobiledevice3`, Developer Mode and a mounted Developer Disk Image. Video
+  works, but Windows currently lacks the AAC-ELD audio decode path.
+- USB data uses the iPad's only USB-C port. On USB-A-only PCs the available
+  power is usually far below the iPad's draw; use a PD dock or AirPlay instead.
+- Nightly builds are prereleases and may be replaced without a new version
+  number.
+
+## Development
+
+| Document | Contents |
+| --- | --- |
+| [Developer guide](docs/DEVELOPERS-GUIDE.md) | Build, run, debug, diagnostics, i18n and CI |
+| [API guide](docs/API-GUIDE.md) | Source map and Doxygen entry point |
+| [Translation rules](translations/README.md) | Keys, placeholders, fallback and checks |
+| [Change history](docs/ChangeHistory.md) | Fixes and design decisions |
+| [TODO](TODO.md) | Remaining work and priorities |
+
+Quick build on Windows with MSYS2 UCRT64:
+
+```bash
+bash scripts/dev_build.sh
+bash scripts/dev_run.sh --engine-debug
+```
+
+API reference:
+
+```powershell
+pwsh -NoProfile -File scripts/build_docs.ps1 -Open
+```
+
+## Reporting issues
+
+Use the repository issue form and attach a diagnostics bundle from
+`Save Diagnostics`. Include the app version, Windows version, Apple device
+model, whether audio and video were both affected, and whether the problem
+survives `Rebuild AirPlay stream`.
 
 ## License
-Please take a look at the [LICENSE](./docs/LICENSE.rtf).
+
+See [docs/LICENSE.rtf](docs/LICENSE.rtf). This fork retains the upstream
+project's licensing and attribution.
