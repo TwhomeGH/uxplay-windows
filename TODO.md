@@ -32,10 +32,13 @@
 - [ ] 音訊裝置變更／取樣率切換的 fallback。
 - [ ] 健康狀態（RSS／CPU／last error）寫入 log 或 tray tooltip。
 - [x] 診斷包：ring buffer、Save diagnostics、redaction、issue template。
+- [x] 診斷包 `summary.txt`／`timeline.txt`；日誌 8MB×5。
 - [x] `Native (device)` 解析度預設（2360x1640 實測 H.265）。
 - [x] 新增 720p 解析度，補效能／codec 測試缺口。
 - [x] Media Info HUD：點擊穿透疊層、主視窗／tray 開關、左上／右上。
 - [x] FPS／frame interval／last frame age telemetry（HUD）。
+- [x] HUD 欄位勾選（client／status／video／output／decoder／renderer／fps／audio）。
+- [x] 影片 Decoder／Renderer 資訊回報。
 - [ ] Diagnostics Window：Overview／Video／Audio／Network／Events、Copy／Save。
 - [ ] 用 frame age 做 pipeline stall 自動重建。
 - [ ] 延遲與 A-V offset：video arrival delay、audio latency。
@@ -54,7 +57,8 @@
 - [ ] PIN／密碼／allow-block 存取控制 UI；`display_pin` 改以 callback 在 GUI 顯示 PIN。
 - [ ] 音訊輸出裝置選擇（`-as`／WASAPI）。
 - [ ] 曝露錄影（`-mp4`）、HLS（`-hls`）、`-fps`、翻轉／旋轉、overscan、`-reset`、`-nc`／`-nohold`。
-- [ ] 影片視窗置頂／記憶位置／縮到 tray；視窗標題在地化。
+- [x] 影片視窗置頂開關／記憶位置。
+- [ ] 影片視窗縮到 tray；視窗標題在地化。
 
 ## Phase 4 — UI／在地化／維護
 
