@@ -263,23 +263,17 @@ jobs:
           name: uxplay-windows-arm64-msi
           path: msi/
 
-      - name: Remove previous nightly release
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release delete nightly-build-arm64 --yes --cleanup-tag || true
-
-      - name: Update nightly tag
+      - name: Choose release tag
+        id: release
         shell: bash
         run: |
-          git tag -f nightly-build-arm64 "${{ needs.build.outputs.sha }}"
-          git push -f origin nightly-build-arm64
+          stamp="$(date -u +%Y%m%d-%H%M%S)"
+          echo "tag=nightly-arm64-${stamp}-r${{ github.run_number }}" >> "$GITHUB_OUTPUT"
 
       - name: Create Pre-release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: nightly-build-arm64
+          tag_name: ${{ steps.release.outputs.tag }}
           target_commitish: ${{ needs.build.outputs.sha }}
           name: "Nightly Build ${{ needs.build.outputs.short_sha }} - ${{ needs.build.outputs.time }}"
           prerelease: true
@@ -298,4 +292,16 @@ jobs:
             msi/*.msi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prune old arm64 nightly releases
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tags=$(gh release list --limit 100 --json tagName,createdAt \
+            --jq '[.[] | select(.tagName | startswith("nightly-arm64-"))] | sort_by(.createdAt) | reverse | .[10:] | .[].tagName')
+          for tag in $tags; do
+            echo "Deleting old nightly release: $tag"
+            gh release delete "$tag" --yes --cleanup-tag
+          done
 

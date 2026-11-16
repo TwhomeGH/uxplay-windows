@@ -10,10 +10,14 @@ fixes on top of the original project.
 
 ## Download
 
-Nightly builds are published as prereleases with fixed tags:
+Nightly builds are published as prereleases with unique tags:
 
-- **x64:** [nightly-build-x64](https://github.com/TwhomeGH/uxplay-windows/releases/tag/nightly-build-x64)
-- **arm64:** [nightly-build-arm64](https://github.com/TwhomeGH/uxplay-windows/releases/tag/nightly-build-arm64)
+- **x64:** [nightly-x64 releases](https://github.com/TwhomeGH/uxplay-windows/releases?q=nightly-x64)
+- **arm64:** [nightly-arm64 releases](https://github.com/TwhomeGH/uxplay-windows/releases?q=nightly-arm64)
+
+The publisher keeps the ten most recent releases per architecture and removes
+older ones. The historical `nightly-build-x64` / `nightly-build-arm64` tags
+are no longer updated.
 
 The x64 release contains:
 
@@ -24,9 +28,9 @@ uxplaywindows-installer.msi
 
 The arm64 release contains the corresponding arm64 assets.
 
-Nightly tags are replaced when a new build is published. They are not signed
-release artifacts; use them for testing and report the commit shown in the
-release body when something breaks.
+Each build gets a new tag. Nightlies are not signed release artifacts; use
+them for testing and report the commit shown in the release body when something
+breaks.
 
 ## Features
 
@@ -118,8 +122,8 @@ The viewer binds to `127.0.0.1` and is read-only.
   works, but Windows currently lacks the AAC-ELD audio decode path.
 - USB data uses the iPad's only USB-C port. On USB-A-only PCs the available
   power is usually far below the iPad's draw; use a PD dock or AirPlay instead.
-- Nightly builds are prereleases and may be replaced without a new version
-  number.
+- Nightly builds are prereleases; only the ten most recent releases per
+  architecture are kept, so older download links expire.
 
 ## Development
 

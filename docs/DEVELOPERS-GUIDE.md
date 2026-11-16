@@ -547,8 +547,9 @@ Windows 防火牆以**執行檔完整路徑**辨識程式；每個 build 目錄
 
 ### Nightly release
 
-- 固定 tag：`nightly-build-x64`、`nightly-build-arm64`；每晚刪除重建，
-  tag 指向當前 `main` commit。
+- 每次 build 使用唯一 tag：`nightly-x64-<UTC timestamp>-r<run>`、
+  `nightly-arm64-...`；不再覆蓋 `nightly-build-x64`／`-arm64`。
+- 每個架構保留最近 **10 個** release；建立新 release 成功後才刪除較舊的。
 - 名稱：`Nightly Build <short-sha> - <台北時間 AM/PM> (UTC+8, Asia/Taipei)`。
 - 內文：commit 連結、workflow run、架構、最近 10 筆 commit。
 - arm64 的 `pacman` 依賴安裝固定走 `mirror.msys2.org`，失敗重試 3 次；
@@ -701,6 +702,7 @@ user mode 不可行，需 libusb0 upper filter 與簽章 driver，未實作。
 
 - 設定變更（顯示名稱、解析度、renderer）仍會重啟 App；
   Phase 2B／2C 會改為套用設定並重啟引擎 worker。
-- Core／Exp release channel、SemVer tag 尚未定義；nightly 仍用固定 tag。
+- Core／Exp release channel、SemVer tag 尚未定義；nightly 使用唯一 tag，
+  每個架構保留最近 10 個 release。
 - 客戶端連線事件已接到 UI；實機驗證請看 `[engine]`／
   `Client connected` 與 tray 的 `Client` 欄位。

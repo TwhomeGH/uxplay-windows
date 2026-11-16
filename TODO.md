@@ -78,7 +78,7 @@
 - [ ] 更新檢查器（README 的 TODO 項目）。
 - [ ] `make_release.sh` 補複製 `mDNSResponder.exe`／`dnssd.dll`，與 CI 打包一致。
 - [ ] Release 策略：SemVer／tag、Core／Exp 分類、nightly commit SHA 與版本顯示；
-  先維持 nightly 固定 tag 替換。
+  nightly 已改為唯一 tag 並保留最近 10 個。
 - [ ] 移除未使用的 `m_autostartAction`／`m_statusAction`。
 
 ## 已完成

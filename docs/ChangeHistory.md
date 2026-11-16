@@ -1,5 +1,26 @@
 # ChangeHistory
 
+## 2026.11.17 00:57 nightly 改為唯一 tag 並保留最近 10 個
+
+**類型**: CI · **檔案**: `.github/workflows/build_uxplay-windows-v2.yml、.github/workflows/build-uxplay-windows-arm64.yml、README.md、docs/DEVELOPERS-GUIDE.md、TODO.md`
+
+### 問題 - nightly 直接刪除並覆蓋固定 tag；取消或失敗可能留下空 release，且無法保留歷史建置
+
+### 根因 - publish 先刪除 nightly-build-* 再重建，tag 是單一可變指標
+
+### 修改 - 唯一 nightly tag
+
+publish 使用 `nightly-x64-<timestamp>-r<run>`／`nightly-arm64-...` 唯一 tag。
+
+YAML parse 與 markdownlint 通過；沒有先刪舊 release，建立失敗會保留既有版本。
+
+- 建立新 release 後，用 gh release list 篩選同架構，只保留最近 10 個，舊的才刪除
+- 不再刪除 nightly-build-x64／arm64；README 改連到 releases 搜尋
+
+**相關文件**: README.md、docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.17 00:53 改寫 README 為維護中 fork 入口
 
 **類型**: 文件 · **檔案**: `README.md`
