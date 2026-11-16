@@ -103,6 +103,26 @@ Doxygen 只讀 `///` 與 `/** */`；新增公開 API 時請補上用途、參數
 - x64／arm64 build workflow：push `main` 時執行 `check_i18n.py`，並建置 nightly。
 - 文件 PR 不會觸發 nightly；只有 push `main` 才會更新既有 nightly release。
 
+### Fork 的 Actions
+
+這個工作區的 remote 是 `TwhomeGH/uxplay-windows`，GitHub 標記為 fork。
+Fork 預設可能顯示 workflows 被停用（`disabled_fork`），需要到 Actions
+分頁按 **Enable workflow**；這是 fork 保護，不是 workflow 寫錯。
+
+本專案的 CI 沒有 `schedule` trigger，只有 `push`／`pull_request`／
+`workflow_dispatch`，因此 GitHub 的「公開 repo 60 天無活動停用 scheduled
+workflow」規則不適用。若之後 Actions 被停用，先看 workflow state：
+
+```text
+active
+ disabled_fork
+ disabled_inactivity
+ disabled_manually
+```
+
+有開發工作要跑 CI 時再重新啟用即可；若不想消耗 nightly，先推分支開 PR，
+不要直接 push `main`。
+
 ## 建置
 
 ```bash
