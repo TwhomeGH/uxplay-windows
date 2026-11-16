@@ -747,7 +747,6 @@ void MainWindow::onVideoCodecChanged(int /*index*/) {
     if (m_settings.videoCodec == codec) return;
 
     m_settings.videoCodec = codec;
-    m_h265StallCount = 0;
     markEngineSettingsChanged(QStringLiteral("video codec changed"));
     updateVideoCodecHint();
 
@@ -894,6 +893,7 @@ void MainWindow::updateResolutionControls() {
 
 void MainWindow::resetMediaInfo(const QString &status) {
     m_streaming = false;
+    m_streamingStartedMs = 0;
     m_streamWidth = 0;
     m_streamHeight = 0;
     updateOutputLabel();
@@ -941,6 +941,9 @@ void MainWindow::updateMediaInfo(const QString &key, const QString &value) {
         m_audioFormatAction->setText(tr("Audio Format: %1").arg(value));
     }
 
+    if (!m_streaming) {
+        m_streamingStartedMs = QDateTime::currentMSecsSinceEpoch();
+    }
     m_streaming = true;
     if (m_errorLabel) m_errorLabel->setVisible(false);
     m_appState = AppState::Streaming;
@@ -953,6 +956,7 @@ void MainWindow::clearClientInfo() {
     m_clientDeviceId.clear();
     m_connectionCount = 0;
     m_streaming = false;
+    m_streamingStartedMs = 0;
     if (m_clientAction) m_clientAction->setText(tr("Client: -"));
     if (m_connectionsAction) m_connectionsAction->setText(tr("Connections: 0"));
 }
@@ -2081,10 +2085,16 @@ void MainWindow::updateFrameStats() {
     m_lastStatsMs = now;
 
     // A stalled decoder/sink still accepts RTP input, so input activity plus a
-    // frozen presented frame is the signature of a pipeline stall. Do not use
-    // frame age alone: pause/lock-screen also stops frame presentation.
+    // frozen presented frame is the signature of a pipeline stall. Be
+    // deliberately conservative here: H.265 can take many seconds to produce
+    // its first frame, and a short delay is not proof that the codec is
+    // unusable. Rebuild only after 20 s without a presented frame and 20 s of
+    // streaming, sampled three times.
+    const qint64 streamingMs =
+        m_streamingStartedMs > 0 ? now - m_streamingStartedMs : 0;
     const bool pipelineStalled =
-        m_streaming && frames > 0 && m_frameAgeMs > 5000.0
+        m_streaming && frames > 0 && m_frameAgeMs > 20000.0
+        && streamingMs >= 20000
         && inputAdvanced && m_inputFrameAgeMs >= 0.0
         && m_inputFrameAgeMs < 1500.0;
     if (pipelineStalled) {
@@ -2092,7 +2102,7 @@ void MainWindow::updateFrameStats() {
     } else {
         m_stalledFrameSamples = 0;
     }
-    if (m_stalledFrameSamples >= 2
+    if (m_stalledFrameSamples >= 3
         && now - m_lastStallRebuildMs >= 15000
         && m_stallRebuildCount < 3) {
         qWarning().noquote()
@@ -2103,39 +2113,6 @@ void MainWindow::updateFrameStats() {
                    .arg(m_inputFrameAgeMs, 0, 'f', 0)
                    .arg(frames)
                    .arg(inputFrames);
-        // H.265 has repeatedly presented only the first frame even with the
-        // HUD disabled. Track stalls across reconnects so one automatic rebuild
-        // gets a chance, then fall back to H.264 instead of disconnecting the
-        // client every few seconds.
-        const bool actualH265 =
-            m_videoCodecAction
-            && m_videoCodecAction->text().contains(QStringLiteral("H.265"));
-        if (actualH265) {
-            ++m_h265StallCount;
-        }
-        if (m_h265StallCount >= 2
-            && m_settings.videoCodec == QStringLiteral("hevc")
-            && actualH265) {
-            qWarning() << "H.265 stalled twice; falling back to H.264";
-            m_h265StallCount = 0;
-            m_settings.videoCodec = QStringLiteral("h264");
-            m_settings.save();
-            if (m_videoCodecCombo) {
-                QSignalBlocker blocker(m_videoCodecCombo);
-                const int index =
-                    m_videoCodecCombo->findData(QStringLiteral("h264"));
-                if (index >= 0) {
-                    m_videoCodecCombo->setCurrentIndex(index);
-                }
-            }
-            updateVideoCodecHint();
-            if (m_tray) {
-                m_tray->showMessage(
-                    tr("uxplay-windows"),
-                    tr("H.265 stalled twice; switched to H.264 for stability."),
-                    QSystemTrayIcon::Warning, 7000);
-            }
-        }
         if (m_diagnostics) {
             m_diagnostics->event(
                 QStringLiteral("video"), QStringLiteral("pipeline_stall"),

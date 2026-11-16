@@ -338,9 +338,10 @@ python scripts/diagnostic_viewer.py "$env:LOCALAPPDATA\leapbtw\uxplay-windows\lo
 - **H.265 與 Media Info HUD 目前不相容**：H.265 + HUD 會只呈現第一
   個 frame（`frames=1`），關閉 HUD 後也不保證每次都能恢復；實測仍有
   H.265 pipeline 只出第一 frame 的情況。UI 會在 HEVC +
-  height >1080 時停用 HUD 並提示；若 H.265 連續兩次 pipeline stall，
-  app 會自動切回 H.264 並提示，避免每 6～15 秒重建連線。HEVC 使用者
-  可手動再切回，或使用 Diagnostics Window 觀察。
+  height >1080 時停用 HUD 並提示。pipeline watchdog 採保守門檻：
+  連續 20 秒沒有 presented frame、且已 streaming 20 秒、連續 3 次
+  取樣才重建；**不會因為短暫延遲自動切換 codec**。H.265 是否可用由
+  使用者自行判斷，也可用 Diagnostics Window 觀察。
 
 #### 解析度：Native 預設
 

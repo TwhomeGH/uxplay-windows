@@ -65,7 +65,7 @@
   或重送超時（Audio 頁已加封包／重送計數）。
 - [x] 引擎 debug log 降噪：過濾每包 RTP、`/feedback` 與 HTTP 細節；`--engine-trace` 保留完整輸出。
 - [x] H.265 + HUD 保護：HEVC 且 height >1080 時自動停用 HUD，避免只出第一 frame。
-- [x] H.265 pipeline 連續兩次 stall 自動 fallback H.264，避免反覆重建連線；H.264 預設。
+- [x] pipeline watchdog 改為保守門檻（20 秒、3 次取樣），不因短暫延遲自動重建或切換 codec。
 - [x] 管線層 frame heartbeat（區分 packet 有到但 pipeline 卡住）。
 - [ ] 讀取設定後套用解析度不需重啟 App（目前仍需重啟）。
 - [ ] Native 依裝置 profile 自動填入（目前使用已設定的寬高）。

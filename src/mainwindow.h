@@ -232,7 +232,7 @@ private:
     qint64 m_lastStallRebuildMs = 0;
     int m_stalledFrameSamples = 0;
     int m_stallRebuildCount = 0;
-    int m_h265StallCount = 0;
+    qint64 m_streamingStartedMs = 0;
     double m_inputFrameAgeMs = -1.0;
     qint64 m_lastFrameRecoveryMs = 0;
     double m_fps = 0.0;
