@@ -29,13 +29,16 @@ static void logCallback(int level, const char *message) {
     activeWorker->publishEngineLog(level, QString::fromUtf8(message));
 }
 
-static bool isHighFrequencyEngineLog(int level, const QString &message) {
+static bool isHighFrequencyEngineLog(int level, const QString &rawMessage) {
+    const QString message = rawMessage.trimmed();
     // DEBUG_DATA / DEBUG packet and HTTP chatter is useful when explicitly
     // tracing, but it drowns the incident timeline during normal debugging.
     if (level >= 7) {
         static const QStringList noisyPrefixes = {
             QStringLiteral("raop_rtp video:"),
             QStringLiteral("raop_rtp audio:"),
+            QStringLiteral("raop_rtp type_c"),
+            QStringLiteral("raop_rtp sync:"),
             QStringLiteral("raop_ntp"),
             QStringLiteral("httpd receiving on socket"),
             QStringLiteral("httpd: current connections:"),
@@ -47,6 +50,7 @@ static bool isHighFrequencyEngineLog(int level, const QString &message) {
             QStringLiteral("Destroying connection"),
             QStringLiteral("Open connections:"),
             QStringLiteral("GStreamer unhandled audio bus message"),
+            QStringLiteral("Received video streaming performance info packet"),
         };
         for (const QString &prefix : noisyPrefixes) {
             if (message.startsWith(prefix)) {
@@ -55,7 +59,10 @@ static bool isHighFrequencyEngineLog(int level, const QString &message) {
         }
         if (message.startsWith(QStringLiteral("RTSP/1.0"))
             || message.startsWith(QStringLiteral("POST "))
-            || message.startsWith(QStringLiteral("TEARDOWN "))) {
+            || message.startsWith(QStringLiteral("TEARDOWN "))
+            || message.startsWith(QStringLiteral("CSeq:"))
+            || message.startsWith(QStringLiteral("DACP-ID:"))
+            || message.startsWith(QStringLiteral("Active-Remote:"))) {
             return true;
         }
     }

@@ -1985,7 +1985,7 @@ void MainWindow::updateFrameStats() {
     // frozen presented frame is the signature of a pipeline stall. Do not use
     // frame age alone: pause/lock-screen also stops frame presentation.
     const bool pipelineStalled =
-        m_streaming && frames > 1 && m_frameAgeMs > 5000.0
+        m_streaming && frames > 0 && m_frameAgeMs > 5000.0
         && inputAdvanced && m_inputFrameAgeMs >= 0.0
         && m_inputFrameAgeMs < 1500.0;
     if (pipelineStalled) {
@@ -2047,11 +2047,13 @@ void MainWindow::updateFrameStats() {
     if (!m_clientName.isEmpty() && now - m_lastStatsLogMs >= 5000) {
         qInfo().noquote()
             << QStringLiteral("[stats] fps=%1 interval_ms=%2 frame_age_ms=%3 "
-                              "frames=%4")
+                              "frames=%4 input_frames=%5 input_age_ms=%6")
                    .arg(m_fps, 0, 'f', 1)
                    .arg(m_frameIntervalMs, 0, 'f', 1)
                    .arg(m_frameAgeMs, 0, 'f', 0)
-                   .arg(frames);
+                   .arg(frames)
+                   .arg(inputFrames)
+                   .arg(m_inputFrameAgeMs, 0, 'f', 0);
         m_lastStatsLogMs = now;
     }
 

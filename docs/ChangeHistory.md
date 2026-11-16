@@ -28,6 +28,10 @@ presented。
   `--engine-trace` 保留完整輸出
 - `dev_run.sh` 支援 `--engine-trace`；文件說明 log 等級與 D3D11 對照建議
 
+實測修正：第一版 stall 條件誤寫成 `frames > 1`，但實際凍結正好是
+`frames=1`，已改為 `frames > 0`；log filter 也補上 engine 訊息前導換行與
+`Received video streaming performance info packet` 前綴。
+
 **相關文件**: docs/DEVELOPERS-GUIDE.md
 
 ---
