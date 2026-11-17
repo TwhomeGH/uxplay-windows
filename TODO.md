@@ -53,7 +53,7 @@
 - [x] nightly build／publish 拆分：build 只上傳 artifact，publish 才改 tag／release。
 - [x] publish 改成先建立新 release、成功後才 prune 的流程。
 - [ ] 累積第 11 個 nightly 時驗證 prune 實際刪除與 tag cleanup。
-- [x] 用 frame age 做 pipeline stall 自動重建（以 input frame 区分暂停）。
+- [x] 用 frame age 做 pipeline stall 偵測（以 input frame 区分暂停）；目前只記錄，不自動重建。
 - [ ] 延遲與 A-V offset：video arrival delay、audio latency。
 - [ ] `-s` 測試矩陣：720p／1080p／1440p／Native／4K 的實際尺寸、codec、CPU／GPU。
 - [x] 凍結 watchdog：8 秒無 video packet 自動重建 mirror 連線。
@@ -65,7 +65,7 @@
   或重送超時（Audio 頁已加封包／重送計數）。
 - [x] 引擎 debug log 降噪：過濾每包 RTP、`/feedback` 與 HTTP 細節；`--engine-trace` 保留完整輸出。
 - [x] 移除「HEVC 自動停用 HUD」保護；H.264／H.265 都可能 frames=1，HUD 不是主因。
-- [x] pipeline watchdog 改為保守門檻（20 秒、3 次取樣），不因短暫延遲自動重建或切換 codec。
+- [x] pipeline watchdog 改為保守門檻（20 秒、3 次取樣），且不自動重建或切換 codec。
 - [x] 管線層 frame heartbeat（區分 packet 有到但 pipeline 卡住）。
 - [ ] 讀取設定後套用解析度不需重啟 App（目前仍需重啟）。
 - [ ] Native 依裝置 profile 自動填入（目前使用已設定的寬高）。

@@ -178,15 +178,16 @@ bash scripts/dev_run.sh --detach         # 背景啟動後返回
 `dev_build.sh` 會把 `$MSYSTEM_PREFIX/bin`（含
 `libgcc_s_seh-1.dll`、Qt6、GStreamer）寫進 `run-dev.cmd` 的 `PATH`。
 
-### Pipeline stall 自動重建
+### Pipeline stall 偵測（目前不自動重建）
 
 stats tick 同時讀取「送進 pipeline 的輸入幀」與「實際 presented 的幀」：
 
-- input 持續增加，但 presented frame age 超過 5 秒且連續 2 次：
-  判定為 decoder／sink stall，記錄 `[stats] pipeline_stall` 並自動重建
-  AirPlay engine worker。
-- input 停止（例如 iPad 暫停或鎖定）不算 stall，避免誤重建。
-- 同一連線最多自動重建 3 次；之後保留手動 `Rebuild AirPlay stream`。
+- input 持續增加，但 presented frame age 超過 20 秒、且 streaming 超過
+  20 秒、連續 3 次取樣：記錄 `[stats] pipeline_stall`、寫 diagnostics
+  event 並顯示 tray 提示；**不自動重建 engine**，避免把根因
+  （影片視窗／sink）掩蓋成反覆斷線。
+- input 停止（例如 iPad 暫停或鎖定）不算 stall，避免誤判。
+- 需要時由使用者按 `Rebuild AirPlay stream`。
 - H.265 + D3D12 若反覆只送 1 frame，先把 renderer 改成 D3D11 比較。
 
 ### AirPlay soak 監測
@@ -341,7 +342,7 @@ python scripts/diagnostic_viewer.py "$env:LOCALAPPDATA\leapbtw\uxplay-windows\lo
 - 目前的初步方向是 **D3D11 videosink／影片視窗的 present 與
   occlusion lifecycle**，不是 codec 或 HUD 本身。pipeline watchdog 採
   保守門檻：連續 20 秒沒有 presented frame、且已 streaming 20 秒、連續
-  3 次取樣才重建；**不會因為短暫延遲自動切換 codec**。
+  3 次取樣才判定 stall；**不會自動重建或自動切換 codec**。
 
 #### 解析度：Native 預設
 

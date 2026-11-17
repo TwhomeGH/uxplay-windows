@@ -2138,13 +2138,19 @@ void MainWindow::updateFrameStats() {
                 QJsonObject{{QStringLiteral("fps"), m_fps},
                             {QStringLiteral("frame_age_ms"), m_frameAgeMs},
                             {QStringLiteral("input_age_ms"), m_inputFrameAgeMs},
-                            {QStringLiteral("attempt"),
-                             m_stallRebuildCount + 1}});
+                            {QStringLiteral("attempt"), m_stallRebuildCount + 1},
+                            {QStringLiteral("auto_rebuild"), false}});
         }
         ++m_stallRebuildCount;
         m_stalledFrameSamples = 0;
         m_lastStallRebuildMs = now;
-        rebuildAirplayStream();
+        if (m_tray && m_stallRebuildCount == 1) {
+            m_tray->showMessage(
+                tr("uxplay-windows"),
+                tr("Video stalled; automatic rebuild is disabled. "
+                   "Press \"Rebuild AirPlay stream\" if it does not recover."),
+                QSystemTrayIcon::Warning, 7000);
+        }
         m_lastInputFrameCount = inputFrames;
         return;
     }
