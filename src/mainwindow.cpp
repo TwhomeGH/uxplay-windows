@@ -943,6 +943,8 @@ void MainWindow::updateMediaInfo(const QString &key, const QString &value) {
 
     if (!m_streaming) {
         m_streamingStartedMs = QDateTime::currentMSecsSinceEpoch();
+        syncVideoWindow();
+        raiseVideoWindow();
     }
     m_streaming = true;
     if (m_errorLabel) m_errorLabel->setVisible(false);
@@ -972,6 +974,13 @@ void MainWindow::onClientConnected(const QString &name, const QString &model,
     m_clientName = name;
     m_clientModel = model;
     m_clientDeviceId = deviceid;
+
+    // The renderer window may have been created when the engine started and
+    // already cached in m_videoWindowHandle. Raise it now, before the first
+    // video frame, so d3d11videosink does not start behind the dev console
+    // and stop presenting after its first frame.
+    syncVideoWindow();
+    raiseVideoWindow();
 
     if (m_diagnostics) {
         m_diagnostics->event(
@@ -1320,36 +1329,7 @@ void MainWindow::syncVideoWindow() {
         m_videoWindowHandle = handle;
         m_videoWindowApplied = false;
         m_lastVideoWindowRect = QRect();
-
-        HWND window = reinterpret_cast<HWND>(handle);
-        ShowWindow(window, SW_RESTORE);
-        /* Raise once above normal windows; do not stay topmost by default. */
-        SetWindowPos(window, HWND_TOPMOST, 0, 0, 0, 0,
-                     SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
-        if (m_settings.videoWindow.alwaysOnTop) {
-            SetWindowPos(window, HWND_TOPMOST, 0, 0, 0, 0,
-                         SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
-        } else {
-            SetWindowPos(window, HWND_NOTOPMOST, 0, 0, 0, 0,
-                         SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
-        }
-
-        /* SetForegroundWindow is often rejected for a background process.
-         * Attach to the foreground thread for the call, and keep the
-         * mirror window topmost so it is not hidden behind other windows. */
-        HWND foreground = GetForegroundWindow();
-        DWORD foregroundThread =
-            foreground ? GetWindowThreadProcessId(foreground, nullptr) : 0;
-        DWORD targetThread = GetWindowThreadProcessId(window, nullptr);
-        const bool attached = foregroundThread && targetThread
-                              && foregroundThread != targetThread
-                              && AttachThreadInput(foregroundThread,
-                                                   targetThread, TRUE);
-        SetForegroundWindow(window);
-        BringWindowToTop(window);
-        if (attached) {
-            AttachThreadInput(foregroundThread, targetThread, FALSE);
-        }
+        raiseVideoWindow();
     }
 
     if (!m_videoWindowApplied) {
@@ -1379,6 +1359,45 @@ void MainWindow::syncVideoWindow() {
         saveVideoWindowGeometry();
     }
     updateHud();
+}
+
+void MainWindow::raiseVideoWindow() {
+    if (!m_videoWindowHandle) {
+        return;
+    }
+    HWND window = reinterpret_cast<HWND>(m_videoWindowHandle);
+    if (!IsWindow(window)) {
+        return;
+    }
+
+    ShowWindow(window, SW_RESTORE);
+    /* Raise once above normal windows; do not stay topmost by default. */
+    SetWindowPos(window, HWND_TOPMOST, 0, 0, 0, 0,
+                 SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+    if (m_settings.videoWindow.alwaysOnTop) {
+        SetWindowPos(window, HWND_TOPMOST, 0, 0, 0, 0,
+                     SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+    } else {
+        SetWindowPos(window, HWND_NOTOPMOST, 0, 0, 0, 0,
+                     SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+    }
+
+    /* SetForegroundWindow is often rejected for a background process. Attach
+     * to the foreground thread for the call so the first session is visible
+     * before the first video frame is presented. */
+    HWND foreground = GetForegroundWindow();
+    DWORD foregroundThread =
+        foreground ? GetWindowThreadProcessId(foreground, nullptr) : 0;
+    DWORD targetThread = GetWindowThreadProcessId(window, nullptr);
+    const bool attached = foregroundThread && targetThread
+                          && foregroundThread != targetThread
+                          && AttachThreadInput(foregroundThread,
+                                               targetThread, TRUE);
+    SetForegroundWindow(window);
+    BringWindowToTop(window);
+    if (attached) {
+        AttachThreadInput(foregroundThread, targetThread, FALSE);
+    }
 }
 
 void MainWindow::applyVideoWindowGeometry(const QRect &geometry) {

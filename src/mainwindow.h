@@ -114,6 +114,7 @@ private:
     void refreshPendingChanges();
     void applyPendingEngineChanges();
     void updateDiagnosticsWindow();
+    void raiseVideoWindow();
     QString currentEngineArguments() const;
     void buildHudFieldsMenu(QMenu *menu);
     void populateLogMenu(QMenu *menu);
