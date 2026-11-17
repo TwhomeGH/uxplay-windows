@@ -69,17 +69,12 @@ git clone --depth 1 https://github.com/microsoft/Windows-Camera.git build\Window
 Restore the sample's NuGet packages, then build the media source:
 
 ```powershell
-build\nuget.exe restore `
-  build\Windows-Camera\Samples\VirtualCamera\VirtualCameraMediaSource\packages.config `
-  -PackagesDirectory build\Windows-Camera\Samples\VirtualCamera\VirtualCameraMediaSource\packages
-
-cmd /c build\build-vcam.bat
+powershell -ExecutionPolicy Bypass -File scripts\build_virtualcam.ps1 -Installer
 ```
 
-The sample's CppWinRT package has a path quirk: copy
-`packages\Microsoft.Windows.CppWinRT.*\bin\cppwinrt.exe` into the package's
-`build\native` directory before building. The installer project also needs
-`<LanguageStandard>stdcpp17</LanguageStandard>`.
+The script clones the official sample when needed, restores NuGet packages,
+applies the frame-pipe overlay, and builds both the media source and the
+sample installer.
 
 ## Register and create the virtual camera
 
