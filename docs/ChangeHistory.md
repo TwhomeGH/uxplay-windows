@@ -1,5 +1,19 @@
 # ChangeHistory
 
+## 2026.11.17 10:34 修正 HUD 與 HEVC 的錯誤歸因
+
+**類型**: 修正
+
+### 問題 - 先前把 H.265 只出第一個 frame 歸因於 HUD 與 textoverlay，並在 HEVC 時自動停用 HUD；後續 log 顯示 HUD 關閉時 H.264／H.265 仍會 frames=1
+
+### 根因 - H.264／H.265 共用影片視窗與 D3D11 sink；重建影片視窗後同一 H.265 可恢復 33–60fps，指向 present／occlusion lifecycle，而非 HUD
+
+### 修改 - 移除 HEVC 自動停用 HUD 與誤導提示；保留 HUD 可與 H.264／HEVC 使用；後續改查 video sink／window 狀態
+
+pipeline watchdog 仍維持保守門檻，不再自動切換 codec
+
+---
+
 ## 2026.11.17 07:19 調整 pipeline watchdog 為保守門檻
 
 **類型**: 修正

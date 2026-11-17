@@ -2171,26 +2171,6 @@ void MainWindow::updateFrameStats() {
 }
 
 void MainWindow::updateHud() {
-    // textoverlay currently stalls the H.265/HEVC pipeline after the first
-    // frame. Keep H.264 + HUD working, and fail closed for HEVC instead of
-    // letting the user enable a known freeze. The Diagnostics Window remains
-    // available for HEVC users.
-    if (m_settings.hudEnabled && m_settings.videoCodec == QStringLiteral("hevc")
-        && m_settings.requestedHeight() > 1080) {
-        m_settings.hudEnabled = false;
-        m_settings.save();
-        qInfo() << "HUD disabled for HEVC at requested height"
-                << m_settings.requestedHeight();
-        if (m_tray) {
-            m_tray->showMessage(
-                tr("uxplay-windows"),
-                tr("HUD is disabled while HEVC is selected because it can "
-                   "freeze the video. Use H.264 for HUD, or open the "
-                   "Diagnostics Window."),
-                QSystemTrayIcon::Warning, 7000);
-        }
-    }
-
     if (m_hudCheckbox
         && m_hudCheckbox->isChecked() != m_settings.hudEnabled) {
         QSignalBlocker blocker(m_hudCheckbox);

@@ -335,13 +335,13 @@ python scripts/diagnostic_viewer.py "$env:LOCALAPPDATA\leapbtw\uxplay-windows\lo
 - 變更目前需要重啟 app；Phase 2C 會改為只重啟 engine worker。
 - 既有設定若沒有 `video.codec`：`extra_args` 有 `-h265` 視為
   `hevc`，沒有則保留 `h264`。新安裝預設 `h264`。
-- **H.265 與 Media Info HUD 目前不相容**：H.265 + HUD 會只呈現第一
-  個 frame（`frames=1`），關閉 HUD 後也不保證每次都能恢復；實測仍有
-  H.265 pipeline 只出第一 frame 的情況。UI 會在 HEVC +
-  height >1080 時停用 HUD 並提示。pipeline watchdog 採保守門檻：
-  連續 20 秒沒有 presented frame、且已 streaming 20 秒、連續 3 次
-  取樣才重建；**不會因為短暫延遲自動切換 codec**。H.265 是否可用由
-  使用者自行判斷，也可用 Diagnostics Window 觀察。
+- **HUD 不是 HEVC 凍結的主因**：實測 H.264／H.265 在 HUD 關閉時都曾
+  只出第一個 frame，且同一個 H.265 在重建影片視窗後可恢復 33–60fps。
+  因此不再因 HEVC 自動停用 HUD；HEVC + HUD 可以正常使用。
+- 目前的初步方向是 **D3D11 videosink／影片視窗的 present 與
+  occlusion lifecycle**，不是 codec 或 HUD 本身。pipeline watchdog 採
+  保守門檻：連續 20 秒沒有 presented frame、且已 streaming 20 秒、連續
+  3 次取樣才重建；**不會因為短暫延遲自動切換 codec**。
 
 #### 解析度：Native 預設
 
@@ -459,9 +459,9 @@ grep -E "register_dnssd|Initialized server socket|using system MAC" \
   `Show all` 一次恢復全部。
 - 設定存在 `settings.json` 的 `hud.enabled`（預設關閉）、
   `hud.corner`、`hud.margin_x`、`hud.margin_y`、`hud.fields`。
-- **限制**：H.265/HEVC + `textoverlay` 會在第一個 frame 後卡住；
-  HEVC 且 height >1080 時 HUD 會自動停用並提示。HEVC 請改用
-  Diagnostics Window，或將 codec 切回 H.264。
+- HUD 可與 H.264／HEVC 一起使用；**不要因為 HEVC 就判定 HUD
+  損壞或自動停用 HUD**。目前的 `frames=1` 問題與影片視窗／D3D11 sink
+  lifecycle 較相關，需用遮擋與前景測試確認。
 - 文字會出現在 OBS 視窗擷取中，這是預期行為。
 
 ### 影片視窗置前

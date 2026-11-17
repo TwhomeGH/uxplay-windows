@@ -64,7 +64,7 @@
   `raop_buffer_handle_resends` 重送迴圈；需確認是 Wi-Fi 封包遺失、buffer 太小
   或重送超時（Audio 頁已加封包／重送計數）。
 - [x] 引擎 debug log 降噪：過濾每包 RTP、`/feedback` 與 HTTP 細節；`--engine-trace` 保留完整輸出。
-- [x] H.265 + HUD 保護：HEVC 且 height >1080 時自動停用 HUD，避免只出第一 frame。
+- [x] 移除「HEVC 自動停用 HUD」保護；H.264／H.265 都可能 frames=1，HUD 不是主因。
 - [x] pipeline watchdog 改為保守門檻（20 秒、3 次取樣），不因短暫延遲自動重建或切換 codec。
 - [x] 管線層 frame heartbeat（區分 packet 有到但 pipeline 卡住）。
 - [ ] 讀取設定後套用解析度不需重啟 App（目前仍需重啟）。
