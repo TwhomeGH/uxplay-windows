@@ -1,5 +1,24 @@
 # ChangeHistory
 
+## 2026.11.22 01:58 補齊 VSCode 未建置草稿的 Qt 標頭解析路徑
+
+**類型**: 修正
+
+### 問題 - hudoverlay.cpp 沒有編譯資料庫項目，IntelliSense 備援路徑找不到 QObject、QRegularExpression 與 QTimer
+
+### 根因 - 備援 includePath 只有 UCRT64 include 根目錄，缺少 Qt6 模組與 mkspecs
+
+### 修改 - 沿用 msys2.prefix 補入 Qt6、Core、Gui、Widgets、Network 與 win32-g++ 路徑，對齊 Unicode 巨集
+
+依同一份備援設定執行 hudoverlay.cpp 的 g++ 語法檢查通過；未加入主程式建置，亦未修改生成的 compile_commands.json。尚未直接觀測 VSCode 重讀後的診斷畫面。
+
+**相關文件**:
+
+- .vscode/c_cpp_properties.json
+- docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.22 01:55 建立修改時補齊註釋的維護規則
 
 **類型**: 文件

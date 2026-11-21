@@ -5,14 +5,22 @@
             "compileCommands": "${workspaceFolder}/build/dev/compile_commands.json",
             "includePath": [
                 "${workspaceFolder}/**",
-                "${config:msys2.prefix}/include"
+                "${config:msys2.prefix}/include",
+                "${config:msys2.prefix}/include/qt6",
+                "${config:msys2.prefix}/include/qt6/QtCore",
+                "${config:msys2.prefix}/include/qt6/QtGui",
+                "${config:msys2.prefix}/include/qt6/QtWidgets",
+                "${config:msys2.prefix}/include/qt6/QtNetwork",
+                "${config:msys2.prefix}/share/qt6/mkspecs/win32-g++"
             ],
             "compilerPath": "${config:msys2.prefix}/bin/g++.exe",
             "cStandard": "c17",
             "cppStandard": "c++17",
             "defines": [
                 "_WIN32",
-                "WIN32"
+                "WIN32",
+                "UNICODE",
+                "_UNICODE"
             ],
             "intelliSenseMode": "windows-gcc-x64"
         }

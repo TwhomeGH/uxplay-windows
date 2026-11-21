@@ -31,6 +31,12 @@
 按 `Ctrl+Shift+B` 可直接跑 `build-dev`；其他任務從
 `Terminal → Run Task...` 選取。F5 使用 `.vscode/launch.json` 的 gdb 設定。
 
+IntelliSense 優先使用 `build/dev/compile_commands.json`。未加入 CMake 的草稿
+沒有編譯項目，會使用 `.vscode/c_cpp_properties.json` 的備援 includePath；
+其中需包含 Qt6 根目錄、各模組及 `win32-g++` mkspecs，不能只填 UCRT64 的
+`include`。路徑統一沿用 `msys2.prefix`，不手改生成的編譯資料庫，也不為了解析
+草稿而把它加入主程式建置。
+
 ## 最快路徑
 
 ```bash
