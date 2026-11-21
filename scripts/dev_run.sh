@@ -58,7 +58,7 @@ fi
 # this to the exact executable path so an installed uxplay-windows is not
 # killed when running a build-tree binary.
 EXE_WIN="$(cygpath -w "$EXE" 2>/dev/null || printf '%s' "$EXE")"
-powershell.exe -NoProfile -Command "Get-Process -Name uxplay-windows -ErrorAction SilentlyContinue | Where-Object { \$_.Path -eq '$EXE_WIN' } | Stop-Process -Force; Start-Sleep -Milliseconds 300" >/dev/null 2>&1 || true
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$SCRIPT_DIR/quit_dev.ps1" -Exe "$EXE_WIN" >/dev/null 2>&1 || true
 
 PREFIX="${MSYSTEM_PREFIX:-/ucrt64}"
 export PATH="$PREFIX/bin:$PATH"

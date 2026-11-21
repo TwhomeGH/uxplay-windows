@@ -271,6 +271,25 @@ CSV 可畫 RSS 趨勢；report 有首尾 RSS、CPU 平均／峰值、初始連�
 真的播放成功；要判斷是否真的掉音，需同時看 `empty resend` 是否持續
 增加與 client／網路狀況。
 
+### Runtime Debug（開發者原始狀態）
+
+`uxplay-windows.exe --runtime-debug`、tray 的
+**Logs & Diagnostics → Runtime Debug** 會開啟開發者用的唯讀視窗；
+關閉它不會影響 streaming。內容不經過一般 log level 過濾，包含：
+
+- 目前已套用的 engine arguments
+- settings 中的 renderer／codec／virtual camera／adapter
+- 實際 stream 尺寸與 requested 尺寸
+- HUD 實際 decoder／renderer
+- presented／input／decoded／overlay counters
+- FPS、frame interval、frame age
+- DXGI adapter 清單與 capability（h264／h265、software）
+- 最近 200 筆 structured diagnostics events
+
+可用 **Copy all** 或 **Save...** 匯出；這個視窗是排查 pipeline、
+D3D11 adapter、decoder 與 virtual camera 狀態用，不是一般使用者的
+diagnostics bundle。
+
 內容包括 `summary.txt`（先看這個）、`timeline.txt`、`manifest.json`、
 `events.jsonl`、`metrics.jsonl`、logs、`settings.redacted.json`、
 `system.txt` 與 `README.txt`。`summary.txt` 會列出 build、client、
@@ -336,13 +355,12 @@ python scripts/diagnostic_viewer.py "$env:LOCALAPPDATA\leapbtw\uxplay-windows\lo
 - 變更目前需要重啟 app；Phase 2C 會改為只重啟 engine worker。
 - 既有設定若沒有 `video.codec`：`extra_args` 有 `-h265` 視為
   `hevc`，沒有則保留 `h264`。新安裝預設 `h264`。
-- **HUD 不是 HEVC 凍結的主因**：實測 H.264／H.265 在 HUD 關閉時都曾
-  只出第一個 frame，且同一個 H.265 在重建影片視窗後可恢復 33–60fps。
-  因此不再因 HEVC 自動停用 HUD；HEVC + HUD 可以正常使用。
-- 目前的初步方向是 **D3D11 videosink／影片視窗的 present 與
-  occlusion lifecycle**，不是 codec 或 HUD 本身。pipeline watchdog 採
-  保守門檻：連續 20 秒沒有 presented frame、且已 streaming 20 秒、連續
-  3 次取樣才判定 stall；**不會自動重建或自動切換 codec**。
+- **`textoverlay` 是 `frames=1` 的根因**：H.264／H.265、HUD 開或關都會
+  卡在 textoverlay；probe 顯示 `overlay_in` 持續增加但 `overlay_out=1`。
+  已從 AirPlay mirror pipeline 移除，HUD 暫時停用；詳見 Media Info HUD。
+- pipeline watchdog 採保守門檻：連續 20 秒沒有 presented frame、且已
+  streaming 20 秒、連續 3 次取樣才判定 stall；**只記錄，不自動重建或
+  自動切換 codec**。
 
 #### 解析度：Native 預設
 
@@ -440,30 +458,31 @@ grep -E "register_dnssd|Initialized server socket|using system MAC" \
   "$LOCALAPPDATA/leapbtw/uxplay-windows/logs/uxplay-windows.log"
 ```
 
-### Media Info HUD
+### Media Info HUD（暫時停用）
 
-主視窗 `Media Info HUD` 勾選後，資訊會直接畫進 AirPlay 影片畫面：
+HUD 目前暫時停用，主視窗 checkbox、tray 開關與位置選單都是 disabled。
+原因不是 H.264／HEVC，也不是 HUD 文字內容，而是 **GStreamer
+`textoverlay` 在 AirPlay mirror pipeline 中只輸出第一張 frame**：
 
-- 內容：Client、Status、Video Codec／Stream Size、Decoder、
-  Renderer、Audio Codec、Audio Format，以及 presented FPS／
-  frame interval／last frame age。
-- FPS 來自 video sink pad probe 的實際 presented frame，不是 RTP
-  packet 數；age 是距離最後一個 presented frame 的時間。
-- 實作：GStreamer `textoverlay name=hud_overlay`，文字是 video
-  frame 的一部分，因此只有一個視窗，不會有獨立 HUD 閃爍／飄移。
-- 開關：主視窗 checkbox、tray `Media Info HUD`；關閉時送空字串。
-- 位置：tray `HUD position` 可選 `Top left`／`Top right`／
-  `Bottom left`／`Bottom right`；另可用主視窗 `HUD margin` 的 X／Y
-  像素微調，預設 `8`／`72`。
-- 欄位：tray `HUD fields` 或主視窗 `Fields...` 可勾選只顯示
-  Client／Status／Video／Output／Decoder／Renderer／FPS／Audio；
-  `Show all` 一次恢復全部。
-- 設定存在 `settings.json` 的 `hud.enabled`（預設關閉）、
-  `hud.corner`、`hud.margin_x`、`hud.margin_y`、`hud.fields`。
-- HUD 可與 H.264／HEVC 一起使用；**不要因為 HEVC 就判定 HUD
-  損壞或自動停用 HUD**。目前的 `frames=1` 問題與影片視窗／D3D11 sink
-  lifecycle 較相關，需用遮擋與前景測試確認。
-- 文字會出現在 OBS 視窗擷取中，這是預期行為。
+```text
+decoded_frames=704
+overlay_in=704
+overlay_out=1
+frames=1
+```
+
+移除 `textoverlay` 後同一條 pipeline 可維持 30–60fps，且 `frames`
+持續增加。相同 GStreamer 1.28.3 的 `videotestsrc + textoverlay` 最小
+測試可正常跑完，因此不是整體 GStreamer 損壞，而是 textoverlay 與這個
+AirPlay／appsrc／caps 組合的特定問題。
+
+後續會改用不阻塞的 HUD 實作（`cairooverlay` 或獨立 native overlay），
+在替代方案驗證前不要重新加入 `textoverlay`；HUD 欄位與 margin 設定仍保留，
+供新實作使用。
+
+- FPS 來源仍是 video sink pad probe 的實際 presented frame。
+- `hud.enabled`、`hud.corner`、`hud.margin_x`、`hud.margin_y`、
+  `hud.fields` 仍保存在 `settings.json`。
 
 ### 影片視窗置前
 
@@ -490,6 +509,9 @@ $lupdate = "$env:MSYSTEM_PREFIX\bin\lupdate.exe"
 & $lupdate src -ts translations/uxplay-windows_zh_TW.ts -no-obsolete
 
 # 填入翻譯後
+python scripts/fill_translations.py
+
+# 驗證
 python scripts/check_i18n.py --lupdate $lupdate --color=always
 ```
 
@@ -623,6 +645,29 @@ Windows 防火牆以**執行檔完整路徑**辨識程式；每個 build 目錄
 - arm64 的 `pacman` 依賴安裝固定走 `mirror.msys2.org`，失敗重試 3 次；
   避免 `ftp2.osuosl.org` 慢速造成 nightly 失敗。
 - Assets 名稱固定；正式版本、Core／Exp 分類留到 Phase 3。
+
+## 虛擬攝影機（Windows 11 spike）
+
+Windows 11 的 Media Foundation virtual camera 走
+`MFCreateVirtualCamera`，不需要 kernel driver；官方 Microsoft
+`Windows-Camera` sample 已在本機建置與驗證。細節、建置命令、HKLM
+註冊與 named-pipe frame protocol 見
+[`virtualcam/README.md`](../virtualcam/README.md)。
+
+目前狀態：
+
+- `SWVCamMediaSource (Windows 虛擬攝影機)` 可由 DirectShow 列舉
+- Python 測試 producer 以 2360x1640 NV12、60fps 經
+  `\\.\pipe\uxplay-vcam-frame-v1` 送入
+- ffmpeg 擷取成功，兩張不同時間的 frame SHA-256 不同
+- AirPlay renderer 已加入 `-vcam` / `appsink` 分支；pipeline 可建立，
+  仍待 iPad 端到端驗證
+
+虛擬攝影機只輸出 video，audio 與 HUD 不在其中。
+
+主視窗 OBS 區的 `AirPlay virtual camera (experimental)` 勾選會儲存到
+`settings.json` 的 `virtualcam.enabled`，按下「套用並重新啟動引擎」
+後生效。
 
 ## USB Clean Output（實驗性）
 
@@ -767,6 +812,21 @@ user mode 不可行，需 libusb0 upper filter 與簽章 driver，未實作。
 協定與實測數字見 `usbcapture/spike/README.md`。
 
 ## 目前限制
+
+### 日誌與診斷驗證
+
+- dev 固定使用 `build/dev/uxplay-windows.exe`，主要由 VSCode 啟動偵錯。
+  建置前先停止該偵錯程序；不要另取名字繞過執行檔占用。
+- 日誌由背景執行緒每 250 ms 或 64 KiB 批次輸出；佇列上限 4096 則／4 MiB。
+  滿載時略過一般訊息並寫摘要，Runtime Debug 的 `logging` 行顯示排隊、
+  略過與批次數。正常關閉會排空，強制終止仍可能失去尾端紀錄。
+- `--engine-debug` 保留一般診斷，封包與補包雜訊每五秒摘要；只有需要完整
+  封包文字時使用 `--engine-trace`，此模式仍受佇列上限限制。
+- `audio ingress`／`audio delivery` 的時間診斷在 log 中，尚未接到
+  Runtime Debug。它們區分抵達時的映射時間戳落後量及本機佇列等待，
+  不代表喇叭實際延遲。
+- 執行 `python Testing/run_tests.py` 驗證音訊緩衝與排空、執行緒回收、
+  GPU 快照與背景日誌。測試範圍和實機限制見 `Testing/README.md`。
 
 - 設定變更（顯示名稱、解析度、renderer、codec、BLE、全螢幕）需要按
   「套用並重新啟動引擎」；只重啟 worker，不重啟 App。

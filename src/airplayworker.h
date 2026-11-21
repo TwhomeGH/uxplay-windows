@@ -2,6 +2,7 @@
 
 #include <QThread>
 #include <QStringList>
+#include <atomic>
 
 class AirPlayWorker : public QThread {
     Q_OBJECT
@@ -36,4 +37,6 @@ protected:
 private:
     QStringList m_args;
     bool m_engineTrace = false;
+    std::atomic<quint64> m_suppressedLogs{0};
+    std::atomic<qint64> m_lastLogSummaryMs{0};
 };

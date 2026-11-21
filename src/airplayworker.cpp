@@ -2,6 +2,7 @@
 #include "uxplay_api.h"
 #include <QDebug>
 #include <vector>
+#include <chrono>
 
 static AirPlayWorker *activeWorker = nullptr;
 
@@ -39,6 +40,10 @@ static bool isHighFrequencyEngineLog(int level, const QString &rawMessage) {
             QStringLiteral("raop_rtp audio:"),
             QStringLiteral("raop_rtp type_c"),
             QStringLiteral("raop_rtp sync:"),
+            QStringLiteral("raop_buffer_handle_resends"),
+            QStringLiteral("raop_rtp got resend request"),
+            QStringLiteral("raop_rtp resent audio packet:"),
+            QStringLiteral("Received empty resent audio reply"),
             QStringLiteral("raop_ntp"),
             QStringLiteral("httpd receiving on socket"),
             QStringLiteral("httpd: current connections:"),
@@ -115,6 +120,14 @@ void AirPlayWorker::setEngineTrace(bool enabled) {
 
 void AirPlayWorker::publishEngineLog(int level, const QString &message) {
     if (!m_engineTrace && isHighFrequencyEngineLog(level, message)) {
+        m_suppressedLogs.fetch_add(1, std::memory_order_relaxed);
+        const qint64 now = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now().time_since_epoch()).count();
+        qint64 previous = m_lastLogSummaryMs.load(std::memory_order_relaxed);
+        if (now - previous >= 5000 && m_lastLogSummaryMs.compare_exchange_strong(previous, now)) {
+            const quint64 suppressed = m_suppressedLogs.exchange(0);
+            qInfo() << "[engine] high-frequency messages suppressed:" << suppressed;
+        }
         return;
     }
     switch (level) {

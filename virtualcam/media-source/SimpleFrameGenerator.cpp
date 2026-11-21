@@ -12,7 +12,7 @@
 namespace
 {
     constexpr DWORD kMaxPipeFrameSize =
-        1920u * 1080u * 4u + sizeof(uxplay_vcam::FrameHeader);
+        2360u * 1640u * 4u + sizeof(uxplay_vcam::FrameHeader);
 }
 
 SimpleFrameGenerator::~SimpleFrameGenerator()

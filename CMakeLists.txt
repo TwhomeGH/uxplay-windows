@@ -14,6 +14,32 @@ option(ENABLE_USB_CAPTURE "Build the QuickTime USB capture backend (experimental
 # build uxplay as a static library
 add_subdirectory(libuxplay)
 
+execute_process(
+    COMMAND git -C "${CMAKE_SOURCE_DIR}/libuxplay" rev-parse --short HEAD
+    OUTPUT_VARIABLE UXPLAY_LIB_GIT_SHA
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+)
+if(NOT UXPLAY_LIB_GIT_SHA)
+    set(UXPLAY_LIB_GIT_SHA "unknown")
+endif()
+execute_process(
+    COMMAND git -C "${CMAKE_SOURCE_DIR}/libuxplay" status --porcelain
+    OUTPUT_VARIABLE UXPLAY_LIB_STATUS
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+)
+if(UXPLAY_LIB_STATUS)
+    set(UXPLAY_LIB_DIRTY "-dirty")
+else()
+    set(UXPLAY_LIB_DIRTY "")
+endif()
+string(TIMESTAMP UXPLAY_LIB_BUILD_TIME "%Y-%m-%d %H:%M:%S")
+target_compile_definitions(uxplay PRIVATE
+    LIBUXPLAY_GIT_SHA="${UXPLAY_LIB_GIT_SHA}${UXPLAY_LIB_DIRTY}"
+    LIBUXPLAY_BUILD_TIME="${UXPLAY_LIB_BUILD_TIME}"
+)
+
 if(ENABLE_USB_CAPTURE)
     add_subdirectory(usbcapture)
 endif()
@@ -22,6 +48,7 @@ endif()
 add_executable(uxplay-windows WIN32
     src/main.cpp
     src/mainwindow.cpp
+    src/hudwindow.cpp
     src/airplayworker.cpp
     src/settings.cpp
     src/logging.cpp
@@ -33,6 +60,8 @@ add_executable(uxplay-windows WIN32
     src/diagnostics.cpp
     src/diagnosticsexportdialog.cpp
     src/diagnosticwindow.cpp
+    src/runtimedebugwindow.cpp
+    src/gpuinfo.cpp
     src/resources.rc
 )
 
@@ -45,7 +74,7 @@ target_link_libraries(uxplay-windows PRIVATE
 )
 
 if(WIN32)
-    target_link_libraries(uxplay-windows PRIVATE psapi)
+    target_link_libraries(uxplay-windows PRIVATE psapi dxgi d3d11)
 endif()
 
 target_include_directories(uxplay-windows PRIVATE
@@ -88,10 +117,19 @@ if(NOT UXPLAY_GIT_SHA)
     set(UXPLAY_GIT_SHA "unknown")
 endif()
 
+if(NOT CMAKE_BUILD_TYPE)
+    set(UXPLAY_BUILD_TYPE "dev")
+else()
+    set(UXPLAY_BUILD_TYPE "${CMAKE_BUILD_TYPE}")
+endif()
+
+string(TIMESTAMP UXPLAY_BUILD_TIME "%Y-%m-%d %H:%M:%S")
+
 target_compile_definitions(uxplay-windows PRIVATE
     UXPLAY_APP_VERSION="${UXPLAY_APP_VERSION}"
     UXPLAY_GIT_SHA="${UXPLAY_GIT_SHA}"
-    UXPLAY_BUILD_TYPE="${CMAKE_BUILD_TYPE}"
+    UXPLAY_BUILD_TYPE="${UXPLAY_BUILD_TYPE}"
+    UXPLAY_BUILD_TIME="${UXPLAY_BUILD_TIME}"
 )
 
 add_custom_command(TARGET uxplay-windows POST_BUILD

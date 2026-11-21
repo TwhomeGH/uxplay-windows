@@ -125,6 +125,10 @@ AppSettings AppSettings::fromJson(const QString &path, bool *ok) {
     const QJsonObject video = object.value(QStringLiteral("video")).toObject();
     settings.videoCodec =
         video.value(QStringLiteral("codec")).toString(settings.videoCodec);
+    settings.videoPacing =
+        video.value(QStringLiteral("pacing")).toString(settings.videoPacing);
+    settings.audioPacing =
+        object.value(QStringLiteral("audio_pacing")).toString(settings.audioPacing);
     const bool hasVideoCodec = video.contains(QStringLiteral("codec"));
     settings.noHold = object.value(QStringLiteral("no_hold")).toBool(settings.noHold);
     settings.serverEnabled =
@@ -157,6 +161,12 @@ AppSettings AppSettings::fromJson(const QString &path, bool *ok) {
     const QJsonObject obs = object.value(QStringLiteral("obs")).toObject();
     settings.obsMode =
         obs.value(QStringLiteral("mode")).toString(settings.obsMode);
+
+    const QJsonObject virtualCamera =
+        object.value(QStringLiteral("virtualcam")).toObject();
+    settings.virtualCameraEnabled =
+        virtualCamera.value(QStringLiteral("enabled"))
+            .toBool(settings.virtualCameraEnabled);
 
     const QJsonObject resolution = object.value(QStringLiteral("resolution")).toObject();
     settings.resolution.mode =
@@ -233,8 +243,12 @@ bool AppSettings::save() const {
     QJsonObject obsObject;
     obsObject[QStringLiteral("mode")] = obsMode;
 
+    QJsonObject virtualCameraObject;
+    virtualCameraObject[QStringLiteral("enabled")] = virtualCameraEnabled;
+
     QJsonObject videoObject;
     videoObject[QStringLiteral("codec")] = videoCodec;
+    videoObject[QStringLiteral("pacing")] = videoPacing;
 
     QJsonObject videoWindowObject;
     videoWindowObject[QStringLiteral("remember")] = videoWindow.remember;
@@ -271,11 +285,13 @@ bool AppSettings::save() const {
     object[QStringLiteral("language")] = language;
     object[QStringLiteral("ble_enabled")] = bleEnabled;
     object[QStringLiteral("force_fullscreen")] = forceFullscreen;
+    object[QStringLiteral("audio_pacing")] = audioPacing;
     object[QStringLiteral("renderer")] = renderer;
     object[QStringLiteral("resolution")] = resolutionObject;
     object[QStringLiteral("no_hold")] = noHold;
     object[QStringLiteral("server_enabled")] = serverEnabled;
     object[QStringLiteral("obs")] = obsObject;
+    object[QStringLiteral("virtualcam")] = virtualCameraObject;
     object[QStringLiteral("video")] = videoObject;
     object[QStringLiteral("video_window")] = videoWindowObject;
     object[QStringLiteral("diagnostics")] = diagnosticsObject;
@@ -367,9 +383,31 @@ QStringList AppSettings::engineArguments(const QString &bleFilePath, bool engine
     }
 
     if (renderer == QStringLiteral("d3d11")) {
-        args << QStringLiteral("-vs") << QStringLiteral("d3d11videosink");
+        args << QStringLiteral("-vs")
+             << (gpuAdapterIndex >= 0
+                     ? QStringLiteral("d3d11videosink adapter=%1")
+                           .arg(gpuAdapterIndex)
+                     : QStringLiteral("d3d11videosink"));
+        args << QStringLiteral("-vd")
+             << (videoCodec == QStringLiteral("hevc")
+                     ? QStringLiteral("d3d11h265dec")
+                     : QStringLiteral("d3d11h264dec"));
     } else if (renderer == QStringLiteral("d3d12")) {
-        args << QStringLiteral("-vs") << QStringLiteral("d3d12videosink");
+        args << QStringLiteral("-vs")
+             << (gpuAdapterIndex >= 0
+                     ? QStringLiteral("d3d12videosink adapter=%1")
+                           .arg(gpuAdapterIndex)
+                     : QStringLiteral("d3d12videosink"));
+        args << QStringLiteral("-vd")
+             << (videoCodec == QStringLiteral("hevc")
+                     ? QStringLiteral("d3d12h265dec")
+                     : QStringLiteral("d3d12h264dec"));
+    } else if (renderer == QStringLiteral("gl")) {
+        args << QStringLiteral("-vs") << QStringLiteral("glimagesink");
+    } else if (renderer == QStringLiteral("d3d9")) {
+        args << QStringLiteral("-vs") << QStringLiteral("d3dvideosink");
+    } else if (renderer == QStringLiteral("fake")) {
+        args << QStringLiteral("-vs") << QStringLiteral("fakesink");
     }
 
     if (resolution.mode != QStringLiteral("auto")) {
@@ -401,6 +439,9 @@ QStringList AppSettings::engineArguments(const QString &bleFilePath, bool engine
     if (bleEnabled && !bleFilePath.isEmpty()) {
         args << QStringLiteral("-ble") << bleFilePath;
     }
+    if (virtualCameraEnabled) {
+        args << QStringLiteral("-vcam");
+    }
     if (engineDebug) {
         args << QStringLiteral("-d");
     }
@@ -413,14 +454,16 @@ QStringList AppSettings::stripManagedArgs(const QStringList &args) {
     for (int i = 0; i < args.size(); ++i) {
         const QString arg = args.at(i);
         if (arg == QStringLiteral("-n") || arg == QStringLiteral("-s")
-            || arg == QStringLiteral("-vs") || arg == QStringLiteral("-ble")) {
+            || arg == QStringLiteral("-vs") || arg == QStringLiteral("-vd")
+            || arg == QStringLiteral("-ble")) {
             if (i + 1 < args.size() && !args.at(i + 1).startsWith(QLatin1Char('-'))) {
                 ++i;
             }
             continue;
         }
         if (arg == QStringLiteral("-fs") || arg == QStringLiteral("-nh")
-            || arg == QStringLiteral("-d") || arg == QStringLiteral("-h265")) {
+            || arg == QStringLiteral("-d") || arg == QStringLiteral("-h265")
+            || arg == QStringLiteral("-vcam")) {
             continue;
         }
         result << arg;
@@ -541,13 +584,26 @@ void AppSettings::sanitize() {
         displayName = QStringLiteral("uxplay-windows");
     }
 
-    if (renderer != QStringLiteral("d3d11") && renderer != QStringLiteral("d3d12")) {
+    if (renderer == QStringLiteral("gl") || renderer == QStringLiteral("d3d9")) {
+        qWarning() << "Renderer" << renderer
+                   << "is a diagnostic-only backend and stalls AirPlay; using d3d11";
+        renderer = QStringLiteral("d3d11");
+    }
+    if (renderer != QStringLiteral("d3d11") && renderer != QStringLiteral("d3d12")
+        && renderer != QStringLiteral("auto") && renderer != QStringLiteral("fake")) {
         renderer = QStringLiteral("auto");
     }
 
     if (videoCodec != QStringLiteral("hevc")
         && videoCodec != QStringLiteral("h264")) {
         videoCodec = QStringLiteral("h264");
+    }
+    if (videoPacing != QStringLiteral("arrival")) {
+        videoPacing = QStringLiteral("arrival");
+    }
+    if (audioPacing != QStringLiteral("arrival")
+        && audioPacing != QStringLiteral("airplay")) {
+        audioPacing = QStringLiteral("arrival");
     }
 
     if (obsMode == QStringLiteral("camera")) {

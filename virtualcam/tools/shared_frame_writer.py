@@ -110,9 +110,9 @@ def _write_frame(handle: int, width: int, height: int, frame_id: int) -> bool:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--seconds", type=float, default=30.0)
-    parser.add_argument("--fps", type=float, default=30.0)
-    parser.add_argument("--width", type=int, default=1280)
-    parser.add_argument("--height", type=int, default=720)
+    parser.add_argument("--fps", type=float, default=60.0)
+    parser.add_argument("--width", type=int, default=2360)
+    parser.add_argument("--height", type=int, default=1640)
     args = parser.parse_args()
 
     print("waiting for virtual camera frame pipe...", flush=True)

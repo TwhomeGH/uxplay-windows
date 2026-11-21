@@ -267,6 +267,8 @@ QString readText(const QString &path) {
 void writeRedactedLogs(const QString &bundleDir, const QString &displayName,
                        const QString &hostName,
                        const DiagnosticsExportRange &range) {
+    // Export attempts a bounded drain so the asynchronous tail is included.
+    applog::flush();
     const QString logPath = applog::filePath();
     if (logPath.isEmpty()) {
         return;

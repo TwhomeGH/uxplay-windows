@@ -1,4 +1,6 @@
 #include "mainwindow.h"
+#include "hudwindow.h"
+#include "runtimedebugwindow.h"
 #include "airplayworker.h"
 #include "logging.h"
 #include "usbobscontroller.h"
@@ -7,6 +9,7 @@
 #include "diagnostics.h"
 #include "diagnosticsexportdialog.h"
 #include "diagnosticwindow.h"
+#include "gpuinfo.h"
 #include "mdns_responder.hpp"
 #include "uxplay_api.h"
 #include <windows.h>
@@ -26,6 +29,15 @@
 
 #include <QDebug>
 #include <QDateTime>
+#ifndef UXPLAY_BUILD_TIME
+#define UXPLAY_BUILD_TIME "unknown"
+#endif
+#ifndef UXPLAY_GIT_SHA
+#define UXPLAY_GIT_SHA "unknown"
+#endif
+#ifndef UXPLAY_BUILD_TYPE
+#define UXPLAY_BUILD_TYPE "unknown"
+#endif
 #include <QDesktopServices>
 #include <QDialog>
 #include <QDir>
@@ -54,6 +66,21 @@
 #include <QUrl>
 #include <QVBoxLayout>
 #include <QTextStream>
+
+// 此時間表示最後一次觀察到音訊 level 訊息，並非喇叭播放延遲。
+static QString readableAudioOutputAge(quint64 milliseconds) {
+    if (milliseconds == UINT64_MAX) {
+        return QStringLiteral("尚無輸出資料");
+    }
+    if (milliseconds < 1000) {
+        return QStringLiteral("%1 ms").arg(milliseconds);
+    }
+    if (milliseconds < 60000) {
+        return QStringLiteral("%1 s").arg(milliseconds / 1000.0, 0, 'f', 2);
+    }
+    return QStringLiteral("%1 min %2 s")
+        .arg(milliseconds / 60000).arg((milliseconds % 60000) / 1000);
+}
 
 struct VideoWindowData {
     DWORD pid;
@@ -124,6 +151,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     m_serverEnabled = m_settings.serverEnabled;
 
     m_diagnostics = new DiagnosticsRecorder(this);
+    qInfo() << "Build:" << QCoreApplication::applicationVersion()
+            << "sha" << QStringLiteral(UXPLAY_GIT_SHA)
+            << "type" << QStringLiteral(UXPLAY_BUILD_TYPE)
+            << "time" << QStringLiteral(UXPLAY_BUILD_TIME) << "local";
     m_diagnostics->setSettings(m_settings);
     m_diagnostics->setEnabled(m_settings.diagnosticsEnabled);
     m_diagnostics->event(
@@ -131,6 +162,29 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
         QJsonObject{{QStringLiteral("args"),
                      QJsonArray::fromStringList(
                          QCoreApplication::arguments())}});
+
+    const QStringList gpuLines = gpuAdapterLogLines();
+    for (const QString &line : gpuLines) {
+        qInfo().noquote() << line;
+    }
+    m_settings.gpuAdapterIndex =
+        selectGpuAdapter(m_settings.videoCodec == QStringLiteral("hevc"));
+    const QByteArray adapterOverride = qgetenv("UXPLAY_GPU_ADAPTER");
+    if (!adapterOverride.isEmpty()) {
+        bool ok = false;
+        const int requested = adapterOverride.toInt(&ok);
+        if (ok) {
+            m_settings.gpuAdapterIndex = requested;
+            qInfo() << "GPU adapter override:" << requested;
+        }
+    }
+    qInfo() << "Selected GPU adapter:" << m_settings.gpuAdapterIndex;
+    m_diagnostics->event(
+        QStringLiteral("app"), QStringLiteral("gpu-adapters"),
+        QJsonObject{{QStringLiteral("lines"),
+                     QJsonArray::fromStringList(gpuLines)}});
+
+    m_hudWindow = new HudWindow(nullptr);
 
     setupTray();
     setupUI();
@@ -174,6 +228,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 
 MainWindow::~MainWindow() {
     m_quitting = true;
+    delete m_hudWindow;
+    m_hudWindow = nullptr;
+    delete m_runtimeDebugWindow;
+    m_runtimeDebugWindow = nullptr;
     if (m_usbConnector) {
         m_usbConnector->cancel();
     }
@@ -251,6 +309,8 @@ void MainWindow::setupUI() {
     layout->addWidget(m_fullscreenCheckbox);
 
     // Renderer dropdown
+    auto *rendererLayout = new QHBoxLayout();
+    auto *rendererLabel = new QLabel(tr("Video Renderer"), this);
     m_rendererCombo = new QComboBox(this);
     m_rendererCombo->addItem(tr("Video Renderer (Auto)"), "auto");
     m_rendererCombo->addItem("D3D11", "d3d11");
@@ -266,7 +326,9 @@ void MainWindow::setupUI() {
             QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &MainWindow::onRendererChanged);
 
-    layout->addWidget(m_rendererCombo);
+    rendererLayout->addWidget(rendererLabel);
+    rendererLayout->addWidget(m_rendererCombo, 1);
+    layout->addLayout(rendererLayout);
 
     auto *codecLayout = new QHBoxLayout();
     auto *codecLabel = new QLabel(tr("Video Codec"), this);
@@ -292,6 +354,45 @@ void MainWindow::setupUI() {
     m_videoCodecHint->setWordWrap(true);
     m_videoCodecHint->setStyleSheet("color:#666;");
     layout->addWidget(m_videoCodecHint);
+
+    auto *pacingLayout = new QHBoxLayout();
+    auto *pacingLabel = new QLabel(tr("Video pacing"), this);
+    m_videoPacingCombo = new QComboBox(this);
+    m_videoPacingCombo->addItem(tr("Arrival (stable)"), "arrival");
+    m_videoPacingCombo->setToolTip(
+        tr("Video is presented as frames arrive and avoids AirPlay PTS "
+           "stalls. Experimental timestamp pacing is not exposed because "
+           "d3d11videosink sync=true stops after a few frames even with a "
+           "local 60 Hz timeline."));
+    {
+        const int saved = m_videoPacingCombo->findData(m_settings.videoPacing);
+        m_videoPacingCombo->setCurrentIndex(saved >= 0 ? saved : 0);
+    }
+    connect(m_videoPacingCombo,
+            QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &MainWindow::onVideoPacingChanged);
+    pacingLayout->addWidget(pacingLabel);
+    pacingLayout->addWidget(m_videoPacingCombo, 1);
+    layout->addLayout(pacingLayout);
+
+    auto *audioPacingLayout = new QHBoxLayout();
+    auto *audioPacingLabel = new QLabel(tr("Audio pacing"), this);
+    m_audioPacingCombo = new QComboBox(this);
+    m_audioPacingCombo->addItem(tr("AirPlay timestamps (recommended)"), "airplay");
+    m_audioPacingCombo->addItem(tr("Arrival (may tear)"), "arrival");
+    m_audioPacingCombo->setToolTip(
+        tr("Arrival feeds audio as packets arrive. AirPlay timestamps keeps "
+           "the original audio PTS for comparison."));
+    {
+        const int saved = m_audioPacingCombo->findData(m_settings.audioPacing);
+        m_audioPacingCombo->setCurrentIndex(saved >= 0 ? saved : 0);
+    }
+    connect(m_audioPacingCombo,
+            QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &MainWindow::onAudioPacingChanged);
+    audioPacingLayout->addWidget(audioPacingLabel);
+    audioPacingLayout->addWidget(m_audioPacingCombo, 1);
+    layout->addLayout(audioPacingLayout);
 
     auto *resolutionLayout = new QHBoxLayout();
     auto *resolutionLabel = new QLabel(tr("Resolution"), this);
@@ -348,12 +449,12 @@ void MainWindow::setupUI() {
     updateOutputLabel();
     updateResolutionControls();
 
-    auto *obsGroup = new QGroupBox(tr("OBS output (USB capture)"), this);
+    auto *obsGroup = new QGroupBox(tr("OBS output"), this);
     auto *obsLayout = new QVBoxLayout(obsGroup);
     m_obsModeCombo = new QComboBox(obsGroup);
     m_obsModeCombo->addItem(tr("Off"), "off");
     m_obsModeCombo->addItem(tr("Clean window (Window Capture)"), "window");
-    m_obsModeCombo->addItem(tr("Virtual camera (not implemented)"), "camera");
+    m_obsModeCombo->addItem(tr("Virtual camera (use AirPlay option below)"), "camera");
     if (auto *model = qobject_cast<QStandardItemModel *>(m_obsModeCombo->model())) {
         if (QStandardItem *cameraItem = model->item(2)) {
             cameraItem->setEnabled(false);
@@ -377,10 +478,19 @@ void MainWindow::setupUI() {
         tr("Clean window: press Connect USB device, then select the window in OBS."),
         obsGroup);
     m_obsHint->setWordWrap(true);
+    m_virtualCameraCheckbox = new QCheckBox(
+        tr("AirPlay virtual camera (experimental)"), obsGroup);
+    m_virtualCameraCheckbox->setChecked(m_settings.virtualCameraEnabled);
+    m_virtualCameraCheckbox->setToolTip(
+        tr("Publishes the AirPlay video to the SWVCamMediaSource virtual camera. "
+           "Apply engine changes to start or stop it."));
+    connect(m_virtualCameraCheckbox, &QCheckBox::toggled, this,
+            &MainWindow::toggleVirtualCamera);
     obsLayout->addWidget(m_obsModeCombo);
     obsLayout->addWidget(m_usbStatusLabel);
     obsLayout->addWidget(m_usbConnectBtn);
     obsLayout->addWidget(m_obsHint);
+    obsLayout->addWidget(m_virtualCameraCheckbox);
     layout->addWidget(obsGroup);
 
     m_settingsBtn = new QPushButton(tr("Edit Settings (Advanced)"), this);
@@ -425,6 +535,13 @@ void MainWindow::setupUI() {
     diagnosticsLayout->addWidget(m_diagnosticsBtn);
     diagnosticsLayout->addWidget(diagnosticsWindowBtn);
     layout->addLayout(diagnosticsLayout);
+
+    auto *runtimeDebugBtn = new QPushButton(tr("Runtime Debug"), this);
+    runtimeDebugBtn->setToolTip(
+        tr("Open the raw runtime state, counters and recent structured events."));
+    connect(runtimeDebugBtn, &QPushButton::clicked, this,
+            &MainWindow::showRuntimeDebugWindow);
+    layout->addWidget(runtimeDebugBtn);
 
     m_hudCheckbox = new QCheckBox(tr("Media Info HUD"), this);
     m_hudCheckbox->setChecked(m_settings.hudEnabled);
@@ -533,6 +650,8 @@ void MainWindow::setupTray() {
     m_usbObsAction = m_trayMenu->addAction(tr("USB Clean Output (experimental)"), this,
                                            &MainWindow::toggleUsbObs);
     QMenu *logsMenu = m_trayMenu->addMenu(tr("Logs & Diagnostics"));
+logsMenu->addAction(tr("Runtime Debug"), this,
+                    &MainWindow::showRuntimeDebugWindow);
     populateLogMenu(logsMenu);
     m_diagnosticsRecordAction =
         m_trayMenu->addAction(tr("Keep recent diagnostics"));
@@ -666,8 +785,9 @@ void MainWindow::updateDiagnosticsWindow() {
             ? QStringLiteral("%1x%2").arg(m_streamWidth).arg(m_streamHeight)
             : tr("waiting");
     snapshot.requestedSize =
-        QStringLiteral("%1x%2").arg(m_settings.requestedWidth())
-            .arg(m_settings.requestedHeight());
+        QStringLiteral("%1x%2")
+            .arg(m_appliedWidth > 0 ? m_appliedWidth : m_settings.requestedWidth())
+            .arg(m_appliedHeight > 0 ? m_appliedHeight : m_settings.requestedHeight());
     snapshot.decoder = actionValue(m_videoDecoderAction, tr("Video Decoder: "));
     snapshot.renderer = actionValue(m_videoRendererAction, tr("Video Renderer: "));
     snapshot.fps = m_fps;
@@ -712,6 +832,145 @@ void MainWindow::updateDiagnosticsWindow() {
     m_diagnosticsWindow->setSnapshot(snapshot);
 }
 
+void MainWindow::showRuntimeDebugWindow() {
+    qInfo() << "Opening runtime debug window";
+    if (!m_runtimeDebugWindow) {
+        m_runtimeDebugWindow = new RuntimeDebugWindow(nullptr);
+    }
+    updateRuntimeDebugWindow();
+    m_runtimeDebugWindow->show();
+    m_runtimeDebugWindow->raise();
+    m_runtimeDebugWindow->activateWindow();
+}
+
+void MainWindow::updateRuntimeDebugWindow() {
+    if (!m_runtimeDebugWindow || !m_runtimeDebugWindow->isVisible()) {
+        return;
+    }
+
+    auto actionValue = [](QAction *action, const QString &prefix) {
+        if (!action) return QStringLiteral("-");
+        const QString text = action->text();
+        return text.startsWith(prefix) ? text.mid(prefix.size()) : text;
+    };
+
+    uint64_t decodedFrames = 0;
+    double decodedAgeMs = -1.0;
+    uint64_t parserOutFrames = 0;
+    uint64_t parserInFrames = 0;
+    uint64_t decoderInFrames = 0;
+    uint64_t overlayInFrames = 0;
+    uint64_t overlayOutFrames = 0;
+    get_uxplay_video_decode_stats(&decodedFrames, &decodedAgeMs);
+    get_uxplay_video_pipeline_stats(&parserOutFrames, &decoderInFrames,
+                                    nullptr);
+    get_uxplay_video_parser_stats(&parserInFrames, nullptr);
+    get_uxplay_video_overlay_stats(&overlayInFrames, &overlayOutFrames);
+
+    QStringList lines;
+    lines << QStringLiteral("uxplay-windows runtime debug");
+    lines << QStringLiteral("build: version=%1 sha=%2 type=%3 time=%4 local")
+                 .arg(QCoreApplication::applicationVersion(),
+                      QStringLiteral(UXPLAY_GIT_SHA),
+                      QStringLiteral(UXPLAY_BUILD_TYPE),
+                      QStringLiteral(UXPLAY_BUILD_TIME));
+    lines << QStringLiteral("libuxplay: %1")
+                 .arg(QString::fromUtf8(get_uxplay_lib_build_info()));
+    lines << QStringLiteral("time: %1")
+                 .arg(QDateTime::currentDateTime().toString(
+                     QStringLiteral("yyyy-MM-dd HH:mm:ss.zzz")));
+    lines << QStringLiteral("status: %1")
+                 .arg(m_statusLabel ? m_statusLabel->text() : QString());
+    lines << QStringLiteral("engine args: %1").arg(m_appliedEngineArguments);
+    const auto logStats = applog::stats();
+    lines << QStringLiteral("logging: queued=%1 bytes=%2 dropped=%3 batches=%4")
+                 .arg(logStats.queuedLines).arg(logStats.queuedBytes)
+                 .arg(logStats.droppedLines).arg(logStats.writtenBatches);
+    lines << QStringLiteral("settings: renderer=%1 codec=%2 pacing=%3 audio_pacing=%4 vcam=%5 adapter=%6")
+                 .arg(m_settings.renderer, m_settings.videoCodec,
+                      m_settings.videoPacing, m_settings.audioPacing,
+                      m_settings.virtualCameraEnabled ? QStringLiteral("on")
+                                                      : QStringLiteral("off"))
+                 .arg(m_settings.gpuAdapterIndex);
+    lines << QStringLiteral("applied requested: %1x%2")
+                 .arg(m_appliedWidth)
+                 .arg(m_appliedHeight);
+    lines << QStringLiteral("stream output: %1x%2")
+                 .arg(m_streamWidth)
+                 .arg(m_streamHeight);
+    if (m_videoWindowHandle) {
+        HWND window = reinterpret_cast<HWND>(m_videoWindowHandle);
+        if (IsWindow(window)) {
+            RECT rect{};
+            GetWindowRect(window, &rect);
+            lines << QStringLiteral(
+                         "video window: visible=%1 iconic=%2 rect=(%3,%4)-(%5,%6)")
+                         .arg(IsWindowVisible(window) ? "yes" : "no")
+                         .arg(IsIconic(window) ? "yes" : "no")
+                         .arg(rect.left)
+                         .arg(rect.top)
+                         .arg(rect.right)
+                         .arg(rect.bottom);
+        }
+    }
+    lines << QStringLiteral("client: %1 %2")
+                 .arg(m_clientName, m_clientModel);
+    lines << QStringLiteral("codec: %1")
+                 .arg(actionValue(m_videoCodecAction, tr("Video Codec: ")));
+    get_uxplay_audio_stats(&m_audioPacketsReceived, &m_audioPacketsDecoded,
+                           &m_audioResendRequests, &m_audioEmptyResends,
+                           &m_audioBytes);
+    get_uxplay_audio_recovery_count(&m_audioRecoveries);
+    get_uxplay_audio_age_ms(&m_audioAgeMs);
+    get_uxplay_audio_last_gap_ms(&m_audioLastGapMs);
+    get_uxplay_audio_pipeline_restarts(&m_audioPipelineRestarts);
+    get_uxplay_audio_output_stats(&m_audioOutputPeak, &m_audioOutputAgeMs,
+                                   &m_audioPushedFrames);
+    lines << QStringLiteral(
+                 "audio: received=%1 dequeued=%2 resend=%3 empty=%4 bytes=%5 gap_skips=%6 age_ms=%7 last_gap_ms=%8 restarts=%9 level=%10 output_age=%11 pushed=%12")
+                 .arg(m_audioPacketsReceived)
+                 .arg(m_audioPacketsDecoded)
+                 .arg(m_audioResendRequests)
+                 .arg(m_audioEmptyResends)
+                 .arg(m_audioBytes)
+                 .arg(m_audioRecoveries)
+                 .arg(m_audioAgeMs)
+                 .arg(m_audioLastGapMs)
+                 .arg(m_audioPipelineRestarts)
+                 .arg(m_audioOutputPeak, 0, 'f', 4)
+                 .arg(readableAudioOutputAge(m_audioOutputAgeMs))
+                 .arg(m_audioPushedFrames);
+    lines << QStringLiteral("decoder: %1")
+                 .arg(actionValue(m_videoDecoderAction, tr("Video Decoder: ")));
+    lines << QStringLiteral("renderer: %1")
+                 .arg(actionValue(m_videoRendererAction, tr("Video Renderer: ")));
+    lines << QStringLiteral(
+                 "frames presented=%1 input=%2 decoded=%3 overlay_in=%4 "
+                 "overlay_out=%5 parser_in=%6 parser_out=%7 decoder_in=%8")
+                 .arg(m_lastFrameCount)
+                 .arg(m_lastInputFrameCount)
+                 .arg(decodedFrames)
+                 .arg(overlayInFrames)
+                 .arg(overlayOutFrames)
+                 .arg(parserInFrames)
+                 .arg(parserOutFrames)
+                 .arg(decoderInFrames);
+    lines << QStringLiteral("fps=%1 interval_ms=%2 frame_age_ms=%3 input_age_ms=%4")
+                 .arg(m_fps, 0, 'f', 2)
+                 .arg(m_frameIntervalMs, 0, 'f', 2)
+                 .arg(m_frameAgeMs, 0, 'f', 2)
+                 .arg(m_inputFrameAgeMs, 0, 'f', 2);
+    lines << QString();
+    lines << QStringLiteral("GPU adapters:");
+    lines << gpuAdapterLogLines();
+    lines << QString();
+    lines << QStringLiteral("recent structured events:");
+    if (m_diagnostics) {
+        lines << m_diagnostics->recentEventLines(200);
+    }
+    m_runtimeDebugWindow->setRawText(lines.join(QLatin1Char('\n')));
+}
+
 void MainWindow::toggleBle(bool checked) {
     if (m_settings.bleEnabled == checked) {
         return;
@@ -728,6 +987,15 @@ void MainWindow::toggleForceFullscreen(bool checked) {
 
     m_settings.forceFullscreen = checked;
     markEngineSettingsChanged(QStringLiteral("fullscreen changed"));
+}
+
+void MainWindow::toggleVirtualCamera(bool checked) {
+    if (m_settings.virtualCameraEnabled == checked) {
+        return;
+    }
+
+    m_settings.virtualCameraEnabled = checked;
+    markEngineSettingsChanged(QStringLiteral("virtual camera changed"));
 }
 
 void MainWindow::onRendererChanged(int /*index*/) {
@@ -759,6 +1027,22 @@ void MainWindow::onVideoCodecChanged(int /*index*/) {
                         QSystemTrayIcon::Information, 5000);
         return;
     }
+}
+
+void MainWindow::onVideoPacingChanged(int /*index*/) {
+    if (!m_videoPacingCombo) return;
+    const QString pacing = m_videoPacingCombo->currentData().toString();
+    if (m_settings.videoPacing == pacing) return;
+    m_settings.videoPacing = pacing;
+    markEngineSettingsChanged(QStringLiteral("video pacing changed"));
+}
+
+void MainWindow::onAudioPacingChanged(int /*index*/) {
+    if (!m_audioPacingCombo) return;
+    const QString pacing = m_audioPacingCombo->currentData().toString();
+    if (m_settings.audioPacing == pacing) return;
+    m_settings.audioPacing = pacing;
+    markEngineSettingsChanged(QStringLiteral("audio pacing changed"));
 }
 
 void MainWindow::updateVideoCodecHint() {
@@ -1111,7 +1395,9 @@ void MainWindow::refreshPendingChanges() {
     const bool pending =
         m_serverEnabled
         && !m_appliedEngineArguments.isEmpty()
-        && currentEngineArguments() != m_appliedEngineArguments;
+        && (currentEngineArguments() != m_appliedEngineArguments
+            || m_settings.videoPacing != m_appliedVideoPacing
+            || m_settings.audioPacing != m_appliedAudioPacing);
     m_engineChangesPending = pending;
     if (m_pendingChangesRow) {
         m_pendingChangesRow->setVisible(pending);
@@ -1152,6 +1438,8 @@ void MainWindow::applyPendingEngineChanges() {
 
     if (!m_serverEnabled) {
         m_appliedEngineArguments = currentEngineArguments();
+        m_appliedVideoPacing = m_settings.videoPacing;
+        m_appliedAudioPacing = m_settings.audioPacing;
         return;
     }
 
@@ -1170,12 +1458,60 @@ void MainWindow::startServer() {
     QString appData = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
     QDir().mkpath(appData);
 
+    qputenv("UXPLAY_VIDEO_PACING", m_settings.videoPacing.toUtf8());
+    qputenv("UXPLAY_AUDIO_PACING", m_settings.audioPacing.toUtf8());
+    qInfo() << "Video pacing:" << m_settings.videoPacing
+            << "Audio pacing:" << m_settings.audioPacing;
+
     const QString bleFilePath = QDir::toNativeSeparators(appData + "/uxplay_status.ble");
     const bool engineDebug =
         QCoreApplication::arguments().contains(QStringLiteral("--engine-debug"));
     QStringList args = m_settings.engineArguments(bleFilePath, engineDebug);
+    const QByteArray decoderOverride = qgetenv("UXPLAY_VIDEO_DECODER");
+    if (!decoderOverride.isEmpty()) {
+        bool replaced = false;
+        for (int i = 0; i + 1 < args.size(); ++i) {
+            if (args.at(i) == QStringLiteral("-vd")) {
+                args[i + 1] = QString::fromUtf8(decoderOverride);
+                replaced = true;
+                break;
+            }
+        }
+        if (!replaced) {
+            args << QStringLiteral("-vd")
+                 << QString::fromUtf8(decoderOverride);
+        }
+        qInfo() << "Video decoder override:" << decoderOverride;
+    }
+    const QByteArray rendererOverride = qgetenv("UXPLAY_RENDERER");
+    if (!rendererOverride.isEmpty()) {
+        bool replaced = false;
+        for (int i = 0; i + 1 < args.size(); ++i) {
+            if (args.at(i) == QStringLiteral("-vs")) {
+                args[i + 1] = QString::fromUtf8(rendererOverride);
+                replaced = true;
+                break;
+            }
+        }
+        if (!replaced) {
+            args << QStringLiteral("-vs")
+                 << QString::fromUtf8(rendererOverride);
+        }
+        qInfo() << "Video renderer override:" << rendererOverride;
+    }
+    const QByteArray extraArgs = qgetenv("UXPLAY_EXTRA_ARGS");
+    if (!extraArgs.isEmpty()) {
+        const QStringList extra = QString::fromUtf8(extraArgs).split(
+            QLatin1Char(' '), Qt::SkipEmptyParts);
+        args << extra;
+        qInfo() << "Extra engine args override:" << extra;
+    }
     m_engineArgsText = args.join(QLatin1Char(' '));
     m_appliedEngineArguments = args.join(QChar(' '));
+    m_appliedVideoPacing = m_settings.videoPacing;
+    m_appliedAudioPacing = m_settings.audioPacing;
+    m_appliedWidth = m_settings.requestedWidth();
+    m_appliedHeight = m_settings.requestedHeight();
     refreshPendingChanges();
 
     if (m_settings.bleEnabled) {
@@ -1329,7 +1665,28 @@ void MainWindow::syncVideoWindow() {
         m_videoWindowHandle = handle;
         m_videoWindowApplied = false;
         m_lastVideoWindowRect = QRect();
+        m_videoWindowMinimizedNotified = false;
         raiseVideoWindow();
+    }
+
+    if (m_videoWindowHandle && !m_clientName.isEmpty()) {
+        HWND window = reinterpret_cast<HWND>(m_videoWindowHandle);
+        if (IsWindow(window) && IsIconic(window)) {
+            // A minimized d3d11/d3d12 sink stops presenting and applies
+            // backpressure all the way to h264parse. Restore the window as
+            // soon as a client is connected; the user can still resize it.
+            ShowWindow(window, SW_RESTORE);
+            raiseVideoWindow();
+            if (!m_videoWindowMinimizedNotified) {
+                qInfo() << "AirPlay video window was minimized; restored for streaming";
+                if (m_diagnostics) {
+                    m_diagnostics->event(
+                        QStringLiteral("video"),
+                        QStringLiteral("video_window_restored"));
+                }
+                m_videoWindowMinimizedNotified = true;
+            }
+        }
     }
 
     if (!m_videoWindowApplied) {
@@ -2082,13 +2439,39 @@ void MainWindow::updateFrameStats() {
     double ageMs = -1.0;
     uint64_t inputFrames = 0;
     double inputAgeMs = -1.0;
+    uint64_t decodedFrames = 0;
+    double decodedAgeMs = -1.0;
+    uint64_t overlayInFrames = 0;
+    uint64_t overlayOutFrames = 0;
     get_uxplay_frame_stats(&frames, &ageMs);
     get_uxplay_video_input_stats(&inputFrames, &inputAgeMs);
+    get_uxplay_video_decode_stats(&decodedFrames, &decodedAgeMs);
+    get_uxplay_video_overlay_stats(&overlayInFrames, &overlayOutFrames);
+    (void) decodedAgeMs;
     get_uxplay_audio_stats(&m_audioPacketsReceived, &m_audioPacketsDecoded,
                            &m_audioResendRequests, &m_audioEmptyResends,
                            &m_audioBytes);
+    get_uxplay_audio_recovery_count(&m_audioRecoveries);
+    get_uxplay_audio_age_ms(&m_audioAgeMs);
+    get_uxplay_audio_last_gap_ms(&m_audioLastGapMs);
+    get_uxplay_audio_pipeline_restarts(&m_audioPipelineRestarts);
+    get_uxplay_audio_output_stats(&m_audioOutputPeak, &m_audioOutputAgeMs,
+                                   &m_audioPushedFrames);
 
     const qint64 now = QDateTime::currentMSecsSinceEpoch();
+    if (m_audioRecoveries > m_lastAudioGapSkips) {
+        if (m_diagnostics) {
+            m_diagnostics->event(
+                QStringLiteral("audio"), QStringLiteral("gap_skip"),
+                QJsonObject{{QStringLiteral("gap_skips"),
+                             static_cast<qint64>(m_audioRecoveries)},
+                            {QStringLiteral("audio_age_ms"),
+                             static_cast<qint64>(m_audioAgeMs)},
+                            {QStringLiteral("gap_ms"),
+                             static_cast<qint64>(m_audioLastGapMs)}});
+        }
+        m_lastAudioGapSkips = m_audioRecoveries;
+    }
     const bool inputAdvanced =
         m_lastInputFrameCount > 0 && inputFrames > m_lastInputFrameCount;
     if (m_lastStatsMs > 0 && now > m_lastStatsMs
@@ -2100,15 +2483,37 @@ void MainWindow::updateFrameStats() {
     }
     m_frameAgeMs = ageMs;
     m_inputFrameAgeMs = inputAgeMs;
+
+    const bool inputStalled =
+        m_streaming && m_lastInputFrameCount > 0
+        && inputFrames == m_lastInputFrameCount
+        && m_inputFrameAgeMs > 5000.0;
+    if (inputStalled && !m_inputStallActive) {
+        qWarning().noquote()
+            << QStringLiteral("[stats] video_input_stall input_age_ms=%1 "
+                              "input_frames=%2")
+                   .arg(m_inputFrameAgeMs, 0, 'f', 0)
+                   .arg(inputFrames);
+        if (m_diagnostics) {
+            m_diagnostics->event(
+                QStringLiteral("video"), QStringLiteral("video_input_stall"),
+                QJsonObject{{"input_age_ms", m_inputFrameAgeMs},
+                            {"input_frames", static_cast<qint64>(inputFrames)}});
+        }
+    }
+    if (!inputStalled && m_inputFrameAgeMs >= 0.0 && m_inputFrameAgeMs < 1000.0) {
+        m_inputStallActive = false;
+    } else if (inputStalled) {
+        m_inputStallActive = true;
+    }
+
     m_lastFrameCount = frames;
     m_lastStatsMs = now;
 
     // A stalled decoder/sink still accepts RTP input, so input activity plus a
     // frozen presented frame is the signature of a pipeline stall. Be
-    // deliberately conservative here: H.265 can take many seconds to produce
-    // its first frame, and a short delay is not proof that the codec is
-    // unusable. Rebuild only after 20 s without a presented frame and 20 s of
-    // streaming, sampled three times.
+    // deliberately conservative: H.265 can take many seconds to produce its
+    // first frame. Detection only; recovery stays manual.
     const qint64 streamingMs =
         m_streamingStartedMs > 0 ? now - m_streamingStartedMs : 0;
     const bool pipelineStalled =
@@ -2126,12 +2531,14 @@ void MainWindow::updateFrameStats() {
         && m_stallRebuildCount < 3) {
         qWarning().noquote()
             << QStringLiteral("[stats] pipeline_stall fps=%1 frame_age_ms=%2 "
-                              "input_age_ms=%3 frames=%4 input_frames=%5")
+                              "input_age_ms=%3 frames=%4 input_frames=%5 "
+                              "decoded_frames=%6")
                    .arg(m_fps, 0, 'f', 1)
                    .arg(m_frameAgeMs, 0, 'f', 0)
                    .arg(m_inputFrameAgeMs, 0, 'f', 0)
                    .arg(frames)
-                   .arg(inputFrames);
+                   .arg(inputFrames)
+                   .arg(decodedFrames);
         if (m_diagnostics) {
             m_diagnostics->event(
                 QStringLiteral("video"), QStringLiteral("pipeline_stall"),
@@ -2139,6 +2546,8 @@ void MainWindow::updateFrameStats() {
                             {QStringLiteral("frame_age_ms"), m_frameAgeMs},
                             {QStringLiteral("input_age_ms"), m_inputFrameAgeMs},
                             {QStringLiteral("attempt"), m_stallRebuildCount + 1},
+                            {QStringLiteral("decoded_frames"),
+                             static_cast<qint64>(decodedFrames)},
                             {QStringLiteral("auto_rebuild"), false}});
         }
         ++m_stallRebuildCount;
@@ -2181,21 +2590,77 @@ void MainWindow::updateFrameStats() {
     if (!m_clientName.isEmpty() && now - m_lastStatsLogMs >= 5000) {
         qInfo().noquote()
             << QStringLiteral("[stats] fps=%1 interval_ms=%2 frame_age_ms=%3 "
-                              "frames=%4 input_frames=%5 input_age_ms=%6")
+                              "frames=%4 input_frames=%5 input_age_ms=%6 "
+                              "decoded_frames=%7 overlay_in=%8 overlay_out=%9")
                    .arg(m_fps, 0, 'f', 1)
                    .arg(m_frameIntervalMs, 0, 'f', 1)
                    .arg(m_frameAgeMs, 0, 'f', 0)
                    .arg(frames)
                    .arg(inputFrames)
-                   .arg(m_inputFrameAgeMs, 0, 'f', 0);
+                   .arg(m_inputFrameAgeMs, 0, 'f', 0)
+                   .arg(decodedFrames)
+                   .arg(overlayInFrames)
+                   .arg(overlayOutFrames);
         m_lastStatsLogMs = now;
+    }
+
+    if (!m_clientName.isEmpty() && now - m_lastAudioStatsLogMs >= 5000) {
+        const bool audioReset =
+            m_audioPacketsReceived < m_lastAudioPacketsReceived
+            || m_audioPacketsDecoded < m_lastAudioPacketsDecoded
+            || m_audioResendRequests < m_lastAudioResendRequests
+            || m_audioEmptyResends < m_lastAudioEmptyResends;
+        const quint64 deltaReceived =
+            audioReset ? 0 : m_audioPacketsReceived - m_lastAudioPacketsReceived;
+        const quint64 deltaDecoded =
+            audioReset ? 0 : m_audioPacketsDecoded - m_lastAudioPacketsDecoded;
+        const quint64 deltaResend =
+            audioReset ? 0 : m_audioResendRequests - m_lastAudioResendRequests;
+        const quint64 deltaEmpty =
+            audioReset ? 0 : m_audioEmptyResends - m_lastAudioEmptyResends;
+        qInfo().noquote()
+            << QStringLiteral("[audio] received=%1 dequeued=%2 resend=%3 "
+                              "empty=%4 bytes=%5 gap_skips=%6 age_ms=%7 last_gap_ms=%8 restarts=%9 level=%10 output_age=%11 pushed=%12 delta_received=%13 "
+                              "delta_dequeued=%14 delta_resend=%15 delta_empty=%16")
+                   .arg(m_audioPacketsReceived)
+                   .arg(m_audioPacketsDecoded)
+                   .arg(m_audioResendRequests)
+                   .arg(m_audioEmptyResends)
+                   .arg(m_audioBytes)
+                   .arg(m_audioRecoveries)
+                   .arg(m_audioAgeMs)
+                   .arg(m_audioLastGapMs)
+                   .arg(m_audioPipelineRestarts)
+                   .arg(m_audioOutputPeak, 0, 'f', 4)
+                   .arg(readableAudioOutputAge(m_audioOutputAgeMs))
+                   .arg(m_audioPushedFrames)
+                   .arg(deltaReceived)
+                   .arg(deltaDecoded)
+                   .arg(deltaResend)
+                   .arg(deltaEmpty);
+        m_lastAudioPacketsReceived = m_audioPacketsReceived;
+        m_lastAudioPacketsDecoded = m_audioPacketsDecoded;
+        m_lastAudioResendRequests = m_audioResendRequests;
+        m_lastAudioEmptyResends = m_audioEmptyResends;
+        m_lastAudioStatsLogMs = now;
     }
 
     updateHud();
     updateDiagnosticsWindow();
+    updateRuntimeDebugWindow();
 }
 
 void MainWindow::updateHud() {
+    const char *decoderName = get_uxplay_video_decoder();
+    if (decoderName != nullptr && *decoderName != '\0' &&
+        m_videoDecoderAction) {
+        const QString actualDecoder = QString::fromUtf8(decoderName);
+        const QString current = m_videoDecoderAction->text();
+        if (!current.endsWith(actualDecoder)) {
+            m_videoDecoderAction->setText(
+                tr("Video Decoder: %1").arg(actualDecoder));
+        }
+    }
     if (m_hudCheckbox
         && m_hudCheckbox->isChecked() != m_settings.hudEnabled) {
         QSignalBlocker blocker(m_hudCheckbox);
@@ -2223,8 +2688,17 @@ void MainWindow::updateHud() {
             m_settings.hudCorner == QStringLiteral("bottom-right"));
     }
 
-    if (!m_settings.hudEnabled || !m_running || m_clientName.isEmpty()) {
-        set_uxplay_hud_text("", 0, 0, 0, 0);
+    if (!m_settings.hudEnabled || !m_running) {
+        if (m_hudWindow) {
+            m_hudWindow->hide();
+        }
+        return;
+    }
+
+    if (m_clientName.isEmpty()) {
+        if (m_hudWindow) {
+            m_hudWindow->setContent(tr("Waiting for AirPlay client..."));
+        }
         return;
     }
 
@@ -2288,8 +2762,9 @@ void MainWindow::updateHud() {
     }
 
     const QString requested =
-        QStringLiteral("%1x%2").arg(m_settings.requestedWidth())
-            .arg(m_settings.requestedHeight());
+        QStringLiteral("%1x%2")
+            .arg(m_appliedWidth > 0 ? m_appliedWidth : m_settings.requestedWidth())
+            .arg(m_appliedHeight > 0 ? m_appliedHeight : m_settings.requestedHeight());
     const QString actual =
         (m_streamWidth > 0 && m_streamHeight > 0)
             ? QStringLiteral("%1x%2").arg(m_streamWidth).arg(m_streamHeight)
@@ -2346,10 +2821,9 @@ void MainWindow::updateHud() {
     }
 
     const QByteArray text = lines.join(QLatin1Char('\n')).toUtf8();
-    const bool right = m_settings.hudCorner.endsWith(QStringLiteral("right"));
-    const bool bottom = m_settings.hudCorner.startsWith(QStringLiteral("bottom"));
-    set_uxplay_hud_text(text.constData(), right, bottom,
-                        m_settings.hudMarginX, m_settings.hudMarginY);
+    if (m_hudWindow) {
+        m_hudWindow->setContent(QString::fromUtf8(text));
+    }
 }
 
 void MainWindow::updateOutputLabel() {    if (!m_outputLabel) {
@@ -2357,8 +2831,9 @@ void MainWindow::updateOutputLabel() {    if (!m_outputLabel) {
     }
 
     const QString requested =
-        QStringLiteral("%1x%2").arg(m_settings.requestedWidth())
-            .arg(m_settings.requestedHeight());
+        QStringLiteral("%1x%2")
+            .arg(m_appliedWidth > 0 ? m_appliedWidth : m_settings.requestedWidth())
+            .arg(m_appliedHeight > 0 ? m_appliedHeight : m_settings.requestedHeight());
     const QString actual =
         (m_streamWidth > 0 && m_streamHeight > 0)
             ? QStringLiteral("%1x%2").arg(m_streamWidth).arg(m_streamHeight)

@@ -46,6 +46,17 @@ $sourceDir = Join-Path $sampleDir 'VirtualCameraMediaSource'
 Copy-Item (Join-Path $repoRoot 'virtualcam\media-source\*') $sourceDir -Force
 Copy-Item (Join-Path $repoRoot 'virtualcam\protocol\SharedFrame.h') $sourceDir -Force
 
+# The sample's simple source defaults to 640x480; the UxPlay bridge and
+# Windows camera consumers use 1280x720 NV12.
+$streamFile = Join-Path $sourceDir 'SimpleMediaStream.cpp'
+$streamText = Get-Content $streamFile -Raw
+$streamText = $streamText -replace '#define NUM_IMAGE_ROWS 480', '#define NUM_IMAGE_ROWS 1640'
+$streamText = $streamText -replace '#define NUM_IMAGE_COLS 640', '#define NUM_IMAGE_COLS 2360'
+$streamText = $streamText -replace 'MF_MT_FRAME_RATE, 30, 1', 'MF_MT_FRAME_RATE, 60, 1'
+$streamText = $streamText -replace '\* 8\* 30\)', '* 8* 60)'
+$streamText = $streamText -replace 'SetSampleDuration\(333333\)', 'SetSampleDuration(166667)'
+Set-Content -Path $streamFile -Value $streamText -Encoding UTF8
+
 # The CppWinRT NuGet package in this sample expects cppwinrt.exe under
 # build\native; newer package layouts keep it under bin.
 $cppWinRt = Get-ChildItem (Join-Path $sourceDir 'packages') -Directory -Filter 'Microsoft.Windows.CppWinRT*' |

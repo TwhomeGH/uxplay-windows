@@ -38,6 +38,7 @@
 - [x] `Native (device)` 解析度預設（2360x1640 實測 H.265）。
 - [x] 新增 720p 解析度，補效能／codec 測試缺口。
 - [x] Media Info HUD：點擊穿透疊層、主視窗／tray 開關、左上／右上。
+- [ ] 原生 HUD 長時間串流與視窗定位驗收；已移除阻塞的 textoverlay，改用獨立 HudWindow。
 - [x] FPS／frame interval／last frame age telemetry（HUD）。
 - [x] HUD 欄位勾選（client／status／video／output／decoder／renderer／fps／audio）。
 - [x] 影片 Decoder／Renderer 資訊回報。
@@ -129,7 +130,10 @@
 - [ ] （A 備案）libusb0 filter installer、`0xFD` 偵測、QuickTime demux。
 - [x] `UsbObsController` Qt 控制器與 tray／主視窗入口。
 - [ ] AirPlay 影片視窗共用 CleanOutputWindow（engine window-handle hook）。
-- [ ] Virtual camera（Media Foundation）可行性 spike 與實作。
+- [x] Virtual camera（Media Foundation）可行性 spike 與實作：官方 sample
+      已建置、註冊並由 ffmpeg 擷取；目前以 named pipe 接收測試 NV12
+      畫面（`virtualcam/`）。
+- [ ] AirPlay `appsink` → virtual camera 的 iPad 端到端驗證與 MSI 註冊。
 - [ ] 多台 USB 裝置的 UDID 選擇（目前 preflight 取第一台）。
 - [x] 採購與接線建議（PD dock／USB-A 桌機）。
 - [ ] PD dock 實測：資料＋供電同時運作（需硬體）。

@@ -26,6 +26,8 @@ class UsbObsController;
 class UsbDeviceConnector;
 class DiagnosticsRecorder;
 class DiagnosticsWindow;
+class HudWindow;
+class RuntimeDebugWindow;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -40,6 +42,8 @@ public slots:
     void showDiagnosticsWindow();
     void startUsbObs(bool minimize = false);
     void saveDiagnostics(bool showDialog = true);
+    void quit();
+    void showRuntimeDebugWindow();
 
 protected:
     void closeEvent(QCloseEvent *event) override;
@@ -51,7 +55,6 @@ private slots:
     void showLicense();
     void openSettingsFile();
     void openListArgsFile();
-    void quit();
     void onAirplayStarted();
     void onAirplayStopped();
     void onAirplayError(const QString &message);
@@ -73,8 +76,11 @@ private slots:
     void toggleVideoAlwaysOnTop(bool enabled);
     void toggleBle(bool checked); // bluetooth
     void toggleForceFullscreen(bool checked);
+    void toggleVirtualCamera(bool checked);
     void onRendererChanged(int index);
     void onVideoCodecChanged(int index);
+    void onVideoPacingChanged(int index);
+    void onAudioPacingChanged(int index);
     void updateVideoCodecHint();
     void onResolutionChanged();
     void updateMediaInfo(const QString &key, const QString &value);
@@ -103,6 +109,7 @@ private:
     void fitVideoWindowToStream(int width, int height);
     void saveVideoWindowGeometry();
     void updateHud();
+    void updateRuntimeDebugWindow();
     void updateFrameStats();
     void updateOutputLabel();
     void setHudCorner(const QString &corner);
@@ -137,10 +144,13 @@ private:
     
     QComboBox *m_rendererCombo = nullptr;
     QComboBox *m_videoCodecCombo = nullptr;
+    QComboBox *m_videoPacingCombo = nullptr;
+    QComboBox *m_audioPacingCombo = nullptr;
     QLabel *m_videoCodecHint = nullptr;
     QComboBox *m_resolutionCombo = nullptr;
     QComboBox *m_obsModeCombo = nullptr;
     QLabel *m_obsHint = nullptr;
+    QCheckBox *m_virtualCameraCheckbox = nullptr;
     QLabel *m_usbStatusLabel = nullptr;
     QPushButton *m_usbConnectBtn = nullptr;
     QSpinBox *m_widthSpin = nullptr;
@@ -202,6 +212,8 @@ private:
     UsbDeviceConnector *m_usbConnector = nullptr;
     DiagnosticsRecorder *m_diagnostics = nullptr;
     DiagnosticsWindow *m_diagnosticsWindow = nullptr;
+    HudWindow *m_hudWindow = nullptr;
+    RuntimeDebugWindow *m_runtimeDebugWindow = nullptr;
     QString m_engineArgsText;
     QDateTime m_sessionStartedAt;
     bool m_usbDeviceReady = false;
@@ -217,6 +229,12 @@ private:
     bool m_streaming = false;
     bool m_engineChangesPending = false;
     QString m_appliedEngineArguments;
+    QString m_appliedVideoPacing;
+    QString m_appliedAudioPacing;
+    int m_appliedWidth = -1;
+    int m_appliedHeight = -1;
+    bool m_inputStallActive = false;
+    bool m_videoWindowMinimizedNotified = false;
     int m_restartAttempt = 0;
     QString m_lastEngineError;
     QTimer *m_videoTitleTimer = nullptr;
@@ -229,6 +247,19 @@ private:
     quint64 m_audioResendRequests = 0;
     quint64 m_audioEmptyResends = 0;
     quint64 m_audioBytes = 0;
+    quint64 m_audioRecoveries = 0;
+    quint64 m_audioAgeMs = 0;
+    quint64 m_audioLastGapMs = 0;
+    quint64 m_audioPipelineRestarts = 0;
+    double m_audioOutputPeak = -1.0;
+    quint64 m_audioOutputAgeMs = 0;
+    quint64 m_audioPushedFrames = 0;
+    quint64 m_lastAudioGapSkips = 0;
+    quint64 m_lastAudioPacketsReceived = 0;
+    quint64 m_lastAudioPacketsDecoded = 0;
+    quint64 m_lastAudioResendRequests = 0;
+    quint64 m_lastAudioEmptyResends = 0;
+    qint64 m_lastAudioStatsLogMs = 0;
     qint64 m_lastStatsMs = 0;
     qint64 m_lastStallRebuildMs = 0;
     int m_stalledFrameSamples = 0;

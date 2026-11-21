@@ -14,16 +14,18 @@ Verified on Windows 11 build 26200 with the official Microsoft
 - COM source registered under HKLM
 - virtual camera created as `SWVCamMediaSource`
 - DirectShow exposes it as `SWVCamMediaSource (Windows 虛擬攝影機)`
-- a Python test producer published 1280x720 NV12 at 30 fps through the pipe
+- a Python test producer published 2360x1640 NV12 at 60 fps through the pipe
 - ffmpeg captured the virtual camera and two extracted frames had different
   SHA-256 hashes, proving the output was live rather than a synthetic still
 
 ## Architecture
 
 ```text
-AirPlay / test producer
-  -> named pipe \\.\pipe\uxplay-vcam-frame-v1
-  -> VirtualCameraMediaSource (Frame Server)
+AirPlay request (native 2360x1640)
+  -> videoscale (no low-resolution downscale)
+  -> NV12 2360x1640 @ source rate (up to 60 fps)
+  -> appsink
+  -> named pipe
   -> SWVCamMediaSource
   -> OBS / Camera / Zoom
 ```
@@ -44,6 +46,22 @@ The producer and media source use the frame header in
 - `frame_id`, `timestamp_ms`
 
 One pipe message is `FrameHeader` followed immediately by the pixel payload.
+
+The media source is now wired into the AirPlay GStreamer renderer as an
+optional `appsink` branch behind `-vcam`. The GUI option is **AirPlay virtual
+camera (experimental)**; like the other engine-affecting settings it is saved
+immediately but requires **Apply & restart engine**. The branch is:
+
+```text
+tee name=vcam_tee
+  vcam_tee. ! queue ! d3d11videosink
+  vcam_tee. ! queue ! videoconvert ! videoscale add-borders=true
+             ! video/x-raw,format=NV12,width=2360,height=1640
+             ! appsink name=vcam_sink
+```
+
+The writer keeps only the latest frame and drops frames when no camera
+consumer is connected, so it cannot block the AirPlay pipeline.
 
 ## Media source files
 
@@ -117,8 +135,13 @@ ffmpeg -f dshow -i "video=SWVCamMediaSource (Windows 虛擬攝影機)" `
 ## Limitations and next steps
 
 - The producer is currently a test pattern, not the AirPlay decoder.
-- The pipe ACL is `Everyone` for the spike; production must restrict it to the
+- The AirPlay `appsink` branch is implemented and the pipeline parses, but the
+  end-to-end AirPlay-to-virtual-camera path still needs a reconnect test with
+  the iPad.
+- the pipe ACL is `Everyone` for the spike; production must restrict it to the
   interactive user and the Frame Server services.
+- The current native output is the test iPad's 2360x1640 at 60 fps; a per-device
+  native-resolution config is the next step.
 - The virtual camera is video-only; audio is handled separately.
 - HUD text is not included in the virtual camera.
 - The media source still needs to be packaged and registered by the UxPlay

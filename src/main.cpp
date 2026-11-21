@@ -171,12 +171,16 @@ int main(int argc, char *argv[]) {
     const bool launchUsbObs = startupArgs.contains(QStringLiteral("--usb-obs"));
     if (startupArgs.contains(QStringLiteral("--stop"))) {
         remoteCommand = "stop";
+    } else if (startupArgs.contains(QStringLiteral("--quit"))) {
+        remoteCommand = "quit";
     } else if (startupArgs.contains(QStringLiteral("--start"))) {
         remoteCommand = "start";
     } else if (startupArgs.contains(QStringLiteral("--save-diagnostics"))) {
         remoteCommand = "save-diagnostics";
     } else if (startupArgs.contains(QStringLiteral("--diagnostics"))) {
         remoteCommand = "diagnostics";
+    } else if (startupArgs.contains(QStringLiteral("--runtime-debug"))) {
+        remoteCommand = "runtime-debug";
     } else if (launchUsbObs) {
         remoteCommand = "usb-obs";
     }
@@ -291,6 +295,8 @@ int main(int argc, char *argv[]) {
         if (command.isEmpty()) return;
         if (command == "stop") {
             window.setServerEnabled(false);
+        } else if (command == "quit") {
+            window.quit();
         } else if (command == "start") {
             window.setServerEnabled(true);
         } else if (command == "usb-obs") {
@@ -299,6 +305,8 @@ int main(int argc, char *argv[]) {
             window.saveDiagnostics(false);
         } else if (command == "diagnostics") {
             window.showDiagnosticsWindow();
+        } else if (command == "runtime-debug") {
+            window.showRuntimeDebugWindow();
         } else {
             window.showAndRaise();
         }

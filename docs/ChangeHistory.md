@@ -1,5 +1,115 @@
 # ChangeHistory
 
+## 2026.11.22 01:10 背景批次日誌與開發收束
+
+**類型**: 修正
+
+### 問題 - 日誌同步寫入與主控台刷新可能阻塞音訊接收
+
+### 根因 - Qt handler 每則同步寫入並 flush；libuxplay 又在 App 回呼前重複 printf 與 fflush，繞過高頻過濾
+
+### 修改 - 主控台、檔案寫入與輪替移至單一背景執行緒，每 250 ms 或 64 KiB 批次輸出
+
+正常關閉等待排空，fatal 與診斷匯出採有限時間等待。強制終止仍可能失去尾端紀錄。六支原生回歸程式通過；實機長時間音訊、重連與 virtual camera 端到端驗收仍未完成。
+
+- 佇列上限 4096 則／4 MiB，滿載時略過一般訊息並記錄摘要，錯誤優先保留
+- 嵌入 App 時由回呼統一輸出；補包等高頻 Debug 每五秒摘要，engine-trace 才保留完整文字
+- Runtime Debug 顯示排隊量、略過量與批次數；新增集中回歸入口與固定 VSCode dev 流程說明
+
+**相關文件**:
+
+- Testing/README.md
+- docs/DEVELOPERS-GUIDE.md
+
+---
+
+## 2026.11.21 修正稀疏音訊缺口與重傳排空
+
+明確無內容的 RTP 封包保留其序號，避免後續誤認為丟包。缺包等待增加
+350 ms 單調時鐘上限，移除三秒備援；一般資料、重傳回覆與 select timeout
+都可驅動排空。同一缺口補包要求至少間隔 20 ms，避免 timeout 輪詢放大補包量。
+
+8-byte 空重傳回覆改為記錄無 RTP 音訊標頭，移除誤導的 seqnum=0。
+RTP 取樣率換算改用浮點除法；每秒記錄抵達與交付的映射時間戳落後量，
+交付時另記錄本機佇列等待。13 秒落後的實機根因仍待新診斷確認。
+
+新增時限邊界、明確無內容、補包節流，以及控制回覆／timeout 排空測試。
+測試使用替代加解密與模擬 socket 事件，不代表實際 AAC／喇叭播放已驗收。
+
+---
+
+## 2026.11.21 限制 GPU 診斷探測並補齊執行緒回收
+
+Runtime Debug 每秒更新原本都會為所有硬體 adapter 建立 D3D11 裝置，
+造成反覆驅動載入／卸載與工作執行緒建立。GPU 清單與解碼能力改為程序內
+共用一次探測快照；GPU 變更後需重啟程式。
+
+音訊 RTP 與 NTP 執行緒自行退出後，stop 原本會略過 join 與 socket 清理；
+改依 joined 狀態回收，並避免重複 stop 同時 join。
+
+GPU 1000 輪重讀未新增探測裝置，RTP／NTP 各 100 輪回收測試通過。
+尚未驗證實際串流的長時間執行緒／記憶體趨勢，音訊連續性也尚未驗收。
+
+---
+
+## 2026.11.21 修正音訊缺包等待與診斷顯示
+
+**類型**: 修正
+
+音訊缺包等待改依 RTP 序號距離限制，不再以 dequeue 呼叫次數累計；
+逾期缺口可在同次呼叫跳過並繼續輸出。備援恢復保留已收到的音訊，
+移除以未取出封包誤判播放故障的兩秒管線重啟。
+
+flush 保留音訊輸出統計；診斷將 `decoded` 更名為 `dequeued`，
+`out_age_ms` 改為具單位的 `output_age`，未知值顯示「尚無輸出資料」。
+此時間代表距最後一次 level 觀測的時間，並非喇叭延遲。
+
+新增 `Testing/audio_buffer_test.c` 回歸測試，緩衝測試與程式編譯／連結通過；
+iPad 連續出聲與實際缺包情境尚待驗收。
+
+---
+
+## 2026.11.18 07:00 新增 Windows 11 虛擬攝影機 spike 與 frame pipe
+
+**類型**: 新增
+
+### 問題（virtual camera）
+
+AirPlay 目前只能經 GStreamer 影片視窗輸出；要做 OBS／Zoom 的
+virtual camera，需要 Media Foundation 媒體來源與跨 process 的 frame
+通道。
+
+### 根因（virtual camera）
+
+Windows 11 的 virtual camera media source 由 Frame Server 載入，與 GUI
+process 不同，不能直接共用 GStreamer buffer；且媒體來源 COM DLL 需要
+HKLM 註冊。
+
+### 修改（virtual camera）
+
+以官方 Microsoft Windows-Camera sample 建置 media source，加入 named
+pipe `\\.\pipe\uxplay-vcam-frame-v1` 接收 NV12 frame；新增
+`virtualcam/`、建置腳本與測試 producer。
+
+ffmpeg 已可擷取 `SWVCamMediaSource` 的動態畫面；AirPlay renderer 已加入
+`-vcam` 與 `appsink` 分支，下一步是 iPad 端到端驗證。
+
+---
+
+## 2026.11.17 11:18 定位 textoverlay 為畫面只出第一張的根因
+
+**類型**: 修正
+
+### 問題 - AirPlay 影片經常只呈現第一張，音訊正常；先前曾誤歸因於 H.265、HUD 與影片視窗遮擋
+
+### 根因 - decodebin 輸出 probe 顯示 decoded_frames 持續增加，textoverlay 的 overlay_in 也增加，但 overlay_out 固定為 1；移除 textoverlay 後 frames 恢復 30–60fps
+
+### 修改 - 從 AirPlay mirror pipeline 移除 textoverlay，暫時停用 HUD UI；保留解碼／overlay probe 與 FPS 統計
+
+相同 GStreamer 1.28.3 的 videotestsrc + textoverlay 最小測試正常，因此是 AirPlay／appsrc 組合的特定問題；後續改用 cairooverlay 或 native overlay
+
+---
+
 ## 2026.11.17 10:34 修正 HUD 與 HEVC 的錯誤歸因
 
 **類型**: 修正

@@ -12,6 +12,7 @@ Qt 的 `tr()` 以「英文原文 + context」作為 message key；英文原文�
 | `translations/uxplay-windows_zh_TW.ts` | 翻譯 catalog（由 `lupdate` 產生） |
 | `translations/i18n.json` | 語言清單、fallback、技術字串 allowlist |
 | `scripts/check_i18n.py` | CI／本機驗證 |
+| `scripts/fill_translations.py` | 維護英文→zh_TW 對照並填入 `.ts`；原始碼控制，不是 build 產物 |
 
 > VS Code 會依副檔名把 `.ts` 當成 TypeScript。本專案的 `.ts` 是 Qt Linguist
 > XML，已由 `.vscode/settings.json` 將 `translations/*.ts` 關聯為 XML；若編輯器
@@ -52,7 +53,8 @@ Qt 的 `tr()` 以「英文原文 + context」作為 message key；英文原文�
 # 1. 掃描 source，更新 .ts
 lupdate src -ts translations/uxplay-windows_zh_TW.ts -no-obsolete
 
-# 2. 編輯 .ts 的 <translation>；不要手動改 <source>
+# 2. 填入既有翻譯對照（只改 <translation>）
+python scripts/fill_translations.py
 
 # 3. 驗證
 python scripts/check_i18n.py

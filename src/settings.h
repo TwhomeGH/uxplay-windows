@@ -39,11 +39,15 @@ public:
     bool forceFullscreen = false;
     QString renderer = "auto";
     QString videoCodec = "h264";
+    QString videoPacing = "arrival";
+    QString audioPacing = "airplay";
     ResolutionSettings resolution;
     VideoWindowSettings videoWindow;
     bool noHold = true;
     bool serverEnabled = true;
     bool diagnosticsEnabled = true;
+    bool virtualCameraEnabled = false;
+    int gpuAdapterIndex = -1;
     bool hudEnabled = false;
     QString hudCorner = "top-left";
     int hudMarginX = 8;
