@@ -27,6 +27,7 @@ class UsbDeviceConnector;
 class DiagnosticsRecorder;
 class DiagnosticsWindow;
 class HudWindow;
+class HudOverlay;
 class RuntimeDebugWindow;
 
 class MainWindow : public QMainWindow {
@@ -109,6 +110,12 @@ private:
     void fitVideoWindowToStream(int width, int height);
     void saveVideoWindowGeometry();
     void updateHud();
+    /// 在 UI 執行緒切換 HUD 顯示模式並保存設定，不重新啟動引擎。
+    /// @param mode window 為獨立視窗，overlay 為舊原生疊層。
+    void setHudMode(const QString &mode);
+    /// 將相同 HUD 內容交給目前模式；空字串隱藏並解除疊層附著。
+    /// @param text 目前 HUD 的文字／標記內容。
+    void presentHud(const QString &text);
     void updateRuntimeDebugWindow();
     void updateFrameStats();
     void updateOutputLabel();
@@ -194,6 +201,7 @@ private:
 
     QPushButton *m_rebuildButton = nullptr;
     QCheckBox *m_hudCheckbox = nullptr;
+    QComboBox *m_hudModeCombo = nullptr;
     QSpinBox *m_hudXSpin = nullptr;
     QSpinBox *m_hudYSpin = nullptr;
     QPushButton *m_hudFieldsButton = nullptr;
@@ -213,6 +221,7 @@ private:
     DiagnosticsRecorder *m_diagnostics = nullptr;
     DiagnosticsWindow *m_diagnosticsWindow = nullptr;
     HudWindow *m_hudWindow = nullptr;
+    HudOverlay *m_hudOverlay = nullptr;
     RuntimeDebugWindow *m_runtimeDebugWindow = nullptr;
     QString m_engineArgsText;
     QDateTime m_sessionStartedAt;

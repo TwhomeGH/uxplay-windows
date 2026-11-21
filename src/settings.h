@@ -27,6 +27,9 @@ public:
     static AppSettings load();
     static QString filePath();
 
+    /// 將完整 JSON 設定原子寫入目前 AppData 路徑；內容相同時不寫入。
+    /// @return 未變更或提交成功為 true；失敗則保留原檔並回傳 false。
+    /// @note 呼叫端需序列化儲存要求，不再以直接截斷覆寫作為備援。
     bool save() const;
     QStringList engineArguments(const QString &bleFilePath, bool engineDebug) const;
     int requestedWidth() const;
@@ -49,6 +52,8 @@ public:
     bool virtualCameraEnabled = false;
     int gpuAdapterIndex = -1;
     bool hudEnabled = false;
+    /// HUD 顯示模式：window 為獨立視窗，overlay 為影片 owner 的舊原生疊層。
+    QString hudMode = "window";
     QString hudCorner = "top-left";
     int hudMarginX = 8;
     int hudMarginY = 72;

@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "hudwindow.h"
+#include "hudoverlay.h"
 #include "runtimedebugwindow.h"
 #include "airplayworker.h"
 #include "logging.h"
@@ -229,6 +230,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 MainWindow::~MainWindow() {
     m_quitting = true;
     delete m_hudWindow;
+    delete m_hudOverlay;
+    m_hudOverlay = nullptr;
     m_hudWindow = nullptr;
     delete m_runtimeDebugWindow;
     m_runtimeDebugWindow = nullptr;
@@ -546,10 +549,22 @@ void MainWindow::setupUI() {
     m_hudCheckbox = new QCheckBox(tr("Media Info HUD"), this);
     m_hudCheckbox->setChecked(m_settings.hudEnabled);
     m_hudCheckbox->setToolTip(
-        tr("Draw the media information in the AirPlay video frame."));
+        tr("Show media information using the selected HUD display mode."));
     connect(m_hudCheckbox, &QCheckBox::toggled, this,
             &MainWindow::toggleHud);
     layout->addWidget(m_hudCheckbox);
+
+    auto *hudModeLayout = new QHBoxLayout();
+    hudModeLayout->addWidget(new QLabel(tr("HUD display"), this));
+    m_hudModeCombo = new QComboBox(this);
+    m_hudModeCombo->addItem(tr("Separate window"), QStringLiteral("window"));
+    m_hudModeCombo->addItem(tr("Video overlay (legacy)"), QStringLiteral("overlay"));
+    m_hudModeCombo->setCurrentIndex(m_settings.hudMode == QStringLiteral("overlay") ? 1 : 0);
+    m_hudModeCombo->setToolTip(tr("The legacy overlay follows the video window. If video presentation stalls, switch back to the separate window."));
+    connect(m_hudModeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, [this](int) { setHudMode(m_hudModeCombo->currentData().toString()); });
+    hudModeLayout->addWidget(m_hudModeCombo, 1);
+    layout->addLayout(hudModeLayout);
 
     auto *hudMarginLayout = new QHBoxLayout();
     hudMarginLayout->addWidget(new QLabel(tr("HUD margin"), this));
@@ -882,6 +897,9 @@ void MainWindow::updateRuntimeDebugWindow() {
     lines << QStringLiteral("status: %1")
                  .arg(m_statusLabel ? m_statusLabel->text() : QString());
     lines << QStringLiteral("engine args: %1").arg(m_appliedEngineArguments);
+    lines << QStringLiteral("hud: enabled=%1 mode=%2")
+                 .arg(m_settings.hudEnabled ? QStringLiteral("yes") : QStringLiteral("no"),
+                      m_settings.hudMode);
     const auto logStats = applog::stats();
     lines << QStringLiteral("logging: queued=%1 bytes=%2 dropped=%3 batches=%4")
                  .arg(logStats.queuedLines).arg(logStats.queuedBytes)
@@ -1844,6 +1862,7 @@ void MainWindow::saveVideoWindowGeometry() {
 
 void MainWindow::onAirplayStopped() {
     m_running = false;
+    presentHud(QString());
     if (m_videoTitleTimer) m_videoTitleTimer->stop();
     if (m_statsTimer) m_statsTimer->stop();
     m_lastFrameCount = 0;
@@ -2320,6 +2339,37 @@ void MainWindow::toggleHud(bool enabled) {
     updateHud();
 }
 
+void MainWindow::setHudMode(const QString &mode) {
+    const QString selected = mode == QStringLiteral("overlay")
+        ? QStringLiteral("overlay") : QStringLiteral("window");
+    if (m_settings.hudMode == selected) return;
+    presentHud(QString());
+    m_settings.hudMode = selected;
+    m_settings.save();
+    qInfo() << "HUD display mode:" << selected;
+    updateHud();
+}
+
+void MainWindow::presentHud(const QString &text) {
+    if (m_settings.hudMode == QStringLiteral("overlay")) {
+        if (m_hudWindow) m_hudWindow->hide();
+        HWND target = reinterpret_cast<HWND>(m_videoWindowHandle);
+        if (text.isEmpty() || !IsWindow(target)) {
+            if (m_hudOverlay) m_hudOverlay->detach();
+            return;
+        }
+        if (!m_hudOverlay) m_hudOverlay = new HudOverlay(this);
+        m_hudOverlay->setPosition(m_settings.hudCorner, m_settings.hudMarginX, m_settings.hudMarginY);
+        m_hudOverlay->setText(text);
+        m_hudOverlay->setOverlayVisible(true);
+        m_hudOverlay->attach(target);
+    } else {
+        // 切回獨立視窗即銷毀原生疊層 HWND 並停止定位 timer，避免殘留視窗。
+        if (m_hudOverlay) m_hudOverlay->detach();
+        if (m_hudWindow) m_hudWindow->setContent(text);
+    }
+}
+
 void MainWindow::toggleVideoAlwaysOnTop(bool enabled) {
     m_settings.videoWindow.alwaysOnTop = enabled;
     m_settings.save();
@@ -2651,6 +2701,18 @@ void MainWindow::updateFrameStats() {
 }
 
 void MainWindow::updateHud() {
+    const bool overlay = m_settings.hudMode == QStringLiteral("overlay");
+    if (m_hudModeCombo) {
+        QSignalBlocker blocker(m_hudModeCombo);
+        m_hudModeCombo->setCurrentIndex(overlay ? 1 : 0);
+    }
+    if (m_hudXSpin) m_hudXSpin->setEnabled(overlay);
+    if (m_hudYSpin) m_hudYSpin->setEnabled(overlay);
+    QAction *positionActions[] = {m_hudTopLeftAction, m_hudTopRightAction,
+                                  m_hudBottomLeftAction, m_hudBottomRightAction};
+    for (QAction *action : positionActions) {
+        if (action) action->setEnabled(overlay);
+    }
     const char *decoderName = get_uxplay_video_decoder();
     if (decoderName != nullptr && *decoderName != '\0' &&
         m_videoDecoderAction) {
@@ -2688,17 +2750,13 @@ void MainWindow::updateHud() {
             m_settings.hudCorner == QStringLiteral("bottom-right"));
     }
 
-    if (!m_settings.hudEnabled || !m_running) {
-        if (m_hudWindow) {
-            m_hudWindow->hide();
-        }
+    if (!m_settings.hudEnabled || !m_running || m_quitting) {
+        presentHud(QString());
         return;
     }
 
     if (m_clientName.isEmpty()) {
-        if (m_hudWindow) {
-            m_hudWindow->setContent(tr("Waiting for AirPlay client..."));
-        }
+        presentHud(tr("Waiting for AirPlay client..."));
         return;
     }
 
@@ -2820,10 +2878,7 @@ void MainWindow::updateHud() {
                       QStringLiteral("#FFFFFF"));
     }
 
-    const QByteArray text = lines.join(QLatin1Char('\n')).toUtf8();
-    if (m_hudWindow) {
-        m_hudWindow->setContent(QString::fromUtf8(text));
-    }
+    presentHud(lines.join(QLatin1Char('\n')));
 }
 
 void MainWindow::updateOutputLabel() {    if (!m_outputLabel) {

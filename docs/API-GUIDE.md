@@ -17,6 +17,7 @@
 | 看主視窗與設定 | `src/mainwindow.cpp`、`src/settings.cpp` |
 | 看診斷包與 ring buffer | `src/diagnostics.cpp`、`src/diagnostics.h` |
 | 看影格統計與 HUD | `src/mainwindow.cpp`、`libuxplay/renderers/video_renderer.c` |
+| 看 HUD 顯示模式與原生視窗回收 | `src/hudwindow.*`、`src/hudoverlay.*`、`AppSettings::hudMode` |
 | 看 USB 擷取（選用） | `src/usbdeviceconnector.cpp`、`src/usbobscontroller.cpp`、`usbcapture/` |
 | 看 i18n 規則 | `translations/README.md` |
 | 看建置與除錯 | `docs/DEVELOPERS-GUIDE.md` |

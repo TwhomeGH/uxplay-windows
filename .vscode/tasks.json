@@ -88,10 +88,24 @@
             "options": {
                 "cwd": "${workspaceFolder}",
                 "env": {
-                    "DOXYGEN": "${config:msys2.prefix}\\bin\\doxygen.exe"
+                    "DOXYGEN": "${config:msys2.prefix}\\bin\\doxygen.exe",
+                    "PYTHONUTF8": "1"
                 }
             },
-            "problemMatcher": [],
+            "problemMatcher": [
+                {
+                    "owner": "doxygen",
+                    "fileLocation": "absolute",
+                    "pattern": {
+                        "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+                        "file": 1,
+                        "line": 2,
+                        "column": 3,
+                        "severity": 4,
+                        "message": 5
+                    }
+                }
+            ],
             "detail": "Build both API references and open the App index."
         },
         {
@@ -122,11 +136,97 @@
             "options": {
                 "cwd": "${workspaceFolder}",
                 "env": {
-                    "DOXYGEN": "${config:msys2.prefix}\\bin\\doxygen.exe"
+                    "DOXYGEN": "${config:msys2.prefix}\\bin\\doxygen.exe",
+                    "PYTHONUTF8": "1"
                 }
             },
-            "problemMatcher": [],
+            "problemMatcher": [
+                {
+                    "owner": "doxygen",
+                    "fileLocation": "absolute",
+                    "pattern": {
+                        "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+                        "file": 1,
+                        "line": 2,
+                        "column": 3,
+                        "severity": 4,
+                        "message": 5
+                    }
+                }
+            ],
             "detail": "Build and open the independent libuxplay API reference."
+        },
+        {
+            "label": "docs: check",
+            "type": "shell",
+            "command": "pwsh",
+            "args": [
+                "-NoProfile",
+                "-File",
+                "${workspaceFolder}/scripts/build_docs.ps1",
+                "-Check"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "DOXYGEN": "${config:msys2.prefix}\\bin\\doxygen.exe",
+                    "PYTHONUTF8": "1"
+                }
+            },
+            "problemMatcher": [
+                {
+                    "owner": "doxygen",
+                    "fileLocation": "absolute",
+                    "pattern": {
+                        "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+                        "file": 1,
+                        "line": 2,
+                        "column": 3,
+                        "severity": 4,
+                        "message": 5
+                    }
+                }
+            ],
+            "detail": "Read-only API freshness check; outdated files appear in Problems.",
+            "group": {
+                "kind": "test"
+            }
+        },
+        {
+            "label": "docs: rebuild",
+            "type": "shell",
+            "command": "pwsh",
+            "args": [
+                "-NoProfile",
+                "-File",
+                "${workspaceFolder}/scripts/build_docs.ps1",
+                "-Force"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "DOXYGEN": "${config:msys2.prefix}\\bin\\doxygen.exe",
+                    "PYTHONUTF8": "1"
+                }
+            },
+            "problemMatcher": [
+                {
+                    "owner": "doxygen",
+                    "fileLocation": "absolute",
+                    "pattern": {
+                        "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+                        "file": 1,
+                        "line": 2,
+                        "column": 3,
+                        "severity": 4,
+                        "message": 5
+                    }
+                }
+            ],
+            "detail": "Force both API references to rebuild and write an API declaration difference report.",
+            "group": {
+                "kind": "test"
+            }
         }
     ]
 }

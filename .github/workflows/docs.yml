@@ -6,6 +6,8 @@ on:
       - 'docs/**'
       - 'Doxyfile'
       - 'scripts/build_docs.ps1'
+      - 'scripts/build_api_docs.py'
+      - 'Testing/test_api_docs.py'
       - 'src/**'
       - 'libuxplay'
       - 'libuxplay/**'
@@ -15,6 +17,8 @@ on:
       - 'docs/**'
       - 'Doxyfile'
       - 'scripts/build_docs.ps1'
+      - 'scripts/build_api_docs.py'
+      - 'Testing/test_api_docs.py'
       - 'src/**'
       - 'libuxplay'
       - 'libuxplay/**'
@@ -46,19 +50,9 @@ jobs:
 
       - name: Generate API reference
         run: |
-          mkdir -p build/doxygen libuxplay/build/doxygen
-          (cd libuxplay && doxygen Doxyfile)
-          cp -a libuxplay/build/doxygen/libuxplay build/doxygen/
-          doxygen Doxyfile
-          test -f build/doxygen/app/index.html
-          test -f build/doxygen/libuxplay/index.html
-          test -f build/doxygen/libuxplay/libuxplay.tag
-          for warnings in doxygen-warnings.log libuxplay/doxygen-warnings.log; do
-            if [ -s "$warnings" ]; then
-              cat "$warnings" >&2
-              exit 1
-            fi
-          done
+          python3 -m unittest discover -s Testing -p test_api_docs.py
+          python3 scripts/build_api_docs.py --force
+          python3 scripts/build_api_docs.py --check
 
       - name: Upload API reference
         uses: actions/upload-artifact@v4
@@ -67,4 +61,6 @@ jobs:
           path: |
             build/doxygen/app
             build/doxygen/libuxplay
+            build/doxygen/api-diff.md
+            build/doxygen/api-diff.json
           retention-days: 14

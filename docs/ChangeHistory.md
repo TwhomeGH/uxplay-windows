@@ -1,5 +1,70 @@
 # ChangeHistory
 
+## 2026.11.22 02:49 修正設定儲存自我占用並移除直接覆寫備援
+
+**類型**: 修正
+
+### 問題 - 設定內容比對用的讀取 handle 尚未關閉，Windows 原子替換因此存取被拒，隨後又以直接截斷覆寫掩蓋失敗
+
+### 根因 - QFile existing 的生命週期延伸到 QSaveFile commit 之後；Text 寫入還會將 LF 轉成 CRLF，影響下次內容比對
+
+### 修改 - 抽出正式原子儲存函式，以獨立作用域關閉讀取 handle 後才提交，內容相同時不重寫
+
+八支原生回歸、固定 build/dev 執行檔建置與 API 文件產生通過。測試僅使用工作區副本；未改動使用者真正設定檔或 ACL，亦未宣稱排除所有外部程序占用與權限問題。
+
+- 停用 direct write fallback，檢查完整寫入與 commit，真正失敗時回傳 false 並保留原有設定
+- 使用原始 JSON bytes 寫入，新增外部占用保留、解除占用重試、CRLF 相容與失敗路徑回歸
+
+**相關文件**:
+
+- src/settingsfile.h
+- Testing/README.md
+
+---
+
+## 2026.11.22 02:36 新增 API 增量建置與 VSCode 快速檢查偵錯入口
+
+**類型**: 新增
+
+### 問題 - 兩套 API 每次都完整產生，缺少可快速檢查過期狀態與追查差異的 VSCode 入口
+
+### 修改 - PowerShell 與 CI 共用內容雜湊協調器，依 Doxygen 版本、來源與標籤相依增量產生，提供唯讀 Check 與強制 Force
+
+十一項協調器回歸通過，實際兩套文件建置及最新狀態檢查通過。宣告差異報告包含變更前後內容，不視為完整 ABI 檢查；產物以 metadata 快取加速，來源仍讀內容雜湊。候選與先前產物保留於忽略的 build 目錄，不自動清理。Windows 短暫拒絕搬移時重試，持續失敗仍回報並還原。
+
+- VSCode 新增 docs check／rebuild 工作與 Debug API docs check 偵錯，錯誤位置接到問題面板，App 原有 F5 流程不變
+- 候選文件零警告與跨站連結驗證後才替換，保留前一版並在替換失敗時還原，以作業系統鎖避免並行寫入
+
+**相關文件**:
+
+- scripts/build_docs.ps1
+- scripts/build_api_docs.py
+- docs/DEVELOPERS-GUIDE.md
+
+---
+
+## 2026.11.22 02:12 新增獨立 HUD 與舊原生疊層的即時切換
+
+**類型**: 新增
+
+### 問題 - 舊 HudOverlay 草稿尚未接入，HUD 只能使用獨立視窗
+
+### 修改 - 新增 HUD 顯示方式選項，hud.mode 保存 window 或 overlay，舊設定與無效模式預設使用獨立視窗
+
+七支原生回歸通過，包含 50 輪疊層附著／換 owner／銷毀；302 項翻譯完整，兩套 Doxygen 零警告，固定 build/dev 執行檔建置通過。D3D11 實際串流重疊呈現與視覺定位仍待驗收，未宣稱舊疊層可避免所有呈現停滯。
+
+- 接回原生疊層，切換及關閉時解除 HWND 附著與停止 timer；影片 owner 銷毀後清除失效 handle
+- 補齊中文 API 註釋、五項 UI 翻譯與 HWND 生命週期回歸，Runtime Debug 顯示 HUD 模式
+- CMake 配置固定更新編譯資料庫，避免 VSCode 沿用舊檔而漏掉已接入的 hudoverlay.cpp
+
+**相關文件**:
+
+- src/hudoverlay.h
+- Testing/README.md
+- docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.22 01:58 補齊 VSCode 未建置草稿的 Qt 標頭解析路徑
 
 **類型**: 修正

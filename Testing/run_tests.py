@@ -55,7 +55,10 @@ def main():
     qt_test("gpu_probe_test", ["Testing/gpu_probe_test.cpp"], ["Qt6Core"],
             ["-ld3d11", "-ldxgi", "-ldxguid", "-luuid"])
     qt_test("logging_test", ["Testing/logging_test.cpp", "src/logging.cpp"], ["Qt6Core", "Qt6Gui"])
-    print("All 6 native regression programs passed.")
+    qt_test("hud_overlay_test", ["Testing/hud_overlay_test.cpp", "src/hudoverlay.cpp"],
+            ["Qt6Core"], ["-luser32", "-lgdi32"])
+    qt_test("settings_file_test", ["Testing/settings_file_test.cpp", "src/settingsfile.cpp"], ["Qt6Core"])
+    print("All 8 native regression programs passed.")
 
 
 if __name__ == "__main__":

@@ -3,6 +3,8 @@ project(AirPlayGUI LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# 手動重新配置時也輸出真實編譯資料，避免 VSCode 沿用舊檔而漏掉新來源。
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_AUTOMOC ON)
 
 find_package(Qt6 COMPONENTS Core Widgets Network REQUIRED)
@@ -49,8 +51,10 @@ add_executable(uxplay-windows WIN32
     src/main.cpp
     src/mainwindow.cpp
     src/hudwindow.cpp
+    src/hudoverlay.cpp
     src/airplayworker.cpp
     src/settings.cpp
+    src/settingsfile.cpp
     src/logging.cpp
     src/mdns_responder.cpp
     src/cleanoutputwindow.cpp

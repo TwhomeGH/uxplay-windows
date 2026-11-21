@@ -63,7 +63,7 @@
 - [x] `Native (device)` 解析度預設（2360x1640 實測 H.265）。
 - [x] 新增 720p 解析度，補效能／codec 測試缺口。
 - [x] Media Info HUD：點擊穿透疊層、主視窗／tray 開關、左上／右上。
-- [ ] 原生 HUD 長時間串流與視窗定位驗收；已移除阻塞的 textoverlay，改用獨立 HudWindow。
+- [ ] HUD 兩種顯示模式的長時間串流與視窗定位驗收；預設獨立 HudWindow，可選舊原生 HudOverlay，不使用 textoverlay。
 - [x] FPS／frame interval／last frame age telemetry（HUD）。
 - [x] HUD 欄位勾選（client／status／video／output／decoder／renderer／fps／audio）。
 - [x] 影片 Decoder／Renderer 資訊回報。

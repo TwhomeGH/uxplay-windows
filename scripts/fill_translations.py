@@ -404,6 +404,14 @@ translations = {
     },
 }
 
+translations["MainWindow"].update({
+    "HUD display": "HUD 顯示方式",
+    "Separate window": "獨立視窗",
+    "Video overlay (legacy)": "影片疊層（舊實作）",
+    "Show media information using the selected HUD display mode.": "使用選定的 HUD 顯示方式顯示媒體資訊。",
+    "The legacy overlay follows the video window. If video presentation stalls, switch back to the separate window.": "舊疊層會跟隨影片視窗。若畫面呈現停滯，請切回獨立視窗。",
+})
+
 path = Path(__file__).resolve().parents[1] / "translations/uxplay-windows_zh_TW.ts"
 tree = ET.parse(path)
 root = tree.getroot()

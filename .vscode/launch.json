@@ -56,6 +56,22 @@
                 }
             ],
             "preLaunchTask": "build-dev"
+        },
+        {
+            "name": "Debug API docs check",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/build_api_docs.py",
+            "args": [
+                "--check"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "env": {
+                "DOXYGEN": "${config:msys2.prefix}/bin/doxygen.exe",
+                "PYTHONUTF8": "1"
+            }
         }
     ]
 }

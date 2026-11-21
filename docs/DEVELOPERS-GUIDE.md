@@ -25,17 +25,24 @@
 | `i18n: update catalog` | `lupdate` 更新 `.ts` |
 | `i18n: check` | 嚴格檢查翻譯（需要 lupdate） |
 | `i18n: check catalog only` | 沒有 lupdate 時只驗 catalog |
-| `docs: api` | 建置 Doxygen API 並開啟 |
+| `docs: check` | 唯讀檢查兩套 API 是否過期，位置顯示於「問題」面板 |
+| `docs: api` | 依差異增量產生兩套 API 並開啟 App |
+| `docs: libuxplay api` | 增量產生並開啟引擎 API |
+| `docs: rebuild` | 強制重建，輸出 API 宣告差異報告 |
 | `diagnostics: viewer` | 開啟本機診斷檢視器 |
 
 按 `Ctrl+Shift+B` 可直接跑 `build-dev`；其他任務從
 `Terminal → Run Task...` 選取。F5 使用 `.vscode/launch.json` 的 gdb 設定。
+要逐行追查文件檢查，可在 F5 選單改選 `Debug API docs check`，並在
+`scripts/build_api_docs.py` 設中斷點；此入口需要 Python Debugger 擴充套件。
+原 App 偵錯的 `build-dev` 前置工作不會執行文件建置。
 
 IntelliSense 優先使用 `build/dev/compile_commands.json`。未加入 CMake 的草稿
 沒有編譯項目，會使用 `.vscode/c_cpp_properties.json` 的備援 includePath；
 其中需包含 Qt6 根目錄、各模組及 `win32-g++` mkspecs，不能只填 UCRT64 的
 `include`。路徑統一沿用 `msys2.prefix`，不手改生成的編譯資料庫，也不為了解析
 草稿而把它加入主程式建置。
+根 CMake 設定會固定匯出編譯資料庫；HudOverlay 現已接入，可直接取得其真實編譯參數。
 
 ## 最快路徑
 
@@ -98,14 +105,33 @@ API 參考分成兩套，各自維護設定與範圍：
 
 ```powershell
 pwsh -NoProfile -File scripts/build_docs.ps1 -Open
+pwsh -NoProfile -File scripts/build_docs.ps1 -Check
+pwsh -NoProfile -File scripts/build_docs.ps1 -Force
 pwsh -NoProfile -File scripts/build_docs.ps1 -Target Libuxplay -Open
 ```
 
-預設與 `-Target App` 都會先建置引擎標籤檔，再建置 App 的交叉連結；
+預設與 `-Target App` 都會先檢查引擎，再視來源與標籤相依差異產生必要文件；
 `-Target Libuxplay` 可單獨建置引擎。兩套 API 放在忽略的 `build/doxygen/`，與 changelogkit 匯出的 `_site/` 分離。
 VSCode 任務 `docs: api` 開啟 App，`docs: libuxplay api` 開啟引擎。
 腳本可由 `DOXYGEN` 指定工具；沒有本機 Doxygen 時才嘗試 Docker。
 成功條件是兩個入口及標籤檔存在、Doxygen 警告為零；CI 也以相同順序產生。
+
+PowerShell 入口與 CI 共用 `scripts/build_api_docs.py`，需要 Python 3.10+。
+檢查不使用 Git 是否乾淨或來源時間戳，而是內容雜湊、Doxyfile 與建置腳本內容、
+Doxygen 版本及引擎標籤相依。已產生檔案以大小／修改時間快取 SHA，變動時才重讀，
+並檢查缺失與新增產物。Docker 版本無法在不啟動容器時確認，因此採保守重建。
+
+`-Check` 不寫入產物，最新回傳 0，過期回傳 1，工具或建置錯誤回傳 2；
+引擎待更新時 App 的標籤相依會保守列為需確認。正常產生只更新過期部分；
+引擎僅註釋改動且標籤未變時，不必重建 App。
+
+成功基線在 `build/doxygen/state.json`；`api-diff.md` 與 `api-diff.json` 列出
+相較上次成功建置的新增、移除與宣告變更，包含變更前後宣告，不等同完整 ABI 檢查。
+第一次是建立基線，不應把列出的所有符號解讀成這次新增的功能。
+
+先在 `build/doxygen/runs` 產生候選，確認零警告與交叉連結後才啟用。建置失敗
+保留上次成功產物；替換失敗會還原，且寫入鎖防止同時建置。前一版與失敗候選
+保留供檢查，不自動清理。不要將 `runs` 當成對外 API 掛載來源。
 
 ### changelogkit 的 API 文件入口
 
@@ -872,6 +898,16 @@ user mode 不可行，需 libusb0 upper filter 與簽章 driver，未實作。
 ## 目前限制
 
 ### 日誌與診斷驗證
+
+- 設定儲存先在獨立作用域比對並關閉舊檔，再以 QSaveFile 原子替換。
+  內容相同時不寫入；若有外部占用或其他寫入錯誤，回傳失敗並保留原檔，
+  不再以直接 truncate 備援覆寫。呼叫端應序列化儲存要求，跨程序版本衝突另需處理。
+
+- 「HUD 顯示方式」可即時切換「獨立視窗」與「影片疊層（舊實作）」，
+  設定保存在 `hud.mode`（`window`／`overlay`），不重新啟動引擎。舊設定
+  未指定模式或值無效時回到獨立視窗。邊距與四角位置只在疊層模式生效。
+- 疊層附著於影片 owner，影片視窗銷毀或關閉 HUD 時解除附著；與 D3D11
+  視窗重疊可能影響呈現，若出現停滯可切回獨立視窗。實機串流仍需驗收。
 
 - dev 固定使用 `build/dev/uxplay-windows.exe`，主要由 VSCode 啟動偵錯。
   建置前先停止該偵錯程序；不要另取名字繞過執行檔占用。

@@ -20,7 +20,6 @@ INPUT                  = src docs/API-GUIDE.md
 FILE_PATTERNS          = *.h *.hpp *.c *.cpp
 RECURSIVE              = YES
 EXCLUDE_PATTERNS       = */build/* */_site/* */3rdparty/*
-EXCLUDE                = src/hudoverlay.cpp src/hudoverlay.h
 
 EXTRACT_ALL            = YES
 EXTRACT_PRIVATE        = NO
@@ -61,3 +60,5 @@ WARN_LOGFILE           = doxygen-warnings.log
 
 # Build libuxplay documentation first; resolve host API links through its tag file.
 TAGFILES               = libuxplay/build/doxygen/libuxplay/libuxplay.tag=../libuxplay
+
+GENERATE_TAGFILE       = build/doxygen/app/app.tag

@@ -1,5 +1,10 @@
 # 音訊緩衝回歸測試
 
+文件協調器可獨立驗證，不需編譯原生 App：
+`python -m unittest discover -s Testing -p test_api_docs.py`。
+涵蓋唯讀檢查、內容與時間戳差異、產物缺失、標籤相依、失敗保留、替換還原、
+API 宣告差異、輸出邊界、併發鎖、快取與短暫存取拒絕重試。fixture 保留在忽略的 `build/api-docs-test-*`。
+
 整輪入口：`python Testing/run_tests.py`，預設沿用 `build/dev/CMakeCache.txt`
 的工具鏈，也可指定 `--prefix <UCRT64 路徑>`。測試執行檔統一放在
 `build/Testing`，主程式仍使用 `build/dev/uxplay-windows.exe` 與 VSCode 偵錯。
@@ -7,6 +12,16 @@
 日誌測試刻意阻塞主控台讀取，驗證多執行緒產生日誌不等待 I/O、佇列容量限制、
 溢位摘要、錯誤優先保留、flush 逾時、關閉排空、檔案輪替與重新安裝。
 日誌 fixture 保留在忽略的 `build/logging-test-*`，供需要時檢查。
+
+`hud_overlay_test.cpp` 使用真正的 Win32 HWND 與隱藏的影片 owner，驗證
+50 輪重複附著、換 owner、顯示旗標、解除附著與 owner 銷毀後的 timer／視窗回收。
+此測試不顯示影片，不代表 D3D11 串流重疊時的呈現或視覺定位已驗收。
+
+`settings_file_test.cpp` 直接測試正式使用的 `settingsfile::writeAtomically`，
+涵蓋初次建立、更新、未變更不重寫、外部讀取占用時保留原檔、解除占用後重試、
+CRLF 相容及 open 失敗。測試副本保留於 `build/settings-file-test-*`，不碰 AppData。
+`settings_commit_probe.cpp` 是原始自我占用的重現工具，不代表正式儲存函式；
+要確認修正請執行前者或整輪入口。
 
 在專案根目錄的 MSYS2 UCRT64 shell 執行：
 

@@ -1,4 +1,5 @@
 #include "settings.h"
+#include "settingsfile.h"
 
 #include <QDebug>
 #include <QDir>
@@ -10,7 +11,6 @@
 #include <QJsonParseError>
 #include <QProcess>
 #include <QRegularExpression>
-#include <QSaveFile>
 #include <QSettings>
 #include <QStandardPaths>
 
@@ -141,6 +141,7 @@ AppSettings AppSettings::fromJson(const QString &path, bool *ok) {
             .toBool(settings.diagnosticsEnabled);
 
     const QJsonObject hud = object.value(QStringLiteral("hud")).toObject();
+    settings.hudMode = hud.value(QStringLiteral("mode")).toString(settings.hudMode);
     settings.hudEnabled =
         hud.value(QStringLiteral("enabled")).toBool(settings.hudEnabled);
     settings.hudCorner =
@@ -227,11 +228,6 @@ AppSettings AppSettings::fromJson(const QString &path, bool *ok) {
 
 bool AppSettings::save() const {
     const QString path = filePath();
-    if (!QDir().mkpath(QFileInfo(path).absolutePath())) {
-        qWarning() << "Could not create settings directory for" << path;
-        return false;
-    }
-
     QJsonObject resolutionObject;
     resolutionObject[QStringLiteral("mode")] = resolution.mode;
     resolutionObject[QStringLiteral("width")] = resolution.width;
@@ -264,6 +260,7 @@ bool AppSettings::save() const {
     diagnosticsObject[QStringLiteral("enabled")] = diagnosticsEnabled;
 
     QJsonObject hudObject;
+    hudObject[QStringLiteral("mode")] = hudMode;
     hudObject[QStringLiteral("enabled")] = hudEnabled;
     hudObject[QStringLiteral("corner")] = hudCorner;
     hudObject[QStringLiteral("margin_x")] = hudMarginX;
@@ -299,45 +296,7 @@ bool AppSettings::save() const {
     object[QStringLiteral("extra_args")] = extra;
 
     const QByteArray data = QJsonDocument(object).toJson(QJsonDocument::Indented);
-    QFile existing(path);
-    if (existing.open(QIODevice::ReadOnly)) {
-        if (existing.readAll() == data) {
-            return true;
-        }
-    }
-
-    QSaveFile file(path);
-    // Some Windows profile/sandbox ACLs reject the temporary-file rename used
-    // by QSaveFile even though the target itself is writable. Fall back to a
-    // direct write instead of losing the setting (for example the HUD safety
-    // guard) after the user changes it.
-    file.setDirectWriteFallback(true);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        qWarning() << "Could not write settings file" << path << ":" << file.errorString();
-    } else {
-        file.write(data);
-        if (file.commit()) {
-            qDebug() << "Saved settings to" << path;
-            return true;
-        }
-        qWarning() << "Could not commit settings file" << path << ":" << file.errorString();
-    }
-
-    QFile direct(path);
-    if (!direct.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
-        qWarning() << "Could not write settings file directly" << path << ":"
-                   << direct.errorString();
-        return false;
-    }
-    if (direct.write(data) != data.size()) {
-        qWarning() << "Could not complete settings file write" << path << ":"
-                   << direct.errorString();
-        return false;
-    }
-    direct.flush();
-    direct.close();
-    qInfo() << "Saved settings to" << path << "(direct fallback)";
-    return true;
+    return settingsfile::writeAtomically(path, data);
 }
 
 int AppSettings::requestedWidth() const {
@@ -653,6 +612,9 @@ void AppSettings::sanitize() {
         videoWindow.hasGeometry = false;
     }
 
+    if (hudMode != QStringLiteral("window") && hudMode != QStringLiteral("overlay")) {
+        hudMode = QStringLiteral("window");
+    }
     if (hudCorner != QStringLiteral("top-left")
         && hudCorner != QStringLiteral("top-right")
         && hudCorner != QStringLiteral("bottom-left")
