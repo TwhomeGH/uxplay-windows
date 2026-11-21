@@ -7,6 +7,7 @@ on:
       - 'Doxyfile'
       - 'scripts/build_docs.ps1'
       - 'src/**'
+      - 'libuxplay'
       - 'libuxplay/**'
       - '.github/workflows/docs.yml'
   pull_request:
@@ -15,6 +16,7 @@ on:
       - 'Doxyfile'
       - 'scripts/build_docs.ps1'
       - 'src/**'
+      - 'libuxplay'
       - 'libuxplay/**'
       - '.github/workflows/docs.yml'
   workflow_dispatch:
@@ -44,18 +46,25 @@ jobs:
 
       - name: Generate API reference
         run: |
-          mkdir -p _site
+          mkdir -p build/doxygen libuxplay/build/doxygen
+          (cd libuxplay && doxygen Doxyfile)
+          cp -a libuxplay/build/doxygen/libuxplay build/doxygen/
           doxygen Doxyfile
-          test -f _site/api/index.html
-          if [ -s doxygen-warnings.log ]; then
-            echo "Doxygen warnings:" >&2
-            cat doxygen-warnings.log >&2
-            exit 1
-          fi
+          test -f build/doxygen/app/index.html
+          test -f build/doxygen/libuxplay/index.html
+          test -f build/doxygen/libuxplay/libuxplay.tag
+          for warnings in doxygen-warnings.log libuxplay/doxygen-warnings.log; do
+            if [ -s "$warnings" ]; then
+              cat "$warnings" >&2
+              exit 1
+            fi
+          done
 
       - name: Upload API reference
         uses: actions/upload-artifact@v4
         with:
           name: api-reference
-          path: _site/api
+          path: |
+            build/doxygen/app
+            build/doxygen/libuxplay
           retention-days: 14

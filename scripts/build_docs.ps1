@@ -1,86 +1,101 @@
-<#
+﻿<#
 .SYNOPSIS
-    Build the local API reference (Doxygen) into _site/api.
-
+    建置 App 與 libuxplay 的獨立 Doxygen API 參考。
 .DESCRIPTION
-    Uses a local doxygen if available; otherwise runs Doxygen in a disposable
-    Ubuntu container. The generated site is intentionally not committed.
-
-    Examples:
-      pwsh -NoProfile -File scripts/build_docs.ps1
-      pwsh -NoProfile -File scripts/build_docs.ps1 -Open
-      pwsh -NoProfile -File scripts/build_docs.ps1 -ForceDocker
+    預設先產生 libuxplay 的標籤檔，再產生 App 文件與跨專案連結。
+    使用本機 Doxygen；找不到時才使用 Docker。文件與警告不進版控。
+.PARAMETER Target
+    All 建置兩套；App 亦重建引擎相依文件；Libuxplay 只建置引擎。
+.PARAMETER Open
+    建置成功後開啟所選文件，All 預設開啟 App。
+.PARAMETER ForceDocker
+    明確使用 Docker 的 Ubuntu 環境建置。
+.EXAMPLE
+    ./scripts/build_docs.ps1 -Target All
+.EXAMPLE
+    ./scripts/build_docs.ps1 -Target Libuxplay -Open
 #>
 [CmdletBinding()]
 param(
+    [ValidateSet('All', 'App', 'Libuxplay')]
+    [string]$Target = 'All',
     [switch]$Open,
     [switch]$ForceDocker
 )
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-$doxyfile = Join-Path $repoRoot 'Doxyfile'
-$index = Join-Path $repoRoot '_site/api/index.html'
-
-function Step([string]$message) {
-    Write-Host "==> $message" -ForegroundColor Cyan
+$engineRoot = Join-Path $repoRoot 'libuxplay'
+$projects = @(@{ Name = 'libuxplay'; Root = $engineRoot })
+if ($Target -ne 'Libuxplay') {
+    $projects += @{ Name = 'uxplay-windows'; Root = $repoRoot }
 }
-
-if (-not (Test-Path $doxyfile)) {
-    throw "Doxyfile not found: $doxyfile"
-}
-
-$siteRoot = Join-Path $repoRoot '_site'
-New-Item -ItemType Directory -Force -Path $siteRoot | Out-Null
 
 $candidates = @()
 if (-not $ForceDocker) {
-    $candidates += (Get-Command doxygen -ErrorAction SilentlyContinue).Source
     if ($env:DOXYGEN) { $candidates += $env:DOXYGEN }
+    $command = Get-Command doxygen -ErrorAction SilentlyContinue
+    if ($command) { $candidates += $command.Source }
     if ($env:MSYSTEM_PREFIX) {
-        $candidates += (Join-Path $env:MSYSTEM_PREFIX 'bin/doxygen.exe')
+        $candidates += Join-Path $env:MSYSTEM_PREFIX 'bin/doxygen.exe'
     }
     if ($env:MSYS2_ROOT) {
-        $candidates += (Join-Path $env:MSYS2_ROOT 'ucrt64/bin/doxygen.exe')
+        $candidates += Join-Path $env:MSYS2_ROOT 'ucrt64/bin/doxygen.exe'
     }
 }
-$doxygen = $candidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+$doxygen = $candidates | Where-Object { $_ -and (Test-Path -LiteralPath $_) } | Select-Object -First 1
 $stopwatch = [Diagnostics.Stopwatch]::StartNew()
 
+foreach ($project in $projects) {
+    $config = Join-Path $project.Root 'Doxyfile'
+    New-Item -ItemType Directory -Force -Path (Join-Path $project.Root 'build/doxygen') | Out-Null
+    if (-not (Test-Path -LiteralPath $config)) { throw "Missing Doxyfile: $config" }
+}
+
 if ($doxygen) {
-    Step "doxygen $doxygen"
-    Push-Location $repoRoot
-    try {
-        & $doxygen Doxyfile
-        if ($LASTEXITCODE -ne 0) { throw "doxygen failed with exit $LASTEXITCODE" }
-    } finally {
-        Pop-Location
+    foreach ($project in $projects) {
+        Write-Host "==> Doxygen: $($project.Name)" -ForegroundColor Cyan
+        Push-Location $project.Root
+        try {
+            & $doxygen Doxyfile
+            if ($LASTEXITCODE -ne 0) { throw "Doxygen failed: $($project.Name)" }
+        } finally {
+            Pop-Location
+        }
     }
 } else {
-    $docker = Get-Command docker -ErrorAction SilentlyContinue
-    if (-not $docker) {
-        throw 'doxygen is not installed and docker is unavailable. Install Doxygen or Docker Desktop.'
+    if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+        throw 'Doxygen and Docker are unavailable. Set DOXYGEN or install Doxygen.'
     }
-
-    Step 'doxygen via ubuntu:24.04 container'
-    & docker run --rm `
-        -v "${repoRoot}:/src" `
-        -w /src `
-        ubuntu:24.04 `
-        bash -lc 'apt-get update -qq >/dev/null && apt-get install -y -qq doxygen >/dev/null && doxygen Doxyfile'
-    if ($LASTEXITCODE -ne 0) { throw "dockerized doxygen failed with exit $LASTEXITCODE" }
+    $generate = 'cd /src/libuxplay && doxygen Doxyfile'
+    if ($Target -ne 'Libuxplay') { $generate += ' && cd /src && doxygen Doxyfile' }
+    & docker run --rm -v "${repoRoot}:/src" -w /src ubuntu:24.04 bash -lc `
+        "apt-get update -qq >/dev/null && apt-get install -y -qq doxygen >/dev/null && $generate"
+    if ($LASTEXITCODE -ne 0) { throw 'Dockerized Doxygen failed.' }
 }
 
+foreach ($project in $projects) {
+    $folder = if ($project.Name -eq 'libuxplay') { 'libuxplay' } else { 'app' }
+    $index = Join-Path $project.Root "build/doxygen/$folder/index.html"
+    if (-not (Test-Path -LiteralPath $index)) { throw "Missing generated index: $index" }
+    $warnings = Join-Path $project.Root 'doxygen-warnings.log'
+    if ((Test-Path -LiteralPath $warnings) -and (Get-Item -LiteralPath $warnings).Length -gt 0) {
+        Get-Content -LiteralPath $warnings -Encoding UTF8 | Write-Host
+        throw "Doxygen warnings: $warnings"
+    }
+    Write-Host "API ready: $index" -ForegroundColor Green
+}
+$tagFile = Join-Path $engineRoot 'build/doxygen/libuxplay/libuxplay.tag'
+if (-not (Test-Path -LiteralPath $tagFile)) { throw "Missing engine tag file: $tagFile" }
+# Keep app/libuxplay as siblings, matching changelogkit's exported mount names.
+# The engine's own output remains available to its independent configuration.
+$apiRoot = Join-Path $repoRoot 'build/doxygen'
+New-Item -ItemType Directory -Force -Path $apiRoot | Out-Null
+Copy-Item -LiteralPath (Join-Path $engineRoot 'build/doxygen/libuxplay') `
+    -Destination $apiRoot -Recurse -Force
 $stopwatch.Stop()
-
-if (-not (Test-Path $index)) {
-    throw "Doxygen finished but $index is missing"
-}
-
-$size = (Get-Item $index).Length
-Write-Host ("API reference ready: {0} ({1:N0} bytes, {2:N1}s)" -f $index, $size, $stopwatch.Elapsed.TotalSeconds) -ForegroundColor Green
-Write-Host "warnings: $repoRoot\doxygen-warnings.log (if any)"
-
+Write-Host ("Completed in {0:N1}s" -f $stopwatch.Elapsed.TotalSeconds)
 if ($Open) {
-    Start-Process $index
+    $folder = if ($Target -eq 'Libuxplay') { 'libuxplay' } else { 'app' }
+    Start-Process (Join-Path $apiRoot "$folder/index.html")
 }

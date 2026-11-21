@@ -1,5 +1,5 @@
 # Doxygen configuration for the uxplay-windows API reference.
-# Generated output goes to _site/api; it is intentionally not committed.
+# Generated output goes to build/doxygen/app; it is intentionally not committed.
 #
 # Local preview:
 #   pwsh -NoProfile -File scripts/build_docs.ps1 -Open
@@ -10,19 +10,17 @@
 PROJECT_NAME           = "uxplay-windows"
 PROJECT_NUMBER         = "0.1"
 PROJECT_BRIEF          = "Windows AirPlay receiver GUI and UxPlay engine integration"
-OUTPUT_DIRECTORY       = _site/api
+OUTPUT_DIRECTORY       = build/doxygen
 OUTPUT_LANGUAGE        = English
 CREATE_SUBDIRS         = NO
 ALLOW_UNICODE_NAMES    = YES
 FULL_PATH_NAMES        = NO
 
-INPUT                  = src \
-                         libuxplay/uxplay_api.h \
-                         libuxplay/renderers \
-                         docs/API-GUIDE.md
+INPUT                  = src docs/API-GUIDE.md
 FILE_PATTERNS          = *.h *.hpp *.c *.cpp
 RECURSIVE              = YES
-EXCLUDE_PATTERNS       = */build/* */_site/* */3rdparty/* */libuxplay/lib/*
+EXCLUDE_PATTERNS       = */build/* */_site/* */3rdparty/*
+EXCLUDE                = src/hudoverlay.cpp src/hudoverlay.h
 
 EXTRACT_ALL            = YES
 EXTRACT_PRIVATE        = NO
@@ -40,7 +38,7 @@ INCLUDE_PATH           = src libuxplay
 PREDEFINED             = _WIN32 Q_OS_WIN
 
 GENERATE_HTML          = YES
-HTML_OUTPUT            = .
+HTML_OUTPUT            = app
 HTML_DYNAMIC_SECTIONS  = YES
 GENERATE_TREEVIEW      = YES
 DISABLE_INDEX          = NO
@@ -60,3 +58,6 @@ CALLER_GRAPH           = NO
 
 QUIET                  = YES
 WARN_LOGFILE           = doxygen-warnings.log
+
+# Build libuxplay documentation first; resolve host API links through its tag file.
+TAGFILES               = libuxplay/build/doxygen/libuxplay/libuxplay.tag=../libuxplay

@@ -1,5 +1,64 @@
 # ChangeHistory
 
+## 2026.11.22 01:55 建立修改時補齊註釋的維護規則
+
+**類型**: 文件
+
+### 問題 - 既有程式缺少必要註釋，API 索引可產生但不能代表契約完整
+
+### 修改 - TODO 列入改哪裡補哪裡的中文註釋規則，明確要求參數、單位、擁有權、執行緒與設計原因
+
+- 依日誌、GPU 探測、啟停生命週期、設定與診斷排定優先順序，保留實際補齊項目未完成狀態
+
+**相關文件**: TODO.md
+
+---
+
+## 2026.11.22 01:48 掛載 App 與引擎 API 至 changelogkit
+
+**類型**: 新增
+
+### 問題 - 兩套 Doxygen 產物尚未接到 changelogkit，且原本放在匯出清理範圍內
+
+### 根因 - 缺少 tool.changelog.api 設定，Doxygen 產物與靜態 export 共用 _site
+
+### 修改 - Doxygen 來源改至 build/doxygen，主專案掛載 app 與 libuxplay 兩個 API，明確啟用 embed
+
+已驗證動態掛載 HTTP 200、主專案與引擎獨立匯出、API 下拉與交叉連結，以及匯出後來源產物仍存在。預覽輸出使用新的 build 子目錄，未清理既有 _site。
+
+- 引擎保留自身建置產物，整合腳本整理成相鄰目錄，維持本機與匯出的 Doxygen 交叉連結
+- 文件腳本及 CI 預建輸出父目錄並更新 artifact 位置，開發指南列出先建置再匯出的順序
+
+**相關文件**:
+
+- .changelog.toml
+- docs/DEVELOPERS-GUIDE.md
+
+---
+
+## 2026.11.22 01:35 拆分 App 與 libuxplay API 文件入口
+
+**類型**: 新增
+
+### 問題 - App API 與底層引擎參考混在同一設定，核心 RTP 與 NTP 未納入
+
+### 根因 - 只有主專案 Doxygen 入口，子模組缺少獨立文件與歷史設定
+
+### 修改 - 主 App 只產生宿主 API，先建置 libuxplay 標籤檔再建立跨專案連結
+
+本機兩套 Doxygen 均零警告，入口相對連結、引擎核心索引與 changelogkit 文件分類已驗證。未宣稱底層所有既有標頭皆完成參數文件，亦未改變執行期行為。
+
+- 文件腳本與 VSCode 提供獨立引擎入口，CI 同時產生並保存兩套文件
+- libuxplay 自行維護 API 導讀、公開介面註解、changelogkit 歷史與待辦
+
+**相關文件**:
+
+- docs/API-GUIDE.md
+- libuxplay/docs/API-GUIDE.md
+- docs/DEVELOPERS-GUIDE.md
+
+---
+
 ## 2026.11.22 01:10 背景批次日誌與開發收束
 
 **類型**: 修正

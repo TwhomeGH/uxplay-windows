@@ -3,6 +3,11 @@
 **用途**：這是 Doxygen 的預設首頁，提供程式碼地圖與閱讀順序；詳細的
 類別、參數與回傳值仍由原始碼註解產生。
 
+本入口只產生主 App 的 Qt／設定／診斷 API。引擎、RTP 與 renderer 移至
+<a href="../libuxplay/index.html">libuxplay API 參考</a>。
+建置時先產生引擎標籤檔，因此本頁的 start_uxplay()、stop_uxplay() 可連到
+對應的引擎 API；各自的變更歷史亦獨立維護。
+
 ## 怎麼看這份 API
 
 | 想做什麼 | 從哪裡開始 |
@@ -69,11 +74,16 @@ pwsh -NoProfile -File scripts/build_docs.ps1 -Open
 輸出：
 
 ```text
-_site/api/index.html
+build/doxygen/app/index.html
+build/doxygen/libuxplay/index.html
 ```
 
-`_site/` 不進版控。若本機沒有 Doxygen，腳本會嘗試用 Docker 的
+`build/doxygen/` 不進版控，且與 changelogkit 匯出的 `_site/` 分離。若本機沒有 Doxygen，腳本會嘗試用 Docker 的
 `ubuntu:24.04` 執行。VS Code 也可直接用任務 `docs: api`。
+
+changelogkit 的「API 文件」下拉同時提供這兩套站點。主專案設定以
+`embed = true` 支援靜態匯出；來源在 `build/doxygen`，匯出副本才位於
+`_site/api-docs/app` 與 `_site/api-docs/libuxplay`，避免來源被匯出清理移除。
 
 ## 相關文件
 

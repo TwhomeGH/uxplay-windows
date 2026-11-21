@@ -86,10 +86,13 @@
                 "-Open"
             ],
             "options": {
-                "cwd": "${workspaceFolder}"
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "DOXYGEN": "${config:msys2.prefix}\\bin\\doxygen.exe"
+                }
             },
             "problemMatcher": [],
-            "detail": "Build _site/api with Doxygen and open the index."
+            "detail": "Build both API references and open the App index."
         },
         {
             "label": "diagnostics: viewer",
@@ -103,6 +106,27 @@
             },
             "problemMatcher": [],
             "detail": "Open the local read-only diagnostics viewer."
+        },
+        {
+            "label": "docs: libuxplay api",
+            "type": "shell",
+            "command": "pwsh",
+            "args": [
+                "-NoProfile",
+                "-File",
+                "${workspaceFolder}/scripts/build_docs.ps1",
+                "-Target",
+                "Libuxplay",
+                "-Open"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "DOXYGEN": "${config:msys2.prefix}\\bin\\doxygen.exe"
+                }
+            },
+            "problemMatcher": [],
+            "detail": "Build and open the independent libuxplay API reference."
         }
     ]
 }

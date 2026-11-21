@@ -29,3 +29,20 @@ title = "使用與建置"
 color = "green"
 order = 10
 paths = ["README.md", "docs/BUILDING.md", "docs/DEVELOPERS-GUIDE.md"]
+
+# Generated API input stays outside export's _site cleanup boundary.
+[[tool.changelog.api]]
+id = "app"
+title = "主 App API"
+html = "build/doxygen/app"
+mount = "app"
+embed = true
+order = 10
+
+[[tool.changelog.api]]
+id = "libuxplay"
+title = "libuxplay API"
+html = "build/doxygen/libuxplay"
+mount = "libuxplay"
+embed = true
+order = 20

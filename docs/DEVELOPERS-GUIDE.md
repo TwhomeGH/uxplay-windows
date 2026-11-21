@@ -9,7 +9,7 @@
 | --- | --- |
 | 先跑起來、建置、除錯 | 本文件〈最快路徑〉與〈執行與除錯〉 |
 | 程式碼模組與閱讀順序 | [API-GUIDE.md](./API-GUIDE.md) |
-| 類別／函式／參數 | `_site/api/index.html`（由 Doxygen 產生） |
+| 類別／函式／參數 | `build/doxygen/app/index.html`（由 Doxygen 產生） |
 | 翻譯規範與 fallback | [translations/README.md](../translations/README.md) |
 | 最近改了什麼 | [ChangeHistory.md](./ChangeHistory.md) |
 | 待辦與優先順序 | [TODO.md](../TODO.md) |
@@ -83,21 +83,73 @@ exe 路徑**的舊 instance，再啟動新 build，避免舊 process 鎖住檔�
 
 ## API 文件
 
-Doxygen 入口在 [API-GUIDE.md](./API-GUIDE.md)，設定在 `Doxyfile`。
+API 參考分成兩套，各自維護設定與範圍：
+
+| 專案 | 設定 | 導讀 | 產生的入口 |
+| --- | --- | --- | --- |
+| 主 App | `Doxyfile` | [API-GUIDE.md](./API-GUIDE.md) | `build/doxygen/app/index.html` |
+| libuxplay | `libuxplay/Doxyfile` | [引擎 API 導讀](../libuxplay/docs/API-GUIDE.md) | `build/doxygen/libuxplay/index.html` |
 
 ```powershell
 pwsh -NoProfile -File scripts/build_docs.ps1 -Open
+pwsh -NoProfile -File scripts/build_docs.ps1 -Target Libuxplay -Open
 ```
 
-輸出 `_site/api/index.html`，`_site/` 不進版控。VS Code 任務
-`docs: api` 等同這個指令；沒有本機 Doxygen 時腳本會嘗試 Docker。
+預設與 `-Target App` 都會先建置引擎標籤檔，再建置 App 的交叉連結；
+`-Target Libuxplay` 可單獨建置引擎。兩套 API 放在忽略的 `build/doxygen/`，與 changelogkit 匯出的 `_site/` 分離。
+VSCode 任務 `docs: api` 開啟 App，`docs: libuxplay api` 開啟引擎。
+腳本可由 `DOXYGEN` 指定工具；沒有本機 Doxygen 時才嘗試 Docker。
+成功條件是兩個入口及標籤檔存在、Doxygen 警告為零；CI 也以相同順序產生。
+
+### changelogkit 的 API 文件入口
+
+主專案 `.changelog.toml` 用兩個 `[[tool.changelog.api]]` 掛載
+`build/doxygen/app` 與 `build/doxygen/libuxplay`，在「API 文件」下拉選擇。
+兩者明確設定 `embed = true`，因此靜態匯出也會包含 HTML。
+
+建置腳本會將引擎原始產物保留在 `libuxplay/build/doxygen/libuxplay`，
+並整理至主專案的 `build/doxygen/libuxplay`，供共同掛載及發佈；兩份都屬於
+忽略的 build 產物。`app` 與 `libuxplay` 的相鄰目錄關係與掛載名稱一致，
+因此 Doxygen 自己產生的交叉連結在本機、動態掛載及靜態站都可沿用。
+changelogkit 本身不解析 tagfile 或提供符號深連結 adapter。
+
+```powershell
+pwsh -NoProfile -File scripts/build_docs.ps1
+python -m changelogkit serve --no-browser
+# 要建立靜態站時，先完成上方的 API 建置
+python -m changelogkit export _site
+```
+
+匯出後確認 `_site/api-docs/app/index.html` 與
+`_site/api-docs/libuxplay/index.html`。Doxygen 來源必須維持在 `build/doxygen`，
+不可放回 `_site`；export 會清理指定的輸出目錄。要做測試預覽時請指定全新的
+build 子目錄，以保留既有站點。舊版 Doxygen 需要的父目錄由腳本與 CI 預先建立。
+
+### 分開維護變更歷史
+
+主 App 的 `.changelog.toml`、`docs/ChangeHistory.md` 與 `TODO.md` 記錄
+宿主整合、UI 行為及採用的子模組版本。libuxplay 自己的同名設定與文件記錄
+底層協定、緩衝、renderer 與驗收，不把兩邊歷史混成一份。
+
+```powershell
+# 主 App 根目錄
+python -m changelogkit list --limit 5
+# 切換到引擎後，工具會使用引擎自己的設定
+cd libuxplay
+python -m changelogkit list --limit 5
+python -m changelogkit docs --check
+```
+
+新建引擎歷史以 `132a933` 為建立前程式基線；不追溯捏造舊紀錄。
+需要啟動網頁介面時，在想管理的專案根目錄執行 `python -m changelogkit serve`。
 
 Doxygen 只讀 `///` 與 `/** */`；新增公開 API 時請補上用途、參數與回傳值。
 
 ### CI 與 API 文件
 
 - `.github/workflows/docs.yml`：變更 `docs/**`、`Doxyfile` 或
-  `scripts/build_docs.ps1` 時產生 API，並上傳 `api-reference` artifact。
+  `scripts/build_docs.ps1` 時先產生引擎、再產生 App API，並將兩套輸出上傳至
+  `api-reference` artifact，保留目錄關係與相對連結。
 - `.github/workflows/checks.yml`：PR／手動執行翻譯檢查，不安裝建置環境、
   不觸發 nightly。
 - x64／arm64 build workflow：push `main` 時執行 `check_i18n.py`，並建置 nightly。
